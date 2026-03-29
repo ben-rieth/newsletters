@@ -36,6 +36,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 				ID: newsletter.ID.String(),
 				Name: newsletter.Name,
 				Frequency: string(newsletter.Frequency),
+				SendDay: int(newsletter.SendDay),
 				SendHour: int(newsletter.SendHour),
 				SendMinute: int(newsletter.SendMinute),
 				CreatedAt: newsletter.CreatedAt.Time,
@@ -44,5 +45,34 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		}
 
 		return out, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "create-newsletter",
+		Method: "POST",
+		Path: "/newsletters",
+		Summary: "Create a new newsletter",
+	}, func (ctx context.Context, input *types.CreateNewsletterInput) (*struct{}, error) {
+		var sendDay int32
+		
+		if input.Body.SendDay == nil {
+			sendDay = 0
+		} else {
+			sendDay = int32(*input.Body.SendDay)
+		}
+		
+		err := h.queries.CreateNewsletter(ctx, db.CreateNewsletterParams{
+			Name: input.Body.Name,
+			Frequency: db.Frequency(input.Body.Frequency),
+			SendDay: sendDay,
+			SendHour:  int32(input.Body.SendHour),
+			SendMinute: int32(input.Body.SendMinute),
+		})
+
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to create newsletter")
+		}
+
+		return nil, nil
 	})
 }

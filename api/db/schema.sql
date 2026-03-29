@@ -1,4 +1,4 @@
-\restrict JrsnndYLk2pKhYsSjtmyMjSIX9BQ0sUe75qHtPgi1z3om7pHTyEfa5Kegxjghne
+\restrict gUNWdhsMD1pkhvrQB5YWBgrjwPP8jGMwj84HYGo07jgAgfNOQzT0QxNmDtwogyi
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -37,7 +37,7 @@ CREATE TABLE public.newsletters (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     frequency public.frequency NOT NULL,
-    send_day integer,
+    send_day integer DEFAULT 0 NOT NULL,
     send_hour integer NOT NULL,
     send_minute integer DEFAULT 0 NOT NULL,
     last_sent_at timestamp with time zone,
@@ -75,7 +75,7 @@ ALTER TABLE ONLY public.schema_migrations
 -- PostgreSQL database dump complete
 --
 
-\unrestrict JrsnndYLk2pKhYsSjtmyMjSIX9BQ0sUe75qHtPgi1z3om7pHTyEfa5Kegxjghne
+\unrestrict gUNWdhsMD1pkhvrQB5YWBgrjwPP8jGMwj84HYGo07jgAgfNOQzT0QxNmDtwogyi
 
 
 --

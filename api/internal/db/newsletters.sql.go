@@ -19,7 +19,7 @@ VALUES ($1, $2, $3, $4, $5)
 type CreateNewsletterParams struct {
 	Name       string
 	Frequency  Frequency
-	SendDay    pgtype.Int4
+	SendDay    int32
 	SendHour   int32
 	SendMinute int32
 }

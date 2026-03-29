@@ -58,7 +58,7 @@ type Newsletter struct {
 	ID         pgtype.UUID
 	Name       string
 	Frequency  Frequency
-	SendDay    pgtype.Int4
+	SendDay    int32
 	SendHour   int32
 	SendMinute int32
 	LastSentAt pgtype.Timestamptz
