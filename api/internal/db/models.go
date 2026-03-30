@@ -54,8 +54,18 @@ func (ns NullFrequency) Value() (driver.Value, error) {
 	return string(ns.Frequency), nil
 }
 
+type Feed struct {
+	ID              string
+	NewsletterID    string
+	Name            string
+	Url             string
+	LastRetrievedAt pgtype.Timestamptz
+	CreatedAt       pgtype.Timestamptz
+	UpdatedAt       pgtype.Timestamptz
+}
+
 type Newsletter struct {
-	ID         pgtype.UUID
+	ID         string
 	Name       string
 	Frequency  Frequency
 	SendDay    int32

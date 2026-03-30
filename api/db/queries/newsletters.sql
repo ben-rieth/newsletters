@@ -1,14 +1,27 @@
 -- name: ListNewsletters :many
-SELECT * FROM newsletters
+SELECT * FROM newsletter
 ORDER BY created_at DESC;
 
 -- name: GetNewsletter :one
-SELECT * FROM newsletters
+SELECT * FROM newsletter
 WHERE id = $1;
 
 -- name: CreateNewsletter :exec
-INSERT INTO newsletters (name, frequency, send_day, send_hour, send_minute)
+INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute)
 VALUES ($1, $2, $3, $4, $5);
 
 -- name: DeleteNewsletter :exec
-DELETE FROM newsletters WHERE id = $1;
+DELETE FROM newsletter WHERE id = $1;
+
+-- name: UpdateNewsletter :exec
+UPDATE newsletter SET 
+    name = $1,
+    frequency = $2,
+    send_day = $3,
+    send_hour = $4,
+    send_minute = $5,
+    updated_at = NOW()
+WHERE id = $6;
+
+-- name: DoesNewsletterExist :one
+SELECT EXISTS(SELECT 1 FROM newsletter WHERE id = $1);

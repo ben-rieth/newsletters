@@ -7,12 +7,10 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createNewsletter = `-- name: CreateNewsletter :exec
-INSERT INTO newsletters (name, frequency, send_day, send_hour, send_minute)
+INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute)
 VALUES ($1, $2, $3, $4, $5)
 `
 
@@ -36,20 +34,31 @@ func (q *Queries) CreateNewsletter(ctx context.Context, arg CreateNewsletterPara
 }
 
 const deleteNewsletter = `-- name: DeleteNewsletter :exec
-DELETE FROM newsletters WHERE id = $1
+DELETE FROM newsletter WHERE id = $1
 `
 
-func (q *Queries) DeleteNewsletter(ctx context.Context, id pgtype.UUID) error {
+func (q *Queries) DeleteNewsletter(ctx context.Context, id string) error {
 	_, err := q.db.Exec(ctx, deleteNewsletter, id)
 	return err
 }
 
+const doesNewsletterExist = `-- name: DoesNewsletterExist :one
+SELECT EXISTS(SELECT 1 FROM newsletter WHERE id = $1)
+`
+
+func (q *Queries) DoesNewsletterExist(ctx context.Context, id string) (bool, error) {
+	row := q.db.QueryRow(ctx, doesNewsletterExist, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getNewsletter = `-- name: GetNewsletter :one
-SELECT id, name, frequency, send_day, send_hour, send_minute, last_sent_at, created_at, updated_at FROM newsletters
+SELECT id, name, frequency, send_day, send_hour, send_minute, last_sent_at, created_at, updated_at FROM newsletter
 WHERE id = $1
 `
 
-func (q *Queries) GetNewsletter(ctx context.Context, id pgtype.UUID) (Newsletter, error) {
+func (q *Queries) GetNewsletter(ctx context.Context, id string) (Newsletter, error) {
 	row := q.db.QueryRow(ctx, getNewsletter, id)
 	var i Newsletter
 	err := row.Scan(
@@ -67,7 +76,7 @@ func (q *Queries) GetNewsletter(ctx context.Context, id pgtype.UUID) (Newsletter
 }
 
 const listNewsletters = `-- name: ListNewsletters :many
-SELECT id, name, frequency, send_day, send_hour, send_minute, last_sent_at, created_at, updated_at FROM newsletters
+SELECT id, name, frequency, send_day, send_hour, send_minute, last_sent_at, created_at, updated_at FROM newsletter
 ORDER BY created_at DESC
 `
 
@@ -99,4 +108,36 @@ func (q *Queries) ListNewsletters(ctx context.Context) ([]Newsletter, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateNewsletter = `-- name: UpdateNewsletter :exec
+UPDATE newsletter SET 
+    name = $1,
+    frequency = $2,
+    send_day = $3,
+    send_hour = $4,
+    send_minute = $5,
+    updated_at = NOW()
+WHERE id = $6
+`
+
+type UpdateNewsletterParams struct {
+	Name       string
+	Frequency  Frequency
+	SendDay    int32
+	SendHour   int32
+	SendMinute int32
+	ID         string
+}
+
+func (q *Queries) UpdateNewsletter(ctx context.Context, arg UpdateNewsletterParams) error {
+	_, err := q.db.Exec(ctx, updateNewsletter,
+		arg.Name,
+		arg.Frequency,
+		arg.SendDay,
+		arg.SendHour,
+		arg.SendMinute,
+		arg.ID,
+	)
+	return err
 }

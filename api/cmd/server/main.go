@@ -36,6 +36,9 @@ func main() {
 	newsletterHandler := handler.NewNewsletterHandler(queries)
 	newsletterHandler.RegisterRoutes(api)
 
+	feedsHandler := handler.NewFeedHandler(queries)
+	feedsHandler.RegisterRoutes(api)
+
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{cfg.WebURL},
 		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},

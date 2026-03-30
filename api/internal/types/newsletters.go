@@ -6,26 +6,28 @@ type Newsletter struct {
 	ID string `json:"id"`
 	Name string `json:"name"`
 	Frequency string `json:"frequency"`
-	SendDay int `json:"send_day"`
-	SendHour int `json:"send_hour"`
-	SendMinute int `json:"send_minute"`
-	LastSentAt *time.Time `json:"last_sent_at,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	SendDay int `json:"sendDay"`
+	SendHour int `json:"sendHour"`
+	SendMinute int `json:"sendMinute"`
+	LastSentAt *time.Time `json:"lastSentAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type ListNewslettersOutput struct {
 	Body []Newsletter
 }
 
+type SubmittableNewsletterFields struct {
+	Name string `json:"name" minLength:"1"`
+	Frequency string `json:"frequency" enum:"daily,weekly,monthly"`
+	SendDay *int `json:"sendDay,omitempty" minimum:"0" maximum:"31"`
+	SendHour int `json:"sendHour" minimum:"0" maximum:"23"`
+	SendMinute int `json:"sendMinute" minimum:"0" maximum:"59"`
+}
+
 type CreateNewsletterInput struct {
-	Body struct {
-		Name string `json:"name" minLength:"1"`
-		Frequency string `json:"frequency" enum:"daily,weekly,monthly"`
-		SendDay *int `json:"send_day,omitempty" minimum:"0" maximum:"31"`
-		SendHour int `json:"send_hour" minimum:"0" maximum:"23"`
-		SendMinute int `json:"send_minute" minimum:"0" maximum:"59"`
-	}
+	Body SubmittableNewsletterFields
 }
 
 type GetNewsletterInput struct {
@@ -34,4 +36,9 @@ type GetNewsletterInput struct {
 
 type GetNewsletterOutput struct {
     Body Newsletter
+}
+
+type UpdateNewsletterInput struct {
+	ID string `path:"id"`
+	Body SubmittableNewsletterFields
 }

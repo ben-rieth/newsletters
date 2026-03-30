@@ -1,4 +1,4 @@
-\restrict gUNWdhsMD1pkhvrQB5YWBgrjwPP8jGMwj84HYGo07jgAgfNOQzT0QxNmDtwogyi
+\restrict 6qFhpwie48puRcCxAWyuvn5GSehe5ezGrI4FqX10eYQJTFq0CSavXVqqx3z7xQO
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -30,10 +30,25 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: newsletters; Type: TABLE; Schema: public; Owner: -
+-- Name: feed; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.newsletters (
+CREATE TABLE public.feed (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    newsletter_id uuid NOT NULL,
+    name text NOT NULL,
+    url text NOT NULL,
+    last_retrieved_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: newsletter; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.newsletter (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     name text NOT NULL,
     frequency public.frequency NOT NULL,
@@ -56,11 +71,19 @@ CREATE TABLE public.schema_migrations (
 
 
 --
--- Name: newsletters newsletters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: feed feed_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.newsletters
-    ADD CONSTRAINT newsletters_pkey PRIMARY KEY (id);
+ALTER TABLE ONLY public.feed
+    ADD CONSTRAINT feed_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: newsletter newsletter_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter
+    ADD CONSTRAINT newsletter_pkey PRIMARY KEY (id);
 
 
 --
@@ -72,10 +95,18 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
+-- Name: feed feed_newsletter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.feed
+    ADD CONSTRAINT feed_newsletter_id_fkey FOREIGN KEY (newsletter_id) REFERENCES public.newsletter(id) ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict gUNWdhsMD1pkhvrQB5YWBgrjwPP8jGMwj84HYGo07jgAgfNOQzT0QxNmDtwogyi
+\unrestrict 6qFhpwie48puRcCxAWyuvn5GSehe5ezGrI4FqX10eYQJTFq0CSavXVqqx3z7xQO
 
 
 --
