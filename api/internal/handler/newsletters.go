@@ -3,19 +3,22 @@ package handler
 import (
 	"context"
 	"errors"
+	"log"
 
 	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/types"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type NewsletterHandler struct {
 	queries *db.Queries
+	db *pgxpool.Pool
 }
 
-func NewNewsletterHandler(queries *db.Queries) *NewsletterHandler {
-	return &NewsletterHandler{queries: queries}
+func NewNewsletterHandler(queries *db.Queries, db *pgxpool.Pool) *NewsletterHandler {
+	return &NewsletterHandler{queries: queries, db: db}
 }
 
 func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
@@ -82,6 +85,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 				return nil, huma.Error404NotFound("Newsletter does not exist")
 			}
 
+			log.Printf("error: %v", err)
 			return nil, huma.Error500InternalServerError("Could not get newsletter")
 		}
 
@@ -96,7 +100,17 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Path: "/newsletters/{id}",
 		Summary: "Update a single newsletter",
 	}, func (ctx context.Context, input *types.UpdateNewsletterInput) (*struct{}, error) {
-		err := h.queries.UpdateNewsletter(ctx, db.UpdateNewsletterParams{
+		exists, err := h.queries.DoesNewsletterExist(ctx, input.ID)
+
+		if err != nil {
+			return nil, huma.Error500InternalServerError("Failed to update newsletter")
+		}
+
+		if !exists {
+			return nil, huma.Error400BadRequest("Newsletter does not exist.")
+		}
+		
+		err = h.queries.UpdateNewsletter(ctx, db.UpdateNewsletterParams{
 			Name: input.Body.Name,
 			Frequency: db.Frequency(input.Body.Frequency),
 			SendDay: int32(*input.Body.SendDay),
@@ -107,6 +121,51 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to update newsletter")
+		}
+
+		return nil, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "delete-newsletter",
+		Method: "DELETE",
+		Path: "/newsletters/{id}",
+		Summary: "Delete a newsletter and all of its feeds",
+	}, func(ctx context.Context, input *types.DeleteNewsletterInput) (*struct{}, error) {
+		serverError := huma.Error500InternalServerError("Failed to delete newsletter")
+
+		exists, err := h.queries.DoesNewsletterExist(ctx, input.ID)
+
+		if err != nil {
+			return nil, serverError
+		}
+
+		if !exists {
+			return nil, huma.Error400BadRequest("Newsletter does not exist.")
+		}
+
+		tx, err := h.db.Begin(ctx)
+		if err != nil {
+			return nil, serverError
+		}
+
+		defer tx.Rollback(ctx)
+
+		qtx := h.queries.WithTx(tx)
+
+		err = qtx.DeleteAllFeedsInNewsletter(ctx, input.ID)
+		if err != nil {
+			return nil, serverError
+		}
+
+		err = qtx.DeleteNewsletter(ctx, input.ID)
+		if err != nil {
+			return nil, serverError
+		}
+
+		err = tx.Commit(ctx)
+		if err != nil {
+			return nil, serverError
 		}
 
 		return nil, nil

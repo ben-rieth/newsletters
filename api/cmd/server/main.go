@@ -11,7 +11,7 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/handler"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 )
@@ -21,19 +21,19 @@ func main() {
 	cfg := config.Load()
 	ctx := context.Background()
 
-	conn, err := pgx.Connect(ctx, cfg.DatabaseURL)
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("Could not connect to database: %v", err)
 	}
-	defer conn.Close(ctx)
+	defer pool.Close()
 
-	queries := db.New(conn)
+	queries := db.New(pool)
 
 	mux := http.NewServeMux()
 	humaConfig := huma.DefaultConfig("Newsletter API", "1.0.0")
 	api := humago.New(mux, humaConfig)
 
-	newsletterHandler := handler.NewNewsletterHandler(queries)
+	newsletterHandler := handler.NewNewsletterHandler(queries, pool)
 	newsletterHandler.RegisterRoutes(api)
 
 	feedsHandler := handler.NewFeedHandler(queries)

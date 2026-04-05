@@ -25,6 +25,45 @@ func (q *Queries) AddFeed(ctx context.Context, arg AddFeedParams) error {
 	return err
 }
 
+const deleteAllFeedsInNewsletter = `-- name: DeleteAllFeedsInNewsletter :exec
+DELETE FROM feed WHERE newsletter_id = $1
+`
+
+func (q *Queries) DeleteAllFeedsInNewsletter(ctx context.Context, newsletterID string) error {
+	_, err := q.db.Exec(ctx, deleteAllFeedsInNewsletter, newsletterID)
+	return err
+}
+
+const deleteFeed = `-- name: DeleteFeed :exec
+DELETE FROM feed WHERE newsletter_id = $1 AND id = $2
+`
+
+type DeleteFeedParams struct {
+	NewsletterID string
+	ID           string
+}
+
+func (q *Queries) DeleteFeed(ctx context.Context, arg DeleteFeedParams) error {
+	_, err := q.db.Exec(ctx, deleteFeed, arg.NewsletterID, arg.ID)
+	return err
+}
+
+const doesFeedExist = `-- name: DoesFeedExist :one
+SELECT EXISTS(SELECT 1 FROM feed WHERE id = $1 AND newsletter_id = $2)
+`
+
+type DoesFeedExistParams struct {
+	ID           string
+	NewsletterID string
+}
+
+func (q *Queries) DoesFeedExist(ctx context.Context, arg DoesFeedExistParams) (bool, error) {
+	row := q.db.QueryRow(ctx, doesFeedExist, arg.ID, arg.NewsletterID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getFeedsForNewsletter = `-- name: GetFeedsForNewsletter :many
 SELECT id, newsletter_id, name, url, last_retrieved_at, created_at, updated_at FROM feed WHERE newsletter_id = $1
 `
@@ -55,4 +94,25 @@ func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateFeed = `-- name: UpdateFeed :exec
+UPDATE feed SET name = $1, url = $2 WHERE newsletter_id = $3 AND id = $4
+`
+
+type UpdateFeedParams struct {
+	Name         string
+	Url          string
+	NewsletterID string
+	ID           string
+}
+
+func (q *Queries) UpdateFeed(ctx context.Context, arg UpdateFeedParams) error {
+	_, err := q.db.Exec(ctx, updateFeed,
+		arg.Name,
+		arg.Url,
+		arg.NewsletterID,
+		arg.ID,
+	)
+	return err
 }

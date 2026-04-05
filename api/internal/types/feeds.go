@@ -29,3 +29,14 @@ type ListFeedsInput struct {
 type ListFeedsOutput struct {
 	Body []Feed
 }
+
+type UpdateFeedInput struct {
+	NewsletterID string `path:"newsletterId"`
+	FeedID string `path:"feedId"`
+	Body SubmittableFeedFields
+}
+
+type DeleteFeedInput struct {
+	NewsletterID string `path:"newsletterId"`
+	FeedID string `path:"feedId"`
+}

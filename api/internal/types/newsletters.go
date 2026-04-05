@@ -42,3 +42,7 @@ type UpdateNewsletterInput struct {
 	ID string `path:"id"`
 	Body SubmittableNewsletterFields
 }
+
+type DeleteNewsletterInput struct {
+	ID string `path:"id"`
+}

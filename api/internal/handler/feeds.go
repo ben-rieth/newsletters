@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"log"
 
 	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/types"
@@ -60,6 +61,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		exists, err = h.queries.DoesNewsletterExist(ctx, input.NewsletterID)
 
 		if err != nil {
+			log.Printf("error: %v", err)
 			return nil, serverError
 		}
 
@@ -71,6 +73,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		feeds, err = h.queries.GetFeedsForNewsletter(ctx, input.NewsletterID)
 
 		if err != nil {
+			log.Printf("error: %v", err)
 			return nil, serverError
 		}
 
@@ -80,6 +83,80 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		}
 
 		return out, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "update-feed",
+		Method: "PUT",
+		Path: "/newsletters/{newsletterId}/feeds/{feedId}",
+		Summary: "Update the name and URL of a feed",
+	}, func(ctx context.Context, input *types.UpdateFeedInput) (*struct{}, error) {
+		serverError := huma.Error500InternalServerError("Failed to get feeds")
+		
+		var exists bool
+		var err error
+		
+		exists, err = h.queries.DoesFeedExist(ctx, db.DoesFeedExistParams{
+			NewsletterID: input.NewsletterID,
+			ID: input.FeedID,
+		})
+
+		if err != nil {
+			return nil, serverError
+		}
+
+		if !exists {
+			return nil, huma.Error404NotFound("This feed does not exist.")
+		}
+
+		err = h.queries.UpdateFeed(ctx, db.UpdateFeedParams{
+			NewsletterID: input.NewsletterID,
+			ID: input.FeedID,
+			Name: input.Body.Name,
+			Url: input.Body.Url,
+		})
+
+		if err != nil {
+			return nil, serverError
+		}
+
+		return nil, nil
+	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "delete-feed",
+		Method: "DELETE",
+		Path: "/newsletters/{newsletterId}/feeds/{feedId}",
+		Summary: "Deletes a feed from a newsletter",
+	}, func(ctx context.Context, input *types.DeleteFeedInput) (*struct{}, error) {
+		serverError := huma.Error500InternalServerError("Failed to get feeds")
+		
+		var exists bool
+		var err error
+		
+		exists, err = h.queries.DoesFeedExist(ctx, db.DoesFeedExistParams{
+			NewsletterID: input.NewsletterID,
+			ID: input.FeedID,
+		})
+
+		if err != nil {
+			return nil, serverError
+		}
+
+		if !exists {
+			return nil, huma.Error404NotFound("This feed does not exist.")
+		}
+
+		err = h.queries.DeleteFeed(ctx, db.DeleteFeedParams{
+			NewsletterID: input.NewsletterID,
+			ID: input.FeedID,
+		})
+
+		if err != nil {
+			return nil, serverError
+		}
+
+		return nil, nil
 	})
 }
 
