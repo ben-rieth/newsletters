@@ -1,4 +1,4 @@
-\restrict 6qFhpwie48puRcCxAWyuvn5GSehe5ezGrI4FqX10eYQJTFq0CSavXVqqx3z7xQO
+\restrict 0M3BYD3qnGwNuHkgnQyLKZhDOTq90VCnYKk36ON2cvUlwQsL1fT3nM2pL0x17y2
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -55,7 +55,9 @@ CREATE TABLE public.newsletter (
     send_day integer DEFAULT 0 NOT NULL,
     send_hour integer NOT NULL,
     send_minute integer DEFAULT 0 NOT NULL,
+    send_timezone text DEFAULT 'UTC'::text NOT NULL,
     last_sent_at timestamp with time zone,
+    next_send_time timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -106,7 +108,7 @@ ALTER TABLE ONLY public.feed
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 6qFhpwie48puRcCxAWyuvn5GSehe5ezGrI4FqX10eYQJTFq0CSavXVqqx3z7xQO
+\unrestrict 0M3BYD3qnGwNuHkgnQyLKZhDOTq90VCnYKk36ON2cvUlwQsL1fT3nM2pL0x17y2
 
 
 --

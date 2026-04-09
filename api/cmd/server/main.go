@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/handler"
+	"github.com/ben-rieth/newsletter-api/internal/scheduler"
+	"github.com/ben-rieth/newsletter-api/internal/service"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -28,6 +31,23 @@ func main() {
 	defer pool.Close()
 
 	queries := db.New(pool)
+
+	newsletterService := service.NewNewsletterService(queries)
+	
+	httpClient := &http.Client{
+		Timeout: 10 * time.Second,
+	}
+
+	rssService := service.NewRssService(httpClient)
+	
+	scheduler := scheduler.NewScheduler(
+		newsletterService, 
+		rssService, 
+		&scheduler.SchedulerConfig{
+			MaxWorkers: 5,
+		},
+	)
+	go scheduler.KickOff(ctx)
 
 	mux := http.NewServeMux()
 	humaConfig := huma.DefaultConfig("Newsletter API", "1.0.0")

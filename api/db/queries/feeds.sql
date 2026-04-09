@@ -16,3 +16,6 @@ DELETE FROM feed WHERE newsletter_id = $1 AND id = $2;
 
 -- name: DeleteAllFeedsInNewsletter :exec
 DELETE FROM feed WHERE newsletter_id = $1;
+
+-- name: GetFeedsForManyNewsletters :many
+SELECT newsletter_id, id, name, url FROM feed WHERE newsletter_id = ANY($1::string[]);

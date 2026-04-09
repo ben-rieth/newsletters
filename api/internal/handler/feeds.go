@@ -167,7 +167,7 @@ func dbFeedToFeedType (feed db.Feed) types.Feed {
 		Name: feed.Name,
 		Url: feed.Url,
 		LastRetrievedAt: &feed.LastRetrievedAt.Time,
-		CreatedAt: feed.CreatedAt.Time,
-		UpdatedAt: feed.UpdatedAt.Time,
+		CreatedAt: feed.CreatedAt,
+		UpdatedAt: feed.UpdatedAt,
 	}
 }

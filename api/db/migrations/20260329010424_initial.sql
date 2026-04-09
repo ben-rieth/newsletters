@@ -9,7 +9,9 @@ CREATE TABLE newsletter (
     send_day INT NOT NULL DEFAULT 0,
     send_hour INT NOT NULL,
     send_minute INT NOT NULL DEFAULT 0,
+    send_timezone TEXT NOT NULL DEFAULT 'UTC',
     last_sent_at TIMESTAMPTZ,
+    next_send_time TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

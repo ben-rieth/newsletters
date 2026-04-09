@@ -40,3 +40,25 @@ type DeleteFeedInput struct {
 	NewsletterID string `path:"newsletterId"`
 	FeedID string `path:"feedId"`
 }
+
+type BaseFeed struct {
+	Id string
+	Name string
+	URL string
+}
+
+type RSSFeed struct {
+	Channel struct {
+		Title string `xml:"title"`
+		Link  string `xml:"link"`
+		Description string `xml:"description"`
+		Items []RSSItem `xml:"item"`
+	}
+}
+
+type RSSItem struct {
+	Title string `xml:"title"`
+	Link  string `xml:"link"`
+	Description string `xml:"description"`
+	PubDate string `xml:"pubDate"`
+}

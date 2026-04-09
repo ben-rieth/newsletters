@@ -64,6 +64,42 @@ func (q *Queries) DoesFeedExist(ctx context.Context, arg DoesFeedExistParams) (b
 	return exists, err
 }
 
+const getFeedsForManyNewsletters = `-- name: GetFeedsForManyNewsletters :many
+SELECT newsletter_id, id, name, url FROM feed WHERE newsletter_id = ANY($1::string[])
+`
+
+type GetFeedsForManyNewslettersRow struct {
+	NewsletterID string
+	ID           string
+	Name         string
+	Url          string
+}
+
+func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []string) ([]GetFeedsForManyNewslettersRow, error) {
+	rows, err := q.db.Query(ctx, getFeedsForManyNewsletters, dollar_1)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetFeedsForManyNewslettersRow
+	for rows.Next() {
+		var i GetFeedsForManyNewslettersRow
+		if err := rows.Scan(
+			&i.NewsletterID,
+			&i.ID,
+			&i.Name,
+			&i.Url,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFeedsForNewsletter = `-- name: GetFeedsForNewsletter :many
 SELECT id, newsletter_id, name, url, last_retrieved_at, created_at, updated_at FROM feed WHERE newsletter_id = $1
 `

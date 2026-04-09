@@ -9,6 +9,7 @@ type Newsletter struct {
 	SendDay int `json:"sendDay"`
 	SendHour int `json:"sendHour"`
 	SendMinute int `json:"sendMinute"`
+	SendTimezone string `json:"sendTimezone"`
 	LastSentAt *time.Time `json:"lastSentAt,omitempty"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
@@ -24,6 +25,7 @@ type SubmittableNewsletterFields struct {
 	SendDay *int `json:"sendDay,omitempty" minimum:"0" maximum:"31"`
 	SendHour int `json:"sendHour" minimum:"0" maximum:"23"`
 	SendMinute int `json:"sendMinute" minimum:"0" maximum:"59"`
+	SendTimezone string `json:"sendTimezone"`
 }
 
 type CreateNewsletterInput struct {
@@ -45,4 +47,17 @@ type UpdateNewsletterInput struct {
 
 type DeleteNewsletterInput struct {
 	ID string `path:"id"`
+}
+
+type DueNewsletters map[string][]BaseFeed
+
+type NewsletterWithFeeds struct {
+	ID string
+	Name string
+	Frequency string
+	SendDay int
+	SendHour int
+	SendMinute int
+	SendTimezone string
+	Feeds []BaseFeed
 }

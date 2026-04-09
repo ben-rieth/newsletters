@@ -7,6 +7,7 @@ package db
 import (
 	"database/sql/driver"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
 )
@@ -60,18 +61,20 @@ type Feed struct {
 	Name            string
 	Url             string
 	LastRetrievedAt pgtype.Timestamptz
-	CreatedAt       pgtype.Timestamptz
-	UpdatedAt       pgtype.Timestamptz
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 type Newsletter struct {
-	ID         string
-	Name       string
-	Frequency  Frequency
-	SendDay    int32
-	SendHour   int32
-	SendMinute int32
-	LastSentAt pgtype.Timestamptz
-	CreatedAt  pgtype.Timestamptz
-	UpdatedAt  pgtype.Timestamptz
+	ID           string
+	Name         string
+	Frequency    Frequency
+	SendDay      int32
+	SendHour     int32
+	SendMinute   int32
+	SendTimezone string
+	LastSentAt   pgtype.Timestamptz
+	NextSendTime time.Time
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }

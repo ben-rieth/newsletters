@@ -7,19 +7,22 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
 const createNewsletter = `-- name: CreateNewsletter :exec
-INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute)
-VALUES ($1, $2, $3, $4, $5)
+INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
 
 type CreateNewsletterParams struct {
-	Name       string
-	Frequency  Frequency
-	SendDay    int32
-	SendHour   int32
-	SendMinute int32
+	Name         string
+	Frequency    Frequency
+	SendDay      int32
+	SendHour     int32
+	SendMinute   int32
+	SendTimezone string
+	NextSendTime time.Time
 }
 
 func (q *Queries) CreateNewsletter(ctx context.Context, arg CreateNewsletterParams) error {
@@ -29,6 +32,8 @@ func (q *Queries) CreateNewsletter(ctx context.Context, arg CreateNewsletterPara
 		arg.SendDay,
 		arg.SendHour,
 		arg.SendMinute,
+		arg.SendTimezone,
+		arg.NextSendTime,
 	)
 	return err
 }
@@ -53,8 +58,51 @@ func (q *Queries) DoesNewsletterExist(ctx context.Context, id string) (bool, err
 	return exists, err
 }
 
+const getDueNewsletters = `-- name: GetDueNewsletters :many
+SELECT id, name, send_day, send_minute, send_hour, send_timezone, frequency FROM newsletter AS nl
+WHERE nl.next_send_time <= NOW()
+`
+
+type GetDueNewslettersRow struct {
+	ID           string
+	Name         string
+	SendDay      int32
+	SendMinute   int32
+	SendHour     int32
+	SendTimezone string
+	Frequency    Frequency
+}
+
+func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow, error) {
+	rows, err := q.db.Query(ctx, getDueNewsletters)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetDueNewslettersRow
+	for rows.Next() {
+		var i GetDueNewslettersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.SendDay,
+			&i.SendMinute,
+			&i.SendHour,
+			&i.SendTimezone,
+			&i.Frequency,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getNewsletter = `-- name: GetNewsletter :one
-SELECT id, name, frequency, send_day, send_hour, send_minute, last_sent_at, created_at, updated_at FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, created_at, updated_at FROM newsletter
 WHERE id = $1
 `
 
@@ -68,7 +116,9 @@ func (q *Queries) GetNewsletter(ctx context.Context, id string) (Newsletter, err
 		&i.SendDay,
 		&i.SendHour,
 		&i.SendMinute,
+		&i.SendTimezone,
 		&i.LastSentAt,
+		&i.NextSendTime,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -76,7 +126,7 @@ func (q *Queries) GetNewsletter(ctx context.Context, id string) (Newsletter, err
 }
 
 const listNewsletters = `-- name: ListNewsletters :many
-SELECT id, name, frequency, send_day, send_hour, send_minute, last_sent_at, created_at, updated_at FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, created_at, updated_at FROM newsletter
 ORDER BY created_at DESC
 `
 
@@ -96,7 +146,9 @@ func (q *Queries) ListNewsletters(ctx context.Context) ([]Newsletter, error) {
 			&i.SendDay,
 			&i.SendHour,
 			&i.SendMinute,
+			&i.SendTimezone,
 			&i.LastSentAt,
+			&i.NextSendTime,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -117,17 +169,21 @@ UPDATE newsletter SET
     send_day = $3,
     send_hour = $4,
     send_minute = $5,
+    send_timezone = $6,
+    next_send_time = $7,
     updated_at = NOW()
-WHERE id = $6
+WHERE id = $8
 `
 
 type UpdateNewsletterParams struct {
-	Name       string
-	Frequency  Frequency
-	SendDay    int32
-	SendHour   int32
-	SendMinute int32
-	ID         string
+	Name         string
+	Frequency    Frequency
+	SendDay      int32
+	SendHour     int32
+	SendMinute   int32
+	SendTimezone string
+	NextSendTime time.Time
+	ID           string
 }
 
 func (q *Queries) UpdateNewsletter(ctx context.Context, arg UpdateNewsletterParams) error {
@@ -137,6 +193,8 @@ func (q *Queries) UpdateNewsletter(ctx context.Context, arg UpdateNewsletterPara
 		arg.SendDay,
 		arg.SendHour,
 		arg.SendMinute,
+		arg.SendTimezone,
+		arg.NextSendTime,
 		arg.ID,
 	)
 	return err

@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"log"
+	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/db"
+	"github.com/ben-rieth/newsletter-api/internal/service"
 	"github.com/ben-rieth/newsletter-api/internal/types"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
@@ -56,13 +58,25 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		} else {
 			sendDay = int32(*input.Body.SendDay)
 		}
+
+		nextSendTime, err := service.ComputeNextSendTime(
+			db.Frequency(input.Body.Frequency),
+			int(*input.Body.SendDay), int(input.Body.SendHour), int(input.Body.SendMinute),
+			input.Body.SendTimezone, time.Now(),
+		)
+
+		if err != nil {
+			return nil, huma.Error400BadRequest("Invalid input")
+		}
 		
-		err := h.queries.CreateNewsletter(ctx, db.CreateNewsletterParams{
+		err = h.queries.CreateNewsletter(ctx, db.CreateNewsletterParams{
 			Name: input.Body.Name,
 			Frequency: db.Frequency(input.Body.Frequency),
 			SendDay: sendDay,
 			SendHour:  int32(input.Body.SendHour),
 			SendMinute: int32(input.Body.SendMinute),
+			SendTimezone: input.Body.SendTimezone,
+			NextSendTime: nextSendTime,
 		})
 
 		if err != nil {
@@ -109,6 +123,16 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		if !exists {
 			return nil, huma.Error400BadRequest("Newsletter does not exist.")
 		}
+
+		nextSendTime, err := service.ComputeNextSendTime(
+			db.Frequency(input.Body.Frequency),
+			int(*input.Body.SendDay), int(input.Body.SendHour), int(input.Body.SendMinute),
+			input.Body.SendTimezone, time.Now(),
+		)
+
+		if err != nil {
+			return nil, huma.Error400BadRequest("Cannot update newsletter")
+		}
 		
 		err = h.queries.UpdateNewsletter(ctx, db.UpdateNewsletterParams{
 			Name: input.Body.Name,
@@ -116,6 +140,8 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			SendDay: int32(*input.Body.SendDay),
 			SendHour: int32(input.Body.SendHour),
 			SendMinute: int32(input.Body.SendMinute),
+			SendTimezone: input.Body.SendTimezone,
+			NextSendTime: nextSendTime,
 			ID: input.ID,
 		})
 
@@ -180,7 +206,8 @@ func dbNewsletterToNewsletterType (newsletter db.Newsletter) types.Newsletter {
 		SendDay: int(newsletter.SendDay),
 		SendHour: int(newsletter.SendHour),
 		SendMinute: int(newsletter.SendMinute),
-		CreatedAt: newsletter.CreatedAt.Time,
-		UpdatedAt: newsletter.UpdatedAt.Time,
+		SendTimezone: newsletter.SendTimezone,
+		CreatedAt: newsletter.CreatedAt,
+		UpdatedAt: newsletter.UpdatedAt,
 	}
 }
