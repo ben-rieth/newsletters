@@ -24,10 +24,20 @@ CREATE TABLE feed (
     last_retrieved_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-)
+);
+
+CREATE TABLE app_user (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 
 -- migrate:down
 
-DROP TABLE newsletter;
+DROP TABLE app_user;
 DROP TABLE feed;
+DROP TABLE newsletter;
 DROP TYPE Frequency;

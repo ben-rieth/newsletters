@@ -1,4 +1,4 @@
-\restrict 0M3BYD3qnGwNuHkgnQyLKZhDOTq90VCnYKk36ON2cvUlwQsL1fT3nM2pL0x17y2
+\restrict ccJXAgdGovfVQkKpIcC8TwgLhDN7URr6XoimQg1Da9Yimw6ELutCaWxsVjPBKxq
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -28,6 +28,19 @@ CREATE TYPE public.frequency AS ENUM (
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: app_user; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.app_user (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    email text NOT NULL,
+    password text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 
 --
 -- Name: feed; Type: TABLE; Schema: public; Owner: -
@@ -73,6 +86,22 @@ CREATE TABLE public.schema_migrations (
 
 
 --
+-- Name: app_user app_user_email_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user
+    ADD CONSTRAINT app_user_email_key UNIQUE (email);
+
+
+--
+-- Name: app_user app_user_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.app_user
+    ADD CONSTRAINT app_user_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: feed feed_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -108,7 +137,7 @@ ALTER TABLE ONLY public.feed
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 0M3BYD3qnGwNuHkgnQyLKZhDOTq90VCnYKk36ON2cvUlwQsL1fT3nM2pL0x17y2
+\unrestrict ccJXAgdGovfVQkKpIcC8TwgLhDN7URr6XoimQg1Da9Yimw6ELutCaWxsVjPBKxq
 
 
 --

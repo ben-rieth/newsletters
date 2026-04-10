@@ -10,6 +10,7 @@ type Config struct {
 	Port string
 	Host string
 	WebURL string
+	JWTSecret string
 }
 
 func Load() Config {
@@ -18,6 +19,7 @@ func Load() Config {
 		Port: os.Getenv("PORT"),
 		Host: os.Getenv("HOST"),
 		WebURL: os.Getenv("WEB_URL"),
+		JWTSecret: os.Getenv("JWT_SECRET"),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -26,6 +28,10 @@ func Load() Config {
 
 	if cfg.WebURL == "" {
 		log.Fatal("WEB_URL is required")
+	}
+
+	if cfg.JWTSecret == "" {
+		log.Fatal("JWT_SECRET is required")
 	}
 
 	if cfg.Port == "" {
