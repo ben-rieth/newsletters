@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/handler"
@@ -53,11 +54,17 @@ func main() {
 	humaConfig := huma.DefaultConfig("Newsletter API", "1.0.0")
 	api := humago.New(mux, humaConfig)
 
+	authHandler := handler.NewUserHandler(*queries, cfg)
+	authHandler.RegisterRoutes(api)
+
+	protectedApi := huma.NewGroup(api)
+	protectedApi.UseMiddleware(auth.AuthMiddleware(api))
+
 	newsletterHandler := handler.NewNewsletterHandler(queries, pool)
-	newsletterHandler.RegisterRoutes(api)
+	newsletterHandler.RegisterRoutes(protectedApi)
 
 	feedsHandler := handler.NewFeedHandler(queries)
-	feedsHandler.RegisterRoutes(api)
+	feedsHandler.RegisterRoutes(protectedApi)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{cfg.WebURL},

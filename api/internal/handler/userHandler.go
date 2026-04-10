@@ -26,17 +26,17 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 		Method: "POST",
 		Path: "/auth/sign-up",
 		Summary: "Sign up",
-	}, func(ctx context.Context, i *types.AuthRequest) (*types.AuthResponse, error) {
+	}, func(ctx context.Context, i *types.AuthInput) (*types.AuthOutput, error) {
 		serverError := huma.Error500InternalServerError("Sign up failed")
 		
-		hash, err := bcrypt.GenerateFromPassword([]byte(i.Password), bcrypt.DefaultCost)
+		hash, err := bcrypt.GenerateFromPassword([]byte(i.Body.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return nil, serverError
 		}
 
 		var id string
 		id, err = h.queries.CreateUser(ctx, db.CreateUserParams{
-			Email: i.Email,
+			Email: i.Body.Email,
 			Password: string(hash),
 		})
 
@@ -53,8 +53,10 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 			return nil, serverError
 		}
 
-		return &types.AuthResponse{
-			Token: token,
+		return &types.AuthOutput{
+			Body: types.AuthOutputBody {
+				Token: token,
+			},
 		}, nil
 	})
 
@@ -63,15 +65,15 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 		Method: "POST",
 		Path: "/auth/sign-in",
 		Summary: "Sign in",
-	}, func(ctx context.Context, i *types.AuthRequest) (*types.AuthResponse, error) {
+	}, func(ctx context.Context, i *types.AuthInput) (*types.AuthOutput, error) {
 		serverError := huma.Error500InternalServerError("Sign in failed")
 		
-		user, err := h.queries.GetUserByEmail(ctx, i.Email)
+		user, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
 		if err != nil {
 			return nil, huma.Error401Unauthorized("Email or password is incorrect")
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(i.Password)); err != nil {
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(i.Body.Password)); err != nil {
 			return nil, huma.Error401Unauthorized("Email or password is incorrect")
 		}
 
@@ -80,6 +82,10 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 			return nil, serverError
 		}
 
-		return &types.AuthResponse{Token: token}, nil
+		return &types.AuthOutput{
+			Body: types.AuthOutputBody {
+				Token: token,
+			},
+		}, nil
 	})
 }
