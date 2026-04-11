@@ -1,4 +1,4 @@
-\restrict ccJXAgdGovfVQkKpIcC8TwgLhDN7URr6XoimQg1Da9Yimw6ELutCaWxsVjPBKxq
+\restrict YTrWm7XQ5bJOYunimsZkLclT5OlMOXq7L79OCSDEOZifqb2KSf5Ar3rU2Ae8TCB
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -77,6 +77,20 @@ CREATE TABLE public.newsletter (
 
 
 --
+-- Name: refresh_token; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.refresh_token (
+    token text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    user_id uuid NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    revoked_at timestamp with time zone
+);
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -118,6 +132,14 @@ ALTER TABLE ONLY public.newsletter
 
 
 --
+-- Name: refresh_token refresh_token_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token
+    ADD CONSTRAINT refresh_token_pkey PRIMARY KEY (token);
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -134,10 +156,18 @@ ALTER TABLE ONLY public.feed
 
 
 --
+-- Name: refresh_token refresh_token_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token
+    ADD CONSTRAINT refresh_token_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ccJXAgdGovfVQkKpIcC8TwgLhDN7URr6XoimQg1Da9Yimw6ELutCaWxsVjPBKxq
+\unrestrict YTrWm7XQ5bJOYunimsZkLclT5OlMOXq7L79OCSDEOZifqb2KSf5Ar3rU2Ae8TCB
 
 
 --
@@ -145,4 +175,5 @@ ALTER TABLE ONLY public.feed
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20260329010424');
+    ('20260329010424'),
+    ('20260410221950');

@@ -9,8 +9,13 @@ type AuthInput struct {
 
 type AuthOutputBody struct {
 	Token string `json:"token"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 type AuthOutput struct {
 	Body AuthOutputBody
+}
+
+type RefreshInput struct {
+	RefreshToken string `header:"Authorization"`
 }

@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -33,7 +35,7 @@ func GenerateToken(
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(tokenSecret)
+	return token.SignedString([]byte(tokenSecret))
 }
 
 func ParseToken(tokenString, tokenSecret string) (*Claims, error) {
@@ -42,7 +44,7 @@ func ParseToken(tokenString, tokenSecret string) (*Claims, error) {
 			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return tokenSecret, nil
+		return []byte(tokenSecret), nil
 	})
 
 	if err != nil {
@@ -55,4 +57,11 @@ func ParseToken(tokenString, tokenSecret string) (*Claims, error) {
 	}
 
 	return claims, nil
+}
+
+func MakeRefreshToken() string {
+	token := make([]byte, 32)
+	
+	rand.Read(token)
+	return hex.EncodeToString(token)
 }

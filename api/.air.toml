@@ -8,7 +8,7 @@ tmp_dir = "tmp"
 [build]
   args_bin = []
   bin = "./tmp/main"
-  cmd = "go build -o ./tmp/main ./cmd/server"
+  cmd = "go build -gcflags=all='-N -l' -o ./tmp/main ./cmd/server"
   delay = 1000
   entrypoint = ["./tmp/main"]
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]
@@ -16,7 +16,7 @@ tmp_dir = "tmp"
   exclude_regex = ["_test.go"]
   exclude_unchanged = false
   follow_symlink = false
-  full_bin = ""
+  full_bin = "dlv exec --listen=:2345 --headless=true --api-version=2 --accept-multiclient --continue ./tmp/main --"
   ignore_dangerous_root_dir = false
   include_dir = []
   include_ext = ["go", "tpl", "tmpl", "html"]

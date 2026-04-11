@@ -54,7 +54,7 @@ func main() {
 	humaConfig := huma.DefaultConfig("Newsletter API", "1.0.0")
 	api := humago.New(mux, humaConfig)
 
-	authHandler := handler.NewUserHandler(*queries, cfg)
+	authHandler := handler.NewAuthHandler(*queries, cfg)
 	authHandler.RegisterRoutes(api)
 
 	protectedApi := huma.NewGroup(api)
@@ -65,6 +65,10 @@ func main() {
 
 	feedsHandler := handler.NewFeedHandler(queries)
 	feedsHandler.RegisterRoutes(protectedApi)
+
+	userHandler := handler.NewUserHandler(queries)
+	userHandler.RegisterRoutes(protectedApi)
+
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{cfg.WebURL},

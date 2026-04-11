@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
@@ -8,17 +9,29 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
+var invalidBearerError = errors.New("Invalid Authorization Header")
+
+
+func GetTokenFromAuthorizationHeader(header string) (string, error) {
+	if header == "" || !strings.HasPrefix(header, "Bearer ") {
+		return "", invalidBearerError
+	}
+
+	token := strings.TrimPrefix(header, "Bearer ")
+	return token, nil
+}
+
 func AuthMiddleware(api huma.API) func(ctx huma.Context, next func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
-			cfg := config.Load()
+		cfg := config.Load()
 		
 		authHeader := ctx.Header("Authorization")
-		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {
-			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
+		tokenStr, err := GetTokenFromAuthorizationHeader(authHeader)
+		if err != nil {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Proper authorization header not included")
 			return
 		}
 
-		tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 		claims, err := ParseToken(tokenStr, cfg.JWTSecret)
 		if err != nil {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")

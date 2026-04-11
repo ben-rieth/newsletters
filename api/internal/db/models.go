@@ -86,3 +86,13 @@ type Newsletter struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
+
+type RefreshToken struct {
+	ID        int64
+	Token     string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID    string
+	ExpiresAt time.Time
+	RevokedAt pgtype.Timestamptz
+}

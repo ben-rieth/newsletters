@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Scope
 
-**Only contribute to the frontend (`web/`).** The backend (`api/`) is Go code that the user is writing themselves as a learning exercise — do not suggest, write, or modify any Go code.
+**Only contribute to the frontend (`web/`).** The backend (`api/`) is Go code that the user is writing themselves as a learning exercise — do not suggest, write, or modify any Go code. You can review the code if the user asks you to and provide feedback that will help in the user's learning. Do not provide any code suggestions for the backend even during reviews.
 
 ## Frontend Commands (run from `web/`)
 
@@ -28,9 +28,11 @@ pnpm api:generate # Regenerate TypeScript types from backend OpenAPI spec
 - **Data loading pattern:** Route loaders use `queryClient.ensureQueryData()` to prefetch before render, then `useSuspenseQuery()` in the component.
 
 ### Type Safety Flow
+
 Backend Go types → Huma generates OpenAPI spec → `pnpm api:generate` → `src/api/schema.d.ts` → `openapi-fetch` client provides end-to-end type safety.
 
 ### Data Model
+
 ```sql
 newsletters (
   id UUID, name TEXT, frequency ENUM('monthly','weekly','daily'),

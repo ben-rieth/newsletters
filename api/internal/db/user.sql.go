@@ -7,6 +7,7 @@ package db
 
 import (
 	"context"
+	"time"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -50,5 +51,21 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, er
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
+	return i, err
+}
+
+const getUserById = `-- name: GetUserById :one
+SELECT email, created_at FROM app_user WHERE id = $1
+`
+
+type GetUserByIdRow struct {
+	Email     string
+	CreatedAt time.Time
+}
+
+func (q *Queries) GetUserById(ctx context.Context, id string) (GetUserByIdRow, error) {
+	row := q.db.QueryRow(ctx, getUserById, id)
+	var i GetUserByIdRow
+	err := row.Scan(&i.Email, &i.CreatedAt)
 	return i, err
 }
