@@ -6,7 +6,11 @@ VALUES ($1, $2, $3);
 SELECT * FROM feed WHERE newsletter_id = $1;
 
 -- name: DoesFeedExist :one
-SELECT EXISTS(SELECT 1 FROM feed WHERE id = $1 AND newsletter_id = $2);
+SELECT EXISTS(
+    SELECT 1 FROM feed AS f 
+    INNER JOIN newsletter AS nl ON f.newsletter_id = nl.id 
+    WHERE f.id = $1 AND f.newsletter_id = $2 AND nl.user_id = $3
+);
 
 -- name: UpdateFeed :exec
 UPDATE feed SET name = $1, url = $2 WHERE newsletter_id = $3 AND id = $4;

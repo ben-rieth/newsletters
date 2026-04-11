@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/service"
 	"github.com/ben-rieth/newsletter-api/internal/types"
@@ -30,7 +31,12 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Path: "/newsletters",
 		Summary: "List all newsletters",
 	}, func (ctx context.Context, input *struct{}) (*types.ListNewslettersOutput, error) {
-		newsletters, err := h.queries.ListNewsletters(ctx)
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, huma.Error401Unauthorized("Not authorized")
+		}
+		
+		newsletters, err := h.queries.ListNewsletters(ctx, claims.Subject)
 		
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to fetch newsletters")
@@ -51,6 +57,11 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Path: "/newsletters",
 		Summary: "Create a new newsletter",
 	}, func (ctx context.Context, input *types.CreateNewsletterInput) (*struct{}, error) {
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, huma.Error401Unauthorized("Not authorized")
+		}
+		
 		var sendDay int32
 		
 		if input.Body.SendDay == nil {
@@ -77,6 +88,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			SendMinute: int32(input.Body.SendMinute),
 			SendTimezone: input.Body.SendTimezone,
 			NextSendTime: nextSendTime,
+			UserID: claims.Subject,
 		})
 
 		if err != nil {
@@ -92,7 +104,15 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Path: "/newsletters/{id}",
 		Summary: "Get a single newsletter",
 	}, func (ctx context.Context, input *types.GetNewsletterInput) (*types.GetNewsletterOutput, error) {
-		newsletter, err := h.queries.GetNewsletter(ctx, input.ID)
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, huma.Error401Unauthorized("Not authorized")
+		}
+		
+		newsletter, err := h.queries.GetNewsletter(ctx, db.GetNewsletterParams{
+			ID: input.ID,
+			UserID: claims.Subject,
+		})
 
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
@@ -114,7 +134,15 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Path: "/newsletters/{id}",
 		Summary: "Update a single newsletter",
 	}, func (ctx context.Context, input *types.UpdateNewsletterInput) (*struct{}, error) {
-		exists, err := h.queries.DoesNewsletterExist(ctx, input.ID)
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, huma.Error401Unauthorized("Not authorized")
+		}
+		
+		exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
+			ID: input.ID,
+			UserID: claims.Subject,
+		})
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to update newsletter")
@@ -143,6 +171,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			SendTimezone: input.Body.SendTimezone,
 			NextSendTime: nextSendTime,
 			ID: input.ID,
+			UserID: claims.Subject,
 		})
 
 		if err != nil {
@@ -160,7 +189,15 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	}, func(ctx context.Context, input *types.DeleteNewsletterInput) (*struct{}, error) {
 		serverError := huma.Error500InternalServerError("Failed to delete newsletter")
 
-		exists, err := h.queries.DoesNewsletterExist(ctx, input.ID)
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, huma.Error401Unauthorized("Not authorized")
+		}
+
+		exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
+			ID: input.ID,
+			UserID: claims.Subject,
+		})
 
 		if err != nil {
 			return nil, serverError

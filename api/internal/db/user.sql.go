@@ -7,7 +7,6 @@ package db
 
 import (
 	"context"
-	"time"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -24,6 +23,15 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (string,
 	var id string
 	err := row.Scan(&id)
 	return id, err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM app_user WHERE id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteUser, id)
+	return err
 }
 
 const doesUserWithEmailExist = `-- name: DoesUserWithEmailExist :one
@@ -55,17 +63,46 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, er
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT email, created_at FROM app_user WHERE id = $1
+SELECT id, email, password, created_at, updated_at FROM app_user WHERE id = $1
 `
 
-type GetUserByIdRow struct {
-	Email     string
-	CreatedAt time.Time
+func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
+	row := q.db.QueryRow(ctx, getUserById, id)
+	var i AppUser
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Password,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
-func (q *Queries) GetUserById(ctx context.Context, id string) (GetUserByIdRow, error) {
-	row := q.db.QueryRow(ctx, getUserById, id)
-	var i GetUserByIdRow
-	err := row.Scan(&i.Email, &i.CreatedAt)
-	return i, err
+const updateUserEmail = `-- name: UpdateUserEmail :exec
+UPDATE app_user SET email = $1 WHERE id = $2
+`
+
+type UpdateUserEmailParams struct {
+	Email string
+	ID    string
+}
+
+func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) error {
+	_, err := q.db.Exec(ctx, updateUserEmail, arg.Email, arg.ID)
+	return err
+}
+
+const updateUserPassword = `-- name: UpdateUserPassword :exec
+UPDATE app_user SET password = $1 WHERE id = $2
+`
+
+type UpdateUserPasswordParams struct {
+	Password string
+	ID       string
+}
+
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) error {
+	_, err := q.db.Exec(ctx, updateUserPassword, arg.Password, arg.ID)
+	return err
 }

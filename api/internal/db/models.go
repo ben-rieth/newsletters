@@ -85,6 +85,7 @@ type Newsletter struct {
 	NextSendTime time.Time
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	UserID       string
 }
 
 type RefreshToken struct {

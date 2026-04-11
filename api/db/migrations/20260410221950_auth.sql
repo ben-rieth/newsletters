@@ -18,7 +18,11 @@ CREATE TABLE refresh_token (
     revoked_AT TIMESTAMPTZ
 );
 
+ALTER TABLE newsletter ADD COLUMN user_id UUID NOT NULL REFERENCES app_user(id) ON DELETE CASCADE;
+
 -- migrate:down
 
+
+ALTER TABLE newsletter DROP COLUMN user_id;
 DROP TABLE refresh_token;
 DROP TABLE app_user;

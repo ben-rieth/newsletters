@@ -72,7 +72,7 @@ func main() {
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{cfg.WebURL},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowedHeaders: []string{"Authorization", "Content-Type"},
 	})
 

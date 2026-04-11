@@ -1,4 +1,4 @@
-\restrict YTrWm7XQ5bJOYunimsZkLclT5OlMOXq7L79OCSDEOZifqb2KSf5Ar3rU2Ae8TCB
+\restrict WioiBCs7xmjvTSNzOo1C4jeVUrao8KghDAgEGRr4I0Rqf9Cg05fRhnshILeiupG
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -72,7 +72,8 @@ CREATE TABLE public.newsletter (
     last_sent_at timestamp with time zone,
     next_send_time timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    user_id uuid NOT NULL
 );
 
 
@@ -81,6 +82,7 @@ CREATE TABLE public.newsletter (
 --
 
 CREATE TABLE public.refresh_token (
+    id bigint NOT NULL,
     token text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -91,12 +93,38 @@ CREATE TABLE public.refresh_token (
 
 
 --
+-- Name: refresh_token_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.refresh_token_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: refresh_token_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.refresh_token_id_seq OWNED BY public.refresh_token.id;
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
 CREATE TABLE public.schema_migrations (
     version character varying NOT NULL
 );
+
+
+--
+-- Name: refresh_token id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token ALTER COLUMN id SET DEFAULT nextval('public.refresh_token_id_seq'::regclass);
 
 
 --
@@ -136,7 +164,15 @@ ALTER TABLE ONLY public.newsletter
 --
 
 ALTER TABLE ONLY public.refresh_token
-    ADD CONSTRAINT refresh_token_pkey PRIMARY KEY (token);
+    ADD CONSTRAINT refresh_token_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: refresh_token refresh_token_token_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token
+    ADD CONSTRAINT refresh_token_token_key UNIQUE (token);
 
 
 --
@@ -156,6 +192,14 @@ ALTER TABLE ONLY public.feed
 
 
 --
+-- Name: newsletter newsletter_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter
+    ADD CONSTRAINT newsletter_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
 -- Name: refresh_token refresh_token_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -167,7 +211,7 @@ ALTER TABLE ONLY public.refresh_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict YTrWm7XQ5bJOYunimsZkLclT5OlMOXq7L79OCSDEOZifqb2KSf5Ar3rU2Ae8TCB
+\unrestrict WioiBCs7xmjvTSNzOo1C4jeVUrao8KghDAgEGRr4I0Rqf9Cg05fRhnshILeiupG
 
 
 --

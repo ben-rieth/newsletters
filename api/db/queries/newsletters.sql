@@ -1,14 +1,15 @@
 -- name: ListNewsletters :many
 SELECT * FROM newsletter
+WHERE user_id = $1
 ORDER BY created_at DESC;
 
 -- name: GetNewsletter :one
 SELECT * FROM newsletter
-WHERE id = $1;
+WHERE id = $1 AND user_id = $2;
 
 -- name: CreateNewsletter :exec
-INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time)
-VALUES ($1, $2, $3, $4, $5, $6, $7);
+INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time, user_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
 
 -- name: DeleteNewsletter :exec
 DELETE FROM newsletter WHERE id = $1;
@@ -23,11 +24,12 @@ UPDATE newsletter SET
     send_timezone = $6,
     next_send_time = $7,
     updated_at = NOW()
-WHERE id = $8;
+WHERE id = $8 AND user_id = $9;
 
 -- name: DoesNewsletterExist :one
-SELECT EXISTS(SELECT 1 FROM newsletter WHERE id = $1);
+SELECT EXISTS(SELECT 1 FROM newsletter WHERE id = $1 AND user_id = $2);
 
 -- name: GetDueNewsletters :many
-SELECT id, name, send_day, send_minute, send_hour, send_timezone, frequency FROM newsletter AS nl
+SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email FROM newsletter AS nl
+INNER JOIN app_user AS u ON nl.user_id = u.user_id
 WHERE nl.next_send_time <= NOW();

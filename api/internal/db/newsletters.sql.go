@@ -11,8 +11,8 @@ import (
 )
 
 const createNewsletter = `-- name: CreateNewsletter :exec
-INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time)
-VALUES ($1, $2, $3, $4, $5, $6, $7)
+INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time, user_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 `
 
 type CreateNewsletterParams struct {
@@ -23,6 +23,7 @@ type CreateNewsletterParams struct {
 	SendMinute   int32
 	SendTimezone string
 	NextSendTime time.Time
+	UserID       string
 }
 
 func (q *Queries) CreateNewsletter(ctx context.Context, arg CreateNewsletterParams) error {
@@ -34,6 +35,7 @@ func (q *Queries) CreateNewsletter(ctx context.Context, arg CreateNewsletterPara
 		arg.SendMinute,
 		arg.SendTimezone,
 		arg.NextSendTime,
+		arg.UserID,
 	)
 	return err
 }
@@ -48,18 +50,24 @@ func (q *Queries) DeleteNewsletter(ctx context.Context, id string) error {
 }
 
 const doesNewsletterExist = `-- name: DoesNewsletterExist :one
-SELECT EXISTS(SELECT 1 FROM newsletter WHERE id = $1)
+SELECT EXISTS(SELECT 1 FROM newsletter WHERE id = $1 AND user_id = $2)
 `
 
-func (q *Queries) DoesNewsletterExist(ctx context.Context, id string) (bool, error) {
-	row := q.db.QueryRow(ctx, doesNewsletterExist, id)
+type DoesNewsletterExistParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) DoesNewsletterExist(ctx context.Context, arg DoesNewsletterExistParams) (bool, error) {
+	row := q.db.QueryRow(ctx, doesNewsletterExist, arg.ID, arg.UserID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
 }
 
 const getDueNewsletters = `-- name: GetDueNewsletters :many
-SELECT id, name, send_day, send_minute, send_hour, send_timezone, frequency FROM newsletter AS nl
+SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email FROM newsletter AS nl
+INNER JOIN app_user AS u ON nl.user_id = u.user_id
 WHERE nl.next_send_time <= NOW()
 `
 
@@ -71,6 +79,7 @@ type GetDueNewslettersRow struct {
 	SendHour     int32
 	SendTimezone string
 	Frequency    Frequency
+	Email        string
 }
 
 func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow, error) {
@@ -90,6 +99,7 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 			&i.SendHour,
 			&i.SendTimezone,
 			&i.Frequency,
+			&i.Email,
 		); err != nil {
 			return nil, err
 		}
@@ -102,12 +112,17 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 }
 
 const getNewsletter = `-- name: GetNewsletter :one
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, created_at, updated_at FROM newsletter
-WHERE id = $1
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, created_at, updated_at, user_id FROM newsletter
+WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) GetNewsletter(ctx context.Context, id string) (Newsletter, error) {
-	row := q.db.QueryRow(ctx, getNewsletter, id)
+type GetNewsletterParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) GetNewsletter(ctx context.Context, arg GetNewsletterParams) (Newsletter, error) {
+	row := q.db.QueryRow(ctx, getNewsletter, arg.ID, arg.UserID)
 	var i Newsletter
 	err := row.Scan(
 		&i.ID,
@@ -121,17 +136,19 @@ func (q *Queries) GetNewsletter(ctx context.Context, id string) (Newsletter, err
 		&i.NextSendTime,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const listNewsletters = `-- name: ListNewsletters :many
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, created_at, updated_at FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, created_at, updated_at, user_id FROM newsletter
+WHERE user_id = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListNewsletters(ctx context.Context) ([]Newsletter, error) {
-	rows, err := q.db.Query(ctx, listNewsletters)
+func (q *Queries) ListNewsletters(ctx context.Context, userID string) ([]Newsletter, error) {
+	rows, err := q.db.Query(ctx, listNewsletters, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -151,6 +168,7 @@ func (q *Queries) ListNewsletters(ctx context.Context) ([]Newsletter, error) {
 			&i.NextSendTime,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -172,7 +190,7 @@ UPDATE newsletter SET
     send_timezone = $6,
     next_send_time = $7,
     updated_at = NOW()
-WHERE id = $8
+WHERE id = $8 AND user_id = $9
 `
 
 type UpdateNewsletterParams struct {
@@ -184,6 +202,7 @@ type UpdateNewsletterParams struct {
 	SendTimezone string
 	NextSendTime time.Time
 	ID           string
+	UserID       string
 }
 
 func (q *Queries) UpdateNewsletter(ctx context.Context, arg UpdateNewsletterParams) error {
@@ -196,6 +215,7 @@ func (q *Queries) UpdateNewsletter(ctx context.Context, arg UpdateNewsletterPara
 		arg.SendTimezone,
 		arg.NextSendTime,
 		arg.ID,
+		arg.UserID,
 	)
 	return err
 }

@@ -49,16 +49,21 @@ func (q *Queries) DeleteFeed(ctx context.Context, arg DeleteFeedParams) error {
 }
 
 const doesFeedExist = `-- name: DoesFeedExist :one
-SELECT EXISTS(SELECT 1 FROM feed WHERE id = $1 AND newsletter_id = $2)
+SELECT EXISTS(
+    SELECT 1 FROM feed AS f 
+    INNER JOIN newsletter AS nl ON f.newsletter_id = nl.id 
+    WHERE f.id = $1 AND f.newsletter_id = $2 AND nl.user_id = $3
+)
 `
 
 type DoesFeedExistParams struct {
 	ID           string
 	NewsletterID string
+	UserID       string
 }
 
 func (q *Queries) DoesFeedExist(ctx context.Context, arg DoesFeedExistParams) (bool, error) {
-	row := q.db.QueryRow(ctx, doesFeedExist, arg.ID, arg.NewsletterID)
+	row := q.db.QueryRow(ctx, doesFeedExist, arg.ID, arg.NewsletterID, arg.UserID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err

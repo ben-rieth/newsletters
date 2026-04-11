@@ -8,4 +8,13 @@ SELECT EXISTS(SELECT 1 FROM app_user WHERE email = $1);
 SELECT * FROM app_user WHERE email = $1;
 
 -- name: GetUserById :one
-SELECT email, created_at FROM app_user WHERE id = $1;
+SELECT * FROM app_user WHERE id = $1;
+
+-- name: UpdateUserEmail :exec
+UPDATE app_user SET email = $1 WHERE id = $2;
+
+-- name: UpdateUserPassword :exec
+UPDATE app_user SET password = $1 WHERE id = $2;
+
+-- name: DeleteUser :exec
+DELETE FROM app_user WHERE id = $1;

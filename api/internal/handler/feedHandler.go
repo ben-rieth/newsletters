@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/types"
 	"github.com/danielgtaylor/huma/v2"
@@ -24,7 +25,15 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		Path: "/newsletters/{newsletterId}/feeds",
 		Summary: "Add a feed to a newsletter",
 	}, func (ctx context.Context, input *types.AddFeedInput) (*struct{}, error) {
-		exists, err := h.queries.DoesNewsletterExist(ctx, input.NewsletterID)
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, huma.Error401Unauthorized("Not authorized")
+		}
+		
+		exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
+			ID: input.NewsletterID,
+			UserID: claims.Subject,
+		})
 
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to add feed")
@@ -55,10 +64,18 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	}, func(ctx context.Context, input *types.ListFeedsInput) (*types.ListFeedsOutput, error) {
 		serverError := huma.Error500InternalServerError("Failed to get feeds")
 		
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, huma.Error401Unauthorized("Not authorized")
+		}
+
 		var exists bool
 		var err error	
 
-		exists, err = h.queries.DoesNewsletterExist(ctx, input.NewsletterID)
+		exists, err = h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
+			ID: input.NewsletterID,
+			UserID: claims.Subject,
+		})
 
 		if err != nil {
 			log.Printf("error: %v", err)
@@ -93,12 +110,15 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	}, func(ctx context.Context, input *types.UpdateFeedInput) (*struct{}, error) {
 		serverError := huma.Error500InternalServerError("Failed to get feeds")
 		
-		var exists bool
-		var err error
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, huma.Error401Unauthorized("Not authorized")
+		}
 		
-		exists, err = h.queries.DoesFeedExist(ctx, db.DoesFeedExistParams{
+		exists, err := h.queries.DoesFeedExist(ctx, db.DoesFeedExistParams{
 			NewsletterID: input.NewsletterID,
 			ID: input.FeedID,
+			UserID: claims.Subject,
 		})
 
 		if err != nil {
@@ -130,13 +150,16 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		Summary: "Deletes a feed from a newsletter",
 	}, func(ctx context.Context, input *types.DeleteFeedInput) (*struct{}, error) {
 		serverError := huma.Error500InternalServerError("Failed to get feeds")
+	
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, huma.Error401Unauthorized("Not authorized")
+		}
 		
-		var exists bool
-		var err error
-		
-		exists, err = h.queries.DoesFeedExist(ctx, db.DoesFeedExistParams{
+		exists, err := h.queries.DoesFeedExist(ctx, db.DoesFeedExistParams{
 			NewsletterID: input.NewsletterID,
 			ID: input.FeedID,
+			UserID: claims.Subject,
 		})
 
 		if err != nil {
