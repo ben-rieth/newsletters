@@ -6,6 +6,7 @@ type Newsletter struct {
 	ID string `json:"id"`
 	Name string `json:"name"`
 	Frequency string `json:"frequency"`
+	NextSendTime time.Time `json:"nextSendTime"`
 	SendDay int `json:"sendDay"`
 	SendHour int `json:"sendHour"`
 	SendMinute int `json:"sendMinute"`
@@ -32,8 +33,8 @@ type CreateNewsletterInput struct {
 	Body SubmittableNewsletterFields
 }
 
-type GetNewsletterInput struct {
-    ID string `path:"id"`
+type BaseNewsletterInput struct {
+	ID string `path:"id"`
 }
 
 type GetNewsletterOutput struct {
@@ -41,12 +42,8 @@ type GetNewsletterOutput struct {
 }
 
 type UpdateNewsletterInput struct {
-	ID string `path:"id"`
+	BaseNewsletterInput
 	Body SubmittableNewsletterFields
-}
-
-type DeleteNewsletterInput struct {
-	ID string `path:"id"`
 }
 
 type DueNewsletters map[string][]BaseFeed
@@ -59,5 +56,7 @@ type NewsletterWithFeeds struct {
 	SendHour int
 	SendMinute int
 	SendTimezone string
+	LastSendTime time.Time
+	Email string
 	Feeds []BaseFeed
 }

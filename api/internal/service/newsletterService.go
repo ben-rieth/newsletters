@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"log"
+	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/types"
@@ -23,8 +25,29 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 	}
 
 	newsletterIds := make([]string, 0)
-	for _, newsletterRow := range newsletterResult {
-		newsletterIds = append(newsletterIds, newsletterRow.ID)
+	lastSendTimeByNewsletter := make(map[string]time.Time)
+	for _, row := range newsletterResult {
+		var lastSentAt time.Time
+		if row.LastSentAt.Valid {
+			lastSentAt = row.LastSentAt.Time
+		} else {
+			computedLastSentAt, lastErr := ComputeLastSendTime(
+				row.Frequency,
+				int(row.SendDay), int(row.SendHour), int(row.SendMinute),
+				row.SendTimezone, time.Now(),
+			)
+
+			if lastErr != nil {
+				log.Printf("Failed to compute last send time: %v", err)
+				continue
+			}
+
+			lastSentAt = computedLastSentAt
+		}
+
+		newsletterIds = append(newsletterIds, row.ID)
+
+		lastSendTimeByNewsletter[row.ID] = lastSentAt
 	}
 
 	feedsResult, err := service.queries.GetFeedsForManyNewsletters(ctx, newsletterIds)
@@ -34,18 +57,32 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 
 	feedsByNewsletter := make(map[string][]types.BaseFeed)
 	for _, row := range feedsResult {
+		var lastRetrievedAt time.Time
+		if row.LastRetrievedAt.Valid {
+			lastRetrievedAt = row.LastRetrievedAt.Time
+		} else {
+			lastRetrievedAt = lastSendTimeByNewsletter[row.NewsletterID]
+		}
+		
 		feedsByNewsletter[row.NewsletterID] = append(
 			feedsByNewsletter[row.NewsletterID], 
 			types.BaseFeed{
 				Id: row.ID,
 				Name: row.Name,
 				URL: row.Url,
+				LastRetrievedAt: lastRetrievedAt,
 			},
 		)
 	}
 
 	dueNewsletters := make([]types.NewsletterWithFeeds, 0)
 	for _, row := range newsletterResult {
+		lastSentAt, ok := lastSendTimeByNewsletter[row.ID]
+
+		if !ok {
+			continue
+		}
+		
 		dueNewsletters = append(dueNewsletters, types.NewsletterWithFeeds{
 			ID: row.ID,
 			Name: row.Name,
@@ -54,9 +91,13 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 			SendHour: int(row.SendHour),
 			SendMinute: int(row.SendMinute),
 			SendTimezone: row.SendTimezone,
+			Email: row.Email,
+			LastSendTime: lastSentAt,
 			Feeds: feedsByNewsletter[row.ID],
 		})
 	}
 
 	return &dueNewsletters, nil
 }
+
+// func (s *NewsletterService) UpdateSendTimes(id string, )

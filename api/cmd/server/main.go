@@ -13,6 +13,7 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/handler"
 	"github.com/ben-rieth/newsletter-api/internal/scheduler"
 	"github.com/ben-rieth/newsletter-api/internal/service"
+	"github.com/ben-rieth/newsletter-api/internal/templates"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -40,15 +41,25 @@ func main() {
 	}
 
 	rssService := service.NewRssService(httpClient)
+	emailService := service.NewResendEmailService(&cfg)
 	
+	tmpl, err := templates.ParseEmailTemplates()
+	if err != nil {
+		log.Fatalf("Could not get email templates: %v", err)
+	}
+
 	scheduler := scheduler.NewScheduler(
 		newsletterService, 
 		rssService, 
+		emailService,
 		&scheduler.SchedulerConfig{
 			MaxWorkers: 5,
 		},
+		tmpl,
 	)
-	go scheduler.KickOff(ctx)
+	if cfg.Environment != "dev" {
+		go scheduler.KickOff(ctx)
+	}
 
 	mux := http.NewServeMux()
 	humaConfig := huma.DefaultConfig("Newsletter API", "1.0.0")
@@ -56,6 +67,11 @@ func main() {
 
 	authHandler := handler.NewAuthHandler(*queries, cfg)
 	authHandler.RegisterRoutes(api)
+
+	if cfg.Environment == "dev" {
+		scheudlerHandler := handler.NewSchedulerHandler(scheduler)
+		scheudlerHandler.RegisterRoutes(api)
+	}
 
 	protectedApi := huma.NewGroup(api)
 	protectedApi.UseMiddleware(auth.AuthMiddleware(api))
@@ -68,7 +84,6 @@ func main() {
 
 	userHandler := handler.NewUserHandler(queries)
 	userHandler.RegisterRoutes(protectedApi)
-
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{cfg.WebURL},

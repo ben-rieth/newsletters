@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
@@ -70,17 +71,17 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			sendDay = int32(*input.Body.SendDay)
 		}
 
-		nextSendTime, err := service.ComputeNextSendTime(
+		nextSendTime, nextErr := service.ComputeNextSendTime(
 			db.Frequency(input.Body.Frequency),
 			int(*input.Body.SendDay), int(input.Body.SendHour), int(input.Body.SendMinute),
 			input.Body.SendTimezone, time.Now(),
 		)
 
-		if err != nil {
+		if nextErr != nil {
 			return nil, huma.Error400BadRequest("Invalid input")
 		}
 		
-		err = h.queries.CreateNewsletter(ctx, db.CreateNewsletterParams{
+		err := h.queries.CreateNewsletter(ctx, db.CreateNewsletterParams{
 			Name: input.Body.Name,
 			Frequency: db.Frequency(input.Body.Frequency),
 			SendDay: sendDay,
@@ -103,7 +104,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Method: "GET",
 		Path: "/newsletters/{id}",
 		Summary: "Get a single newsletter",
-	}, func (ctx context.Context, input *types.GetNewsletterInput) (*types.GetNewsletterOutput, error) {
+	}, func (ctx context.Context, input *types.BaseNewsletterInput) (*types.GetNewsletterOutput, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, huma.Error401Unauthorized("Not authorized")
@@ -186,7 +187,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Method: "DELETE",
 		Path: "/newsletters/{id}",
 		Summary: "Delete a newsletter and all of its feeds",
-	}, func(ctx context.Context, input *types.DeleteNewsletterInput) (*struct{}, error) {
+	}, func(ctx context.Context, input *types.BaseNewsletterInput) (*struct{}, error) {
 		serverError := huma.Error500InternalServerError("Failed to delete newsletter")
 
 		claims, ok := auth.ClaimsFromContext(ctx)
@@ -233,9 +234,53 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 
 		return nil, nil
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "force-send-newsletter",
+		Method: "PATCH",
+		Path: "/newsletter/{id}/send",
+		Summary: "Updates the newsletter's next send time to the current time",
+		DefaultStatus: http.StatusNoContent,
+	}, func(ctx context.Context, i *types.BaseNewsletterInput) (*struct {}, error) {
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, huma.Error401Unauthorized("Not authorized")
+		}
+
+		exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
+			ID: i.ID,
+			UserID: claims.Subject,
+		})
+		if err != nil {
+			return nil, types.InternalServerError
+		}
+
+		if !exists {
+			return nil, huma.Error404NotFound("Newsletter does not exist")
+		}
+
+		err = h.queries.UpdateNewsletterSendTime(ctx, db.UpdateNewsletterSendTimeParams{
+			NextSendTime: time.Now(),
+			ID: i.ID,
+			UserID: claims.Subject,
+		})
+
+		if err != nil {
+			return nil, types.InternalServerError
+		}
+
+		return nil, nil
+	})
 }
 
 func dbNewsletterToNewsletterType (newsletter db.Newsletter) types.Newsletter {
+	var lastSentAt *time.Time
+	if newsletter.LastSentAt.Valid {
+		lastSentAt = &newsletter.LastSentAt.Time
+	} else {
+		lastSentAt = nil
+	}
+	
 	return types.Newsletter{
 		ID: newsletter.ID,
 		Name: newsletter.Name,
@@ -244,6 +289,8 @@ func dbNewsletterToNewsletterType (newsletter db.Newsletter) types.Newsletter {
 		SendHour: int(newsletter.SendHour),
 		SendMinute: int(newsletter.SendMinute),
 		SendTimezone: newsletter.SendTimezone,
+		LastSentAt: lastSentAt,
+		NextSendTime: newsletter.NextSendTime,
 		CreatedAt: newsletter.CreatedAt,
 		UpdatedAt: newsletter.UpdatedAt,
 	}

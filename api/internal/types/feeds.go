@@ -1,6 +1,9 @@
 package types
 
-import "time"
+import (
+	"encoding/xml"
+	"time"
+)
 
 type Feed struct {
 	ID string `json:"id"`
@@ -45,15 +48,19 @@ type BaseFeed struct {
 	Id string
 	Name string
 	URL string
+	LastRetrievedAt time.Time
 }
 
 type RSSFeed struct {
-	Channel struct {
-		Title string `xml:"title"`
-		Link  string `xml:"link"`
-		Description string `xml:"description"`
-		Items []RSSItem `xml:"item"`
-	}
+	XMLName xml.Name `xml:"rss"`
+	Channel RSSChannel `xml:"channel"`
+}
+
+type RSSChannel struct {
+	Title string `xml:"title"`
+	Link  string `xml:"link"`
+	Description string `xml:"description"`
+	Items []RSSItem `xml:"item"`
 }
 
 type RSSItem struct {
@@ -61,4 +68,9 @@ type RSSItem struct {
 	Link  string `xml:"link"`
 	Description string `xml:"description"`
 	PubDate string `xml:"pubDate"`
+}
+
+type FeedView struct {
+	Title string
+	Items []RSSItem
 }

@@ -8,8 +8,8 @@ SELECT * FROM newsletter
 WHERE id = $1 AND user_id = $2;
 
 -- name: CreateNewsletter :exec
-INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time, user_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8);
+INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time, last_sent_at, user_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 
 -- name: DeleteNewsletter :exec
 DELETE FROM newsletter WHERE id = $1;
@@ -30,6 +30,9 @@ WHERE id = $8 AND user_id = $9;
 SELECT EXISTS(SELECT 1 FROM newsletter WHERE id = $1 AND user_id = $2);
 
 -- name: GetDueNewsletters :many
-SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email FROM newsletter AS nl
-INNER JOIN app_user AS u ON nl.user_id = u.user_id
+SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, last_sent_at FROM newsletter AS nl
+INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE nl.next_send_time <= NOW();
+
+-- name: UpdateNewsletterSendTime :exec
+UPDATE newsletter SET next_send_time = $1 WHERE id = $2 AND user_id = $3;

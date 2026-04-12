@@ -11,6 +11,8 @@ type Config struct {
 	Host string
 	WebURL string
 	JWTSecret string
+	ResendAPIKey string
+	Environment string
 }
 
 func Load() Config {
@@ -20,6 +22,8 @@ func Load() Config {
 		Host: os.Getenv("HOST"),
 		WebURL: os.Getenv("WEB_URL"),
 		JWTSecret: os.Getenv("JWT_SECRET"),
+		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
+		Environment: os.Getenv("ENVIRONMENT"),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -32,6 +36,14 @@ func Load() Config {
 
 	if cfg.JWTSecret == "" {
 		log.Fatal("JWT_SECRET is required")
+	}
+
+	if cfg.ResendAPIKey == "" {
+		log.Fatal("RESEND_API_KEY")
+	}
+
+	if !(cfg.Environment == "dev" || cfg.Environment == "prod") {
+		log.Fatalf("Invalid value for environment: %s", cfg.Environment)
 	}
 
 	if cfg.Port == "" {

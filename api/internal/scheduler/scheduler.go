@@ -1,7 +1,9 @@
 package scheduler
 
 import (
+	"bytes"
 	"context"
+	"html/template"
 	"log"
 	"sync"
 	"time"
@@ -13,7 +15,9 @@ import (
 type Scheduler struct {
 	newsletterService *service.NewsletterService
 	rssService *service.RssService
-	config *SchedulerConfig
+	emailService types.EmailService
+	schedulerConfig *SchedulerConfig
+	tmpl *template.Template
 }
 
 type SchedulerConfig struct {
@@ -23,12 +27,16 @@ type SchedulerConfig struct {
 func NewScheduler(
 	newsletterService *service.NewsletterService,
 	rssService *service.RssService,
-	config *SchedulerConfig,
+	emailService types.EmailService,
+	schedulerConfig *SchedulerConfig,
+	tmpl *template.Template,
 ) *Scheduler {
 	return &Scheduler{
-		newsletterService: newsletterService, 
-		rssService: rssService, 
-		config: config,
+		newsletterService, 
+		rssService, 
+		emailService,
+		schedulerConfig,
+		tmpl,
 	}
 }
 
@@ -53,6 +61,10 @@ func (sch *Scheduler) KickOff(ctx context.Context) {
 	}();
 }
 
+func (sch *Scheduler) ForcePoll(ctx context.Context) {
+	sch.pollNewsletters(ctx)
+}
+
 func (sch *Scheduler) pollNewsletters(ctx context.Context) {
 	dueNewsletters, err := sch.newsletterService.GetDueNewsletters(ctx)
 	if err != nil {
@@ -65,11 +77,46 @@ func (sch *Scheduler) pollNewsletters(ctx context.Context) {
 		return
 	}
 
-	sem := make(chan struct{}, sch.config.MaxWorkers)
+	sem := make(chan struct{}, sch.schedulerConfig.MaxWorkers)
 
-	for _, nl := range *dueNewsletters {
-		sch.fetchFeedsForNewsletter(ctx, &nl, sem)
+	nlErrors := make([]error, len(*dueNewsletters))
+
+	var nlWaitGroup sync.WaitGroup
+
+	for i, nl := range *dueNewsletters {
+		nlWaitGroup.Add(1)
+		go func (ctx context.Context, index int, nl types.NewsletterWithFeeds, sem chan struct{}) {
+			defer nlWaitGroup.Done()
+			rssFeeds, err := sch.fetchFeedsForNewsletter(ctx, &nl, sem)
+			if err != nil {
+				nlErrors[index] = err
+				return
+			}
+
+			log.Printf("Feed: %v", rssFeeds)
+
+			// newsletterHtml, err := sch.assembleNewsletter(&nl, rssFeeds)
+			// if err != nil {
+			// 	nlErrors[index] = err
+			// 	return
+			// }
+
+			// _, err = sch.emailService.Send(
+			// 	ctx,
+			// 	nl.Name,
+			// 	"",
+			// 	nl.Email,
+			// 	newsletterHtml,
+			// )
+
+			// if err != nil {
+			// 	nlErrors[index] = err
+			// 	return
+			// }
+		}(ctx, i, nl, sem)
 	}
+
+	nlWaitGroup.Wait()
 }
   
 func (sch *Scheduler) fetchFeedsForNewsletter(
@@ -90,7 +137,7 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 			defer wg.Done()
 			defer func() { <- sem }()
 
-			rssFeed, err := sch.rssService.FetchFeed(ctx, feed.URL)
+			rssFeed, err := sch.rssService.FetchFeed(ctx, feed.URL, feed.LastRetrievedAt)
 			if err != nil {
 				errors[index] = err
 				rssFeeds[index] = nil
@@ -122,4 +169,31 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 	}
 
 	return &results, nil
+}
+
+func (sch *Scheduler) assembleNewsletter(
+	newsletter *types.NewsletterWithFeeds,
+	rssFeeds *[]types.RSSFeed,
+) (string, error) {
+	buffer := new(bytes.Buffer)
+
+	feedViews := make([]types.FeedView, 0, len(*rssFeeds))
+	for _, rssFeed := range *rssFeeds {
+		feedViews = append(feedViews, types.FeedView{
+			Title: rssFeed.Channel.Title,
+			Items: rssFeed.Channel.Items,
+		})
+	}
+
+	err := sch.tmpl.ExecuteTemplate(buffer, "newsletter.html", map[string]any{
+		"NewsletterName": newsletter.Name,
+		"Feeds": feedViews,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	htmlString := buffer.String()
+	return htmlString, nil
 }

@@ -7,6 +7,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const addFeed = `-- name: AddFeed :exec
@@ -70,14 +72,15 @@ func (q *Queries) DoesFeedExist(ctx context.Context, arg DoesFeedExistParams) (b
 }
 
 const getFeedsForManyNewsletters = `-- name: GetFeedsForManyNewsletters :many
-SELECT newsletter_id, id, name, url FROM feed WHERE newsletter_id = ANY($1::string[])
+SELECT newsletter_id, id, name, url, last_retrieved_at FROM feed WHERE newsletter_id = ANY($1::UUID[])
 `
 
 type GetFeedsForManyNewslettersRow struct {
-	NewsletterID string
-	ID           string
-	Name         string
-	Url          string
+	NewsletterID    string
+	ID              string
+	Name            string
+	Url             string
+	LastRetrievedAt pgtype.Timestamptz
 }
 
 func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []string) ([]GetFeedsForManyNewslettersRow, error) {
@@ -94,6 +97,7 @@ func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []str
 			&i.ID,
 			&i.Name,
 			&i.Url,
+			&i.LastRetrievedAt,
 		); err != nil {
 			return nil, err
 		}

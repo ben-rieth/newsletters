@@ -22,4 +22,4 @@ DELETE FROM feed WHERE newsletter_id = $1 AND id = $2;
 DELETE FROM feed WHERE newsletter_id = $1;
 
 -- name: GetFeedsForManyNewsletters :many
-SELECT newsletter_id, id, name, url FROM feed WHERE newsletter_id = ANY($1::string[]);
+SELECT newsletter_id, id, name, url, last_retrieved_at FROM feed WHERE newsletter_id = ANY($1::UUID[]);

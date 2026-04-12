@@ -8,11 +8,13 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createNewsletter = `-- name: CreateNewsletter :exec
-INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time, user_id)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time, last_sent_at, user_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 type CreateNewsletterParams struct {
@@ -23,6 +25,7 @@ type CreateNewsletterParams struct {
 	SendMinute   int32
 	SendTimezone string
 	NextSendTime time.Time
+	LastSentAt   pgtype.Timestamptz
 	UserID       string
 }
 
@@ -35,6 +38,7 @@ func (q *Queries) CreateNewsletter(ctx context.Context, arg CreateNewsletterPara
 		arg.SendMinute,
 		arg.SendTimezone,
 		arg.NextSendTime,
+		arg.LastSentAt,
 		arg.UserID,
 	)
 	return err
@@ -66,8 +70,8 @@ func (q *Queries) DoesNewsletterExist(ctx context.Context, arg DoesNewsletterExi
 }
 
 const getDueNewsletters = `-- name: GetDueNewsletters :many
-SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email FROM newsletter AS nl
-INNER JOIN app_user AS u ON nl.user_id = u.user_id
+SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, last_sent_at FROM newsletter AS nl
+INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE nl.next_send_time <= NOW()
 `
 
@@ -80,6 +84,7 @@ type GetDueNewslettersRow struct {
 	SendTimezone string
 	Frequency    Frequency
 	Email        string
+	LastSentAt   pgtype.Timestamptz
 }
 
 func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow, error) {
@@ -100,6 +105,7 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 			&i.SendTimezone,
 			&i.Frequency,
 			&i.Email,
+			&i.LastSentAt,
 		); err != nil {
 			return nil, err
 		}
@@ -217,5 +223,20 @@ func (q *Queries) UpdateNewsletter(ctx context.Context, arg UpdateNewsletterPara
 		arg.ID,
 		arg.UserID,
 	)
+	return err
+}
+
+const updateNewsletterSendTime = `-- name: UpdateNewsletterSendTime :exec
+UPDATE newsletter SET next_send_time = $1 WHERE id = $2 AND user_id = $3
+`
+
+type UpdateNewsletterSendTimeParams struct {
+	NextSendTime time.Time
+	ID           string
+	UserID       string
+}
+
+func (q *Queries) UpdateNewsletterSendTime(ctx context.Context, arg UpdateNewsletterSendTimeParams) error {
+	_, err := q.db.Exec(ctx, updateNewsletterSendTime, arg.NextSendTime, arg.ID, arg.UserID)
 	return err
 }

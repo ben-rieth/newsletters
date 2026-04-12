@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Newsletter</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+    <tr>
+      <td align="center" style="padding: 20px 0;">
+
+        <!-- Outer container -->
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #1a1a2e; padding: 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Your Daily Digest</h1>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 30px;">
+              <h1>{{ .NewsletterName }}</h1>
+              {{range .Feeds}}
+                <h2>{{ .Title }}</h2>
+                {{ range .Items }}
+                    <h3><a href="{{ .URL }}">{{ .Title }}</a></h3>
+                    <p>{{ .Description }}</p>
+                {{end}}
+              {{end}}
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f4f4f4; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+              <p style="margin: 0; font-size: 12px; color: #888888;">
+                You're receiving this because you signed up for digest emails.
+              </p>
+              <p style="margin: 8px 0 0; font-size: 12px;">
+                <a href="{{.UnsubscribeURL}}" style="color: #888888;">Unsubscribe</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>
