@@ -48,7 +48,7 @@ type UpdateNewsletterInput struct {
 
 type DueNewsletters map[string][]BaseFeed
 
-type NewsletterWithFeeds struct {
+type SendableNewsletter struct {
 	ID string
 	Name string
 	Frequency string
@@ -58,5 +58,6 @@ type NewsletterWithFeeds struct {
 	SendTimezone string
 	LastSendTime time.Time
 	Email string
+	UserID string
 	Feeds []BaseFeed
 }

@@ -18,7 +18,7 @@ func NewNewsletterService (queries *db.Queries) *NewsletterService {
 	return &NewsletterService{queries: queries}
 }
 
-func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]types.NewsletterWithFeeds, error) {
+func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]types.SendableNewsletter, error) {
 	newsletterResult, err := service.queries.GetDueNewsletters(ctx)
 	if err != nil {
 		return nil, errors.New("Database Failure")
@@ -75,7 +75,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 		)
 	}
 
-	dueNewsletters := make([]types.NewsletterWithFeeds, 0)
+	dueNewsletters := make([]types.SendableNewsletter, 0)
 	for _, row := range newsletterResult {
 		lastSentAt, ok := lastSendTimeByNewsletter[row.ID]
 
@@ -83,7 +83,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 			continue
 		}
 		
-		dueNewsletters = append(dueNewsletters, types.NewsletterWithFeeds{
+		dueNewsletters = append(dueNewsletters, types.SendableNewsletter{
 			ID: row.ID,
 			Name: row.Name,
 			Frequency: string(row.Frequency),
@@ -92,6 +92,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 			SendMinute: int(row.SendMinute),
 			SendTimezone: row.SendTimezone,
 			Email: row.Email,
+			UserID: row.UserID,
 			LastSendTime: lastSentAt,
 			Feeds: feedsByNewsletter[row.ID],
 		})
@@ -100,4 +101,25 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 	return &dueNewsletters, nil
 }
 
-// func (s *NewsletterService) UpdateSendTimes(id string, )
+func (s *NewsletterService) UpdateSendTimes(
+	ctx context.Context,
+	nl *types.SendableNewsletter,
+	sentAt time.Time,
+) error {
+	nextSendTime, err := ComputeNextSendTime(
+		db.Frequency(nl.Frequency), int(nl.SendDay), int(nl.SendHour), int(nl.SendMinute), nl.SendTimezone,
+		time.Now(),
+	)
+	if err != nil {
+		return err
+	}
+	
+	s.queries.UpdateNewsletterSendTimes(ctx, db.UpdateNewsletterSendTimesParams{
+		ID: nl.ID,
+		UserID: nl.UserID,
+		NextSendTime: nextSendTime,
+		LastSentAt: types.ToTimestamp(&sentAt),
+	})
+
+	return nil
+}

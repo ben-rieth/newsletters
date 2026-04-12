@@ -5,5 +5,5 @@ import (
 )
 
 type EmailService interface {
-	Send (ctx context.Context, subject, sender, recipient, body string) (string, error)
+	Send (ctx context.Context, subject, sender, recipient, body string) (*SendResult, error)
 }

@@ -30,9 +30,12 @@ WHERE id = $8 AND user_id = $9;
 SELECT EXISTS(SELECT 1 FROM newsletter WHERE id = $1 AND user_id = $2);
 
 -- name: GetDueNewsletters :many
-SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, last_sent_at FROM newsletter AS nl
+SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at FROM newsletter AS nl
 INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE nl.next_send_time <= NOW();
 
 -- name: UpdateNewsletterSendTime :exec
 UPDATE newsletter SET next_send_time = $1 WHERE id = $2 AND user_id = $3;
+
+-- name: UpdateNewsletterSendTimes :exec
+UPDATE newsletter SET next_send_time = $1 AND last_sent_at = $2 WHERE id = $3 AND user_id = $4;

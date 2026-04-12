@@ -70,7 +70,7 @@ func (q *Queries) DoesNewsletterExist(ctx context.Context, arg DoesNewsletterExi
 }
 
 const getDueNewsletters = `-- name: GetDueNewsletters :many
-SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, last_sent_at FROM newsletter AS nl
+SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at FROM newsletter AS nl
 INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE nl.next_send_time <= NOW()
 `
@@ -84,6 +84,7 @@ type GetDueNewslettersRow struct {
 	SendTimezone string
 	Frequency    Frequency
 	Email        string
+	UserID       string
 	LastSentAt   pgtype.Timestamptz
 }
 
@@ -105,6 +106,7 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 			&i.SendTimezone,
 			&i.Frequency,
 			&i.Email,
+			&i.UserID,
 			&i.LastSentAt,
 		); err != nil {
 			return nil, err
@@ -238,5 +240,26 @@ type UpdateNewsletterSendTimeParams struct {
 
 func (q *Queries) UpdateNewsletterSendTime(ctx context.Context, arg UpdateNewsletterSendTimeParams) error {
 	_, err := q.db.Exec(ctx, updateNewsletterSendTime, arg.NextSendTime, arg.ID, arg.UserID)
+	return err
+}
+
+const updateNewsletterSendTimes = `-- name: UpdateNewsletterSendTimes :exec
+UPDATE newsletter SET next_send_time = $1 AND last_sent_at = $2 WHERE id = $3 AND user_id = $4
+`
+
+type UpdateNewsletterSendTimesParams struct {
+	NextSendTime time.Time
+	LastSentAt   pgtype.Timestamptz
+	ID           string
+	UserID       string
+}
+
+func (q *Queries) UpdateNewsletterSendTimes(ctx context.Context, arg UpdateNewsletterSendTimesParams) error {
+	_, err := q.db.Exec(ctx, updateNewsletterSendTimes,
+		arg.NextSendTime,
+		arg.LastSentAt,
+		arg.ID,
+		arg.UserID,
+	)
 	return err
 }

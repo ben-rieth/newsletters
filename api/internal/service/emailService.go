@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
+	"github.com/ben-rieth/newsletter-api/internal/types"
 	"github.com/resend/resend-go/v3"
 )
 
@@ -16,7 +18,7 @@ func NewResendEmailService(globalConfig *config.Config) *ResendEmailService {
 	return &ResendEmailService{resendClient}
 }
 
-func (s *ResendEmailService) Send (ctx context.Context, subject, sender, recipient, body string) (string, error) {
+func (s *ResendEmailService) Send (ctx context.Context, subject, sender, recipient, body string) (*types.SendResult, error) {
 	params := &resend.SendEmailRequest{
 		To: []string{recipient},
 		From: sender,
@@ -26,8 +28,11 @@ func (s *ResendEmailService) Send (ctx context.Context, subject, sender, recipie
 
 	sent, err := s.resendClient.Emails.SendWithContext(ctx, params)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return sent.Id, err
+	return &types.SendResult{
+		ID: sent.Id,
+		Time: time.Now(),
+	}, err
 }
