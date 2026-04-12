@@ -4,15 +4,15 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/ben-rieth/newsletter-api/internal/scheduler"
+	"github.com/ben-rieth/newsletter-api/internal/newsletters"
 	"github.com/danielgtaylor/huma/v2"
 )
 
 type SchedulerHandler struct {
-	scheduler *scheduler.Scheduler
+	scheduler *newsletters.Scheduler
 }
 
-func NewSchedulerHandler (scheduler *scheduler.Scheduler) *SchedulerHandler {
+func NewSchedulerHandler (scheduler *newsletters.Scheduler) *SchedulerHandler {
 	return &SchedulerHandler{
 		scheduler,
 	}

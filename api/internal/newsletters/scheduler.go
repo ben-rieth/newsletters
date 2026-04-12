@@ -1,4 +1,4 @@
-package scheduler
+package newsletters
 
 import (
 	"bytes"
@@ -8,15 +8,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ben-rieth/newsletter-api/internal/service"
-	"github.com/ben-rieth/newsletter-api/internal/types"
+	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/mmcdole/gofeed"
 )
 
+type emailService interface {
+	Send (ctx context.Context, subject, sender, recipient, body string) (*SendResult, error)
+}
+
 type Scheduler struct {
-	newsletterService *service.NewsletterService
-	rssService *service.RssService
-	emailService types.EmailService
+	newsletterService *NewsletterService
+	rssService *feeds.RssService
+	emailService emailService
 	schedulerConfig *SchedulerConfig
 	tmpl *template.Template
 }
@@ -26,9 +29,9 @@ type SchedulerConfig struct {
 }
 
 func NewScheduler(
-	newsletterService *service.NewsletterService,
-	rssService *service.RssService,
-	emailService types.EmailService,
+	newsletterService *NewsletterService,
+	rssService *feeds.RssService,
+	emailService emailService,
 	schedulerConfig *SchedulerConfig,
 	tmpl *template.Template,
 ) *Scheduler {
@@ -86,7 +89,7 @@ func (sch *Scheduler) pollNewsletters(ctx context.Context) {
 
 	for i, nl := range *dueNewsletters {
 		nlWaitGroup.Add(1)
-		go func (ctx context.Context, index int, nl types.SendableNewsletter, sem chan struct{}) {
+		go func (ctx context.Context, index int, nl SendableNewsletter, sem chan struct{}) {
 			defer nlWaitGroup.Done()
 			rssFeeds, err := sch.fetchFeedsForNewsletter(ctx, &nl, sem)
 			if err != nil {
@@ -129,7 +132,7 @@ func (sch *Scheduler) pollNewsletters(ctx context.Context) {
   
 func (sch *Scheduler) fetchFeedsForNewsletter(
 	ctx context.Context,
-	nl *types.SendableNewsletter, 
+	nl *SendableNewsletter, 
 	sem chan struct{},
 ) ([]*gofeed.Feed, error) {
 	var wg sync.WaitGroup
@@ -141,7 +144,7 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 		wg.Add(1)
 		sem <- struct{}{}
 
-		go func(index int, feed types.BaseFeed) {
+		go func(index int, feed feeds.BaseFeed) {
 			defer wg.Done()
 			defer func() { <- sem }()
 
@@ -180,22 +183,22 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 }
 
 func (sch *Scheduler) assembleNewsletter(
-	newsletter *types.SendableNewsletter,
+	newsletter *SendableNewsletter,
 	rssFeeds []*gofeed.Feed,
 ) (string, error) {
 	buffer := new(bytes.Buffer)
 
-	feedViews := make([]types.FeedView, 0, len(rssFeeds))
+	feedViews := make([]feeds.FeedView, 0, len(rssFeeds))
 	for _, rssFeed := range rssFeeds {
-		itemViews := make([]types.FeedItemView, 0, len(rssFeed.Items))
+		itemViews := make([]feeds.FeedItemView, 0, len(rssFeed.Items))
 		for _, item := range rssFeed.Items {
-			itemViews = append(itemViews, types.FeedItemView{
+			itemViews = append(itemViews, feeds.FeedItemView{
 				Title: item.Title,
 				URL: item.Link,
 			})
 		}
 		
-		feedViews = append(feedViews, types.FeedView{
+		feedViews = append(feedViews, feeds.FeedView{
 			Title: rssFeed.Title,
 			Items: itemViews,
 		})

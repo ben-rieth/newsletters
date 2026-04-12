@@ -1,4 +1,4 @@
-package service
+package feeds
 
 import (
 	"context"
@@ -8,6 +8,16 @@ import (
 
 	"github.com/mmcdole/gofeed"
 )
+
+type FeedView struct {
+	Title string
+	Items []FeedItemView
+}
+
+type FeedItemView struct {
+	Title string
+	URL string
+}
 
 type RssService struct {
 	httpClient *http.Client

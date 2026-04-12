@@ -1,13 +1,17 @@
-package service
+package newsletters
 
 import (
 	"context"
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
-	"github.com/ben-rieth/newsletter-api/internal/types"
 	"github.com/resend/resend-go/v3"
 )
+
+type SendResult struct {
+ 	ID string
+	Time time.Time
+}
 
 type ResendEmailService struct {
 	resendClient *resend.Client
@@ -18,7 +22,7 @@ func NewResendEmailService(globalConfig *config.Config) *ResendEmailService {
 	return &ResendEmailService{resendClient}
 }
 
-func (s *ResendEmailService) Send (ctx context.Context, subject, sender, recipient, body string) (*types.SendResult, error) {
+func (s *ResendEmailService) Send (ctx context.Context, subject, sender, recipient, body string) (*SendResult, error) {
 	params := &resend.SendEmailRequest{
 		To: []string{recipient},
 		From: sender,
@@ -31,7 +35,7 @@ func (s *ResendEmailService) Send (ctx context.Context, subject, sender, recipie
 		return nil, err
 	}
 
-	return &types.SendResult{
+	return &SendResult{
 		ID: sent.Id,
 		Time: time.Now(),
 	}, err

@@ -10,9 +10,9 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/ben-rieth/newsletter-api/internal/db"
+	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/handler"
-	"github.com/ben-rieth/newsletter-api/internal/scheduler"
-	"github.com/ben-rieth/newsletter-api/internal/service"
+	"github.com/ben-rieth/newsletter-api/internal/newsletters"
 	"github.com/ben-rieth/newsletter-api/internal/templates"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
@@ -34,25 +34,25 @@ func main() {
 
 	queries := db.New(pool)
 
-	newsletterService := service.NewNewsletterService(queries)
+	newsletterService := newsletters.NewNewsletterService(queries)
 	
 	httpClient := &http.Client{
 		Timeout: 10 * time.Second,
 	}
 
-	rssService := service.NewRssService(httpClient)
-	emailService := service.NewResendEmailService(&cfg)
+	rssService := feeds.NewRssService(httpClient)
+	emailService := newsletters.NewResendEmailService(&cfg)
 	
 	tmpl, err := templates.ParseEmailTemplates()
 	if err != nil {
 		log.Fatalf("Could not get email templates: %v", err)
 	}
 
-	scheduler := scheduler.NewScheduler(
+	scheduler := newsletters.NewScheduler(
 		newsletterService, 
 		rssService, 
 		emailService,
-		&scheduler.SchedulerConfig{
+		&newsletters.SchedulerConfig{
 			MaxWorkers: 5,
 		},
 		tmpl,

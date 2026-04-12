@@ -9,12 +9,41 @@ import (
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/db"
-	"github.com/ben-rieth/newsletter-api/internal/service"
-	"github.com/ben-rieth/newsletter-api/internal/types"
+	"github.com/ben-rieth/newsletter-api/internal/newsletters"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+type listNewslettersOutput struct {
+	Body []newsletters.Newsletter
+}
+
+type submittableNewsletterFields struct {
+	Name string `json:"name" minLength:"1"`
+	Frequency string `json:"frequency" enum:"daily,weekly,monthly"`
+	SendDay *int `json:"sendDay,omitempty" minimum:"0" maximum:"31"`
+	SendHour int `json:"sendHour" minimum:"0" maximum:"23"`
+	SendMinute int `json:"sendMinute" minimum:"0" maximum:"59"`
+	SendTimezone string `json:"sendTimezone"`
+}
+
+type createNewsletterInput struct {
+	Body submittableNewsletterFields
+}
+
+type baseNewsletterInput struct {
+	ID string `path:"id"`
+}
+
+type getNewsletterOutput struct {
+    Body newsletters.Newsletter
+}
+
+type updateNewsletterInput struct {
+	baseNewsletterInput
+	Body submittableNewsletterFields
+}
 
 type NewsletterHandler struct {
 	queries *db.Queries
@@ -31,22 +60,22 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Method: "GET",
 		Path: "/newsletters",
 		Summary: "List all newsletters",
-	}, func (ctx context.Context, input *struct{}) (*types.ListNewslettersOutput, error) {
+	}, func (ctx context.Context, input *struct{}) (*listNewslettersOutput, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, huma.Error401Unauthorized("Not authorized")
 		}
 		
-		newsletters, err := h.queries.ListNewsletters(ctx, claims.Subject)
+		nls, err := h.queries.ListNewsletters(ctx, claims.Subject)
 		
 		if err != nil {
 			return nil, huma.Error500InternalServerError("Failed to fetch newsletters")
 		}
 
-		out := &types.ListNewslettersOutput{}
+		out := &listNewslettersOutput{}
 
-		for _, newsletter := range newsletters {
-			out.Body = append(out.Body, dbNewsletterToNewsletterType(newsletter))
+		for _, newsletter := range nls {
+			out.Body = append(out.Body, newsletters.DbNewsletterToNewsletterType(newsletter))
 		}
 
 		return out, nil
@@ -57,7 +86,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Method: "POST",
 		Path: "/newsletters",
 		Summary: "Create a new newsletter",
-	}, func (ctx context.Context, input *types.CreateNewsletterInput) (*struct{}, error) {
+	}, func (ctx context.Context, input *createNewsletterInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, huma.Error401Unauthorized("Not authorized")
@@ -71,7 +100,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			sendDay = int32(*input.Body.SendDay)
 		}
 
-		nextSendTime, nextErr := service.ComputeNextSendTime(
+		nextSendTime, nextErr := newsletters.ComputeNextSendTime(
 			db.Frequency(input.Body.Frequency),
 			int(*input.Body.SendDay), int(input.Body.SendHour), int(input.Body.SendMinute),
 			input.Body.SendTimezone, time.Now(),
@@ -104,10 +133,10 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Method: "GET",
 		Path: "/newsletters/{id}",
 		Summary: "Get a single newsletter",
-	}, func (ctx context.Context, input *types.BaseNewsletterInput) (*types.GetNewsletterOutput, error) {
+	}, func (ctx context.Context, input *baseNewsletterInput) (*getNewsletterOutput, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, huma.Error401Unauthorized("Not authorized")
+			return nil, unauthorizedError
 		}
 		
 		newsletter, err := h.queries.GetNewsletter(ctx, db.GetNewsletterParams{
@@ -121,11 +150,11 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			}
 
 			log.Printf("error: %v", err)
-			return nil, huma.Error500InternalServerError("Could not get newsletter")
+			return nil, internalServerError
 		}
 
-		return &types.GetNewsletterOutput{
-			Body: dbNewsletterToNewsletterType(newsletter),
+		return &getNewsletterOutput{
+			Body: newsletters.DbNewsletterToNewsletterType(newsletter),
 		}, nil
 	})
 
@@ -134,10 +163,10 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Method: "PUT",
 		Path: "/newsletters/{id}",
 		Summary: "Update a single newsletter",
-	}, func (ctx context.Context, input *types.UpdateNewsletterInput) (*struct{}, error) {
+	}, func (ctx context.Context, input *updateNewsletterInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, huma.Error401Unauthorized("Not authorized")
+			return nil, unauthorizedError
 		}
 		
 		exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
@@ -146,14 +175,14 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		})
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError("Failed to update newsletter")
+			return nil, internalServerError
 		}
 
 		if !exists {
 			return nil, huma.Error400BadRequest("Newsletter does not exist.")
 		}
 
-		nextSendTime, err := service.ComputeNextSendTime(
+		nextSendTime, err := newsletters.ComputeNextSendTime(
 			db.Frequency(input.Body.Frequency),
 			int(*input.Body.SendDay), int(input.Body.SendHour), int(input.Body.SendMinute),
 			input.Body.SendTimezone, time.Now(),
@@ -187,12 +216,10 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Method: "DELETE",
 		Path: "/newsletters/{id}",
 		Summary: "Delete a newsletter and all of its feeds",
-	}, func(ctx context.Context, input *types.BaseNewsletterInput) (*struct{}, error) {
-		serverError := huma.Error500InternalServerError("Failed to delete newsletter")
-
+	}, func(ctx context.Context, input *baseNewsletterInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, huma.Error401Unauthorized("Not authorized")
+			return nil, unauthorizedError
 		}
 
 		exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
@@ -201,7 +228,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		})
 
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError
 		}
 
 		if !exists {
@@ -210,7 +237,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 
 		tx, err := h.db.Begin(ctx)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError
 		}
 
 		defer tx.Rollback(ctx)
@@ -219,17 +246,17 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 
 		err = qtx.DeleteAllFeedsInNewsletter(ctx, input.ID)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError
 		}
 
 		err = qtx.DeleteNewsletter(ctx, input.ID)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError
 		}
 
 		err = tx.Commit(ctx)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError
 		}
 
 		return nil, nil
@@ -241,10 +268,10 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Path: "/newsletter/{id}/send",
 		Summary: "Updates the newsletter's next send time to the current time",
 		DefaultStatus: http.StatusNoContent,
-	}, func(ctx context.Context, i *types.BaseNewsletterInput) (*struct {}, error) {
+	}, func(ctx context.Context, i *baseNewsletterInput) (*struct {}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, huma.Error401Unauthorized("Not authorized")
+			return nil, unauthorizedError
 		}
 
 		exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
@@ -252,7 +279,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			UserID: claims.Subject,
 		})
 		if err != nil {
-			return nil, types.InternalServerError
+			return nil, internalServerError
 		}
 
 		if !exists {
@@ -266,32 +293,9 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		})
 
 		if err != nil {
-			return nil, types.InternalServerError
+			return nil, internalServerError
 		}
 
 		return nil, nil
 	})
-}
-
-func dbNewsletterToNewsletterType (newsletter db.Newsletter) types.Newsletter {
-	var lastSentAt *time.Time
-	if newsletter.LastSentAt.Valid {
-		lastSentAt = &newsletter.LastSentAt.Time
-	} else {
-		lastSentAt = nil
-	}
-	
-	return types.Newsletter{
-		ID: newsletter.ID,
-		Name: newsletter.Name,
-		Frequency: string(newsletter.Frequency),
-		SendDay: int(newsletter.SendDay),
-		SendHour: int(newsletter.SendHour),
-		SendMinute: int(newsletter.SendMinute),
-		SendTimezone: newsletter.SendTimezone,
-		LastSentAt: lastSentAt,
-		NextSendTime: newsletter.NextSendTime,
-		CreatedAt: newsletter.CreatedAt,
-		UpdatedAt: newsletter.UpdatedAt,
-	}
 }

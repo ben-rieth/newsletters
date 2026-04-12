@@ -3,10 +3,11 @@ package handler
 import (
 	"context"
 	"log"
+	"net/http"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/db"
-	"github.com/ben-rieth/newsletter-api/internal/types"
+	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -18,13 +19,43 @@ func NewFeedHandler(queries *db.Queries) *FeedHandler {
 	return &FeedHandler{queries: queries}
 }
 
+type newsletterIdPath struct {
+	NewsletterID string `path:"newsletterId"`
+}
+
+type feedIdPath struct {
+	newsletterIdPath
+	FeedID string `path:"feedId"`
+}
+
+type submittableFeedFields struct {
+	Name string `json:"name" minLength:"1"`
+	Url string `json:"url" doc:"Must be a valid HTTPS URL" pattern:"^https:\\/\\/([\\w-]+\\.)+[\\w]{2,}(\\/[\\w\\-.~:/?#\\[\\]@!$&'()*+,;=%]*)?$"`
+}
+
+type addFeedInput struct {
+	newsletterIdPath
+	Body submittableFeedFields
+}
+
+type listFeedsOutput struct {
+	Body []feeds.Feed
+}
+
+type updateFeedInput struct {
+	feedIdPath
+	Body submittableFeedFields
+}
+
+
 func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "add-feed",
 		Method: "POST",
 		Path: "/newsletters/{newsletterId}/feeds",
 		Summary: "Add a feed to a newsletter",
-	}, func (ctx context.Context, input *types.AddFeedInput) (*struct{}, error) {
+		DefaultStatus: http.StatusNoContent,
+	}, func (ctx context.Context, input *addFeedInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, huma.Error401Unauthorized("Not authorized")
@@ -61,7 +92,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		Method: "GET",
 		Path: "/newsletters/{newsletterId}/feeds",
 		Summary: "Get all feeds included in a newsletter",
-	}, func(ctx context.Context, input *types.ListFeedsInput) (*types.ListFeedsOutput, error) {
+	}, func(ctx context.Context, input *newsletterIdPath) (*listFeedsOutput, error) {
 		serverError := huma.Error500InternalServerError("Failed to get feeds")
 		
 		claims, ok := auth.ClaimsFromContext(ctx)
@@ -94,7 +125,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 			return nil, serverError
 		}
 
-		out := &types.ListFeedsOutput{}
+		out := &listFeedsOutput{}
 		for _, feed := range feeds {
 			out.Body = append(out.Body,dbFeedToFeedType(feed))
 		}
@@ -107,7 +138,8 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		Method: "PUT",
 		Path: "/newsletters/{newsletterId}/feeds/{feedId}",
 		Summary: "Update the name and URL of a feed",
-	}, func(ctx context.Context, input *types.UpdateFeedInput) (*struct{}, error) {
+		DefaultStatus: http.StatusNoContent,
+	}, func(ctx context.Context, input *updateFeedInput) (*struct{}, error) {
 		serverError := huma.Error500InternalServerError("Failed to get feeds")
 		
 		claims, ok := auth.ClaimsFromContext(ctx)
@@ -148,7 +180,8 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		Method: "DELETE",
 		Path: "/newsletters/{newsletterId}/feeds/{feedId}",
 		Summary: "Deletes a feed from a newsletter",
-	}, func(ctx context.Context, input *types.DeleteFeedInput) (*struct{}, error) {
+		DefaultStatus: http.StatusNoContent,
+	}, func(ctx context.Context, input *feedIdPath) (*struct{}, error) {
 		serverError := huma.Error500InternalServerError("Failed to get feeds")
 	
 		claims, ok := auth.ClaimsFromContext(ctx)
@@ -183,8 +216,8 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	})
 }
 
-func dbFeedToFeedType (feed db.Feed) types.Feed {
-	return types.Feed{
+func dbFeedToFeedType (feed db.Feed) feeds.Feed {
+	return feeds.Feed{
 		ID: feed.ID,
 		NewsletterId: feed.NewsletterID,
 		Name: feed.Name,

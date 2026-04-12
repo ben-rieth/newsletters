@@ -1,4 +1,4 @@
-\restrict Jkxtn0W9k86FQGZVSr6EQfbmSKNsSNX8FL4AD7woKoIXmUlxCElwGznZPuU7qfh
+\restrict yhwMZ7npD8R7vZDQygBsumRhbSa2kHRRCS2leWju1nncahH9l3BmxC92HoUqBpt
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -25,6 +25,16 @@ CREATE TYPE public.frequency AS ENUM (
 );
 
 
+--
+-- Name: itemstate; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.itemstate AS ENUM (
+    'read',
+    'unread'
+);
+
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -48,10 +58,26 @@ CREATE TABLE public.app_user (
 
 CREATE TABLE public.feed (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    newsletter_id uuid NOT NULL,
     name text NOT NULL,
+    description text NOT NULL,
     url text NOT NULL,
     last_retrieved_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: feed_item; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.feed_item (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    feed_id uuid NOT NULL,
+    title text NOT NULL,
+    url text NOT NULL,
+    publish_date timestamp with time zone NOT NULL,
+    retrieved_at timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -71,9 +97,39 @@ CREATE TABLE public.newsletter (
     send_timezone text DEFAULT 'UTC'::text NOT NULL,
     last_sent_at timestamp with time zone,
     next_send_time timestamp with time zone NOT NULL,
+    user_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    user_id uuid NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: newsletter_feed; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.newsletter_feed (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    newsletter_id uuid NOT NULL,
+    feed_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    alias text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: newsletter_feed_item_status; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.newsletter_feed_item_status (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    newsletter_feed_id uuid NOT NULL,
+    item_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    state public.itemstate DEFAULT 'unread'::public.itemstate NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -144,11 +200,35 @@ ALTER TABLE ONLY public.app_user
 
 
 --
+-- Name: feed_item feed_item_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.feed_item
+    ADD CONSTRAINT feed_item_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: feed feed_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.feed
     ADD CONSTRAINT feed_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: newsletter_feed_item_status newsletter_feed_item_status_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed_item_status
+    ADD CONSTRAINT newsletter_feed_item_status_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: newsletter_feed newsletter_feed_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed
+    ADD CONSTRAINT newsletter_feed_pkey PRIMARY KEY (id);
 
 
 --
@@ -184,11 +264,59 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
--- Name: feed feed_newsletter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: feed_item feed_item_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.feed
-    ADD CONSTRAINT feed_newsletter_id_fkey FOREIGN KEY (newsletter_id) REFERENCES public.newsletter(id) ON DELETE CASCADE;
+ALTER TABLE ONLY public.feed_item
+    ADD CONSTRAINT feed_item_feed_id_fkey FOREIGN KEY (feed_id) REFERENCES public.feed(id) ON DELETE CASCADE;
+
+
+--
+-- Name: newsletter_feed newsletter_feed_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed
+    ADD CONSTRAINT newsletter_feed_feed_id_fkey FOREIGN KEY (feed_id) REFERENCES public.feed(id) ON DELETE CASCADE;
+
+
+--
+-- Name: newsletter_feed_item_status newsletter_feed_item_status_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed_item_status
+    ADD CONSTRAINT newsletter_feed_item_status_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.feed_item(id) ON DELETE CASCADE;
+
+
+--
+-- Name: newsletter_feed_item_status newsletter_feed_item_status_newsletter_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed_item_status
+    ADD CONSTRAINT newsletter_feed_item_status_newsletter_feed_id_fkey FOREIGN KEY (newsletter_feed_id) REFERENCES public.newsletter_feed(id) ON DELETE CASCADE;
+
+
+--
+-- Name: newsletter_feed_item_status newsletter_feed_item_status_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed_item_status
+    ADD CONSTRAINT newsletter_feed_item_status_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: newsletter_feed newsletter_feed_newsletter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed
+    ADD CONSTRAINT newsletter_feed_newsletter_id_fkey FOREIGN KEY (newsletter_id) REFERENCES public.newsletter(id) ON DELETE CASCADE;
+
+
+--
+-- Name: newsletter_feed newsletter_feed_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed
+    ADD CONSTRAINT newsletter_feed_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
 
 
 --
@@ -211,7 +339,7 @@ ALTER TABLE ONLY public.refresh_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Jkxtn0W9k86FQGZVSr6EQfbmSKNsSNX8FL4AD7woKoIXmUlxCElwGznZPuU7qfh
+\unrestrict yhwMZ7npD8R7vZDQygBsumRhbSa2kHRRCS2leWju1nncahH9l3BmxC92HoUqBpt
 
 
 --
@@ -219,5 +347,4 @@ ALTER TABLE ONLY public.refresh_token
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20260329010424'),
-    ('20260410221950');
+    ('20260329010424');

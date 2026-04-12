@@ -1,11 +1,26 @@
-package service
+package newsletters
 
 import (
 	"fmt"
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/db"
+	"github.com/ben-rieth/newsletter-api/internal/feeds"
 )
+
+type SendableNewsletter struct {
+	ID string
+	Name string
+	Frequency string
+	SendDay int
+	SendHour int
+	SendMinute int
+	SendTimezone string
+	LastSendTime time.Time
+	Email string
+	UserID string
+	Feeds []feeds.BaseFeed
+}
 
 func ComputeNextSendTime(
 	frequency db.Frequency, 

@@ -1,4 +1,4 @@
-package service
+package newsletters
 
 import (
 	"context"
@@ -7,8 +7,22 @@ import (
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/db"
-	"github.com/ben-rieth/newsletter-api/internal/types"
+	"github.com/ben-rieth/newsletter-api/internal/feeds"
 )
+
+type Newsletter struct {
+	ID string `json:"id"`
+	Name string `json:"name"`
+	Frequency string `json:"frequency"`
+	NextSendTime time.Time `json:"nextSendTime"`
+	SendDay int `json:"sendDay"`
+	SendHour int `json:"sendHour"`
+	SendMinute int `json:"sendMinute"`
+	SendTimezone string `json:"sendTimezone"`
+	LastSentAt *time.Time `json:"lastSentAt,omitempty"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+}
 
 type NewsletterService struct {
 	queries *db.Queries
@@ -18,7 +32,7 @@ func NewNewsletterService (queries *db.Queries) *NewsletterService {
 	return &NewsletterService{queries: queries}
 }
 
-func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]types.SendableNewsletter, error) {
+func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]SendableNewsletter, error) {
 	newsletterResult, err := service.queries.GetDueNewsletters(ctx)
 	if err != nil {
 		return nil, errors.New("Database Failure")
@@ -55,7 +69,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 		return nil, errors.New("Database Failure")
 	}
 
-	feedsByNewsletter := make(map[string][]types.BaseFeed)
+	feedsByNewsletter := make(map[string][]feeds.BaseFeed)
 	for _, row := range feedsResult {
 		var lastRetrievedAt time.Time
 		if row.LastRetrievedAt.Valid {
@@ -66,7 +80,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 		
 		feedsByNewsletter[row.NewsletterID] = append(
 			feedsByNewsletter[row.NewsletterID], 
-			types.BaseFeed{
+			feeds.BaseFeed{
 				Id: row.ID,
 				Name: row.Name,
 				URL: row.Url,
@@ -75,7 +89,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 		)
 	}
 
-	dueNewsletters := make([]types.SendableNewsletter, 0)
+	dueNewsletters := make([]SendableNewsletter, 0)
 	for _, row := range newsletterResult {
 		lastSentAt, ok := lastSendTimeByNewsletter[row.ID]
 
@@ -83,7 +97,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 			continue
 		}
 		
-		dueNewsletters = append(dueNewsletters, types.SendableNewsletter{
+		dueNewsletters = append(dueNewsletters, SendableNewsletter{
 			ID: row.ID,
 			Name: row.Name,
 			Frequency: string(row.Frequency),
@@ -103,7 +117,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]typ
 
 func (s *NewsletterService) UpdateSendTimes(
 	ctx context.Context,
-	nl *types.SendableNewsletter,
+	nl *SendableNewsletter,
 	sentAt time.Time,
 ) error {
 	nextSendTime, err := ComputeNextSendTime(
@@ -118,7 +132,7 @@ func (s *NewsletterService) UpdateSendTimes(
 		ID: nl.ID,
 		UserID: nl.UserID,
 		NextSendTime: nextSendTime,
-		LastSentAt: types.ToTimestamp(&sentAt),
+		LastSentAt: db.ToTimestamp(&sentAt),
 	})
 
 	return nil
