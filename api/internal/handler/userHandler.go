@@ -6,16 +6,18 @@ import (
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/db"
+	"github.com/ben-rieth/newsletter-api/internal/users"
 	"github.com/danielgtaylor/huma/v2"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserHandler struct {
 	queries *db.Queries
+	userService *users.UserService
 }
 
-func NewUserHandler(queries *db.Queries) *UserHandler {
-	return &UserHandler{queries}
+func NewUserHandler(queries *db.Queries, userService *users.UserService) *UserHandler {
+	return &UserHandler{queries, userService}
 }
 
 type visibleUser struct {
@@ -155,7 +157,7 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 			return nil, huma.Error401Unauthorized("Current password is incorrect")
 		}
 
-		err = h.queries.DeleteUser(ctx, claims.Subject)
+		err = h.userService.DeleteUser(ctx, user.ID)
 		if err != nil {
 			return nil, serverError
 		}

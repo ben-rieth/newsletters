@@ -2,10 +2,10 @@ package feeds
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/ben-rieth/newsletter-api/internal/utils"
 	"github.com/mmcdole/gofeed"
 )
 
@@ -19,20 +19,62 @@ type FeedItemView struct {
 	URL string
 }
 
+type FeedMetaData struct {
+	Id string
+	Title string
+	URL string
+	Description string
+}
+
+type FetchFeedResult struct {
+	Feed *gofeed.Feed
+	FinalUrl string
+	OriginalUrl string
+	RetrievedAt time.Time
+}
+
 type RssService struct {
 	httpClient *http.Client
 }
 
-func NewRssService(httpClient *http.Client) *RssService {
-	return &RssService{httpClient: httpClient}
+func NewRssService() *RssService {
+	client := newSafeFeedClient()
+	return &RssService{httpClient: client}
 }
 
-func (s *RssService) FetchFeed(ctx context.Context, url string, lastRetrieved time.Time) (*gofeed.Feed, error) {
-	fp := gofeed.NewParser()
-	feed, err := fp.ParseURLWithContext(url, ctx)
+func (s *RssService) FetchFeed(ctx context.Context, url string, lastRetrieved time.Time) (*FetchFeedResult, error) {
+	err := IsSafeFeedUrl(url)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse feed %s: %w", url, err)
+		return nil, utils.UserError
 	}
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, utils.SystemError
+	}
+
+	res, err := s.httpClient.Do(req)
+	if err != nil {
+		return nil, utils.SystemError
+	}
+
+	if res != nil {
+		defer res.Body.Close()
+	}
+
+	if res.StatusCode < 200 || res.StatusCode >= 400 {
+		return nil, utils.UserError
+	}
+
+	finalUrl := res.Request.URL.String()
+	
+	fp := gofeed.NewParser()
+	feed, err := fp.Parse(res.Body)
+	if err != nil {
+		return nil, utils.SystemError
+	}
+
+	retrievedAt := time.Now()
 
 	finalItems := make([]*gofeed.Item, 0)
 	for _, item := range feed.Items {
@@ -55,5 +97,10 @@ func (s *RssService) FetchFeed(ctx context.Context, url string, lastRetrieved ti
 
 	feed.Items = finalItems
 
-	return feed, nil
+	return &FetchFeedResult{
+		Feed: feed,
+		FinalUrl: finalUrl,
+		OriginalUrl: url,
+		RetrievedAt: retrievedAt,
+	}, nil
 }

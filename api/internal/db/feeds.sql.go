@@ -7,28 +7,32 @@ package db
 
 import (
 	"context"
-
-	"github.com/jackc/pgx/v5/pgtype"
+	"time"
 )
 
-const addFeed = `-- name: AddFeed :exec
-INSERT INTO feed (name, url, newsletter_id)
-VALUES ($1, $2, $3)
+const addNewsletterFeed = `-- name: AddNewsletterFeed :exec
+INSERT INTO newsletter_feed (newsletter_id, feed_id, user_id, alias) VALUES ($1, $2, $3, $4)
 `
 
-type AddFeedParams struct {
-	Name         string
-	Url          string
+type AddNewsletterFeedParams struct {
 	NewsletterID string
+	FeedID       string
+	UserID       string
+	Alias        string
 }
 
-func (q *Queries) AddFeed(ctx context.Context, arg AddFeedParams) error {
-	_, err := q.db.Exec(ctx, addFeed, arg.Name, arg.Url, arg.NewsletterID)
+func (q *Queries) AddNewsletterFeed(ctx context.Context, arg AddNewsletterFeedParams) error {
+	_, err := q.db.Exec(ctx, addNewsletterFeed,
+		arg.NewsletterID,
+		arg.FeedID,
+		arg.UserID,
+		arg.Alias,
+	)
 	return err
 }
 
 const deleteAllFeedsInNewsletter = `-- name: DeleteAllFeedsInNewsletter :exec
-DELETE FROM feed WHERE newsletter_id = $1
+DELETE FROM newsletter_feed WHERE newsletter_id = $1
 `
 
 func (q *Queries) DeleteAllFeedsInNewsletter(ctx context.Context, newsletterID string) error {
@@ -36,23 +40,41 @@ func (q *Queries) DeleteAllFeedsInNewsletter(ctx context.Context, newsletterID s
 	return err
 }
 
-const deleteFeed = `-- name: DeleteFeed :exec
-DELETE FROM feed WHERE newsletter_id = $1 AND id = $2
+const deleteAllNewsletterFeedsForUser = `-- name: DeleteAllNewsletterFeedsForUser :exec
+DELETE FROM newsletter_feed WHERE user_id = $1
 `
 
-type DeleteFeedParams struct {
+func (q *Queries) DeleteAllNewsletterFeedsForUser(ctx context.Context, userID string) error {
+	_, err := q.db.Exec(ctx, deleteAllNewsletterFeedsForUser, userID)
+	return err
+}
+
+const deleteNewsletterFeed = `-- name: DeleteNewsletterFeed :exec
+DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2
+`
+
+type DeleteNewsletterFeedParams struct {
 	NewsletterID string
 	ID           string
 }
 
-func (q *Queries) DeleteFeed(ctx context.Context, arg DeleteFeedParams) error {
-	_, err := q.db.Exec(ctx, deleteFeed, arg.NewsletterID, arg.ID)
+func (q *Queries) DeleteNewsletterFeed(ctx context.Context, arg DeleteNewsletterFeedParams) error {
+	_, err := q.db.Exec(ctx, deleteNewsletterFeed, arg.NewsletterID, arg.ID)
+	return err
+}
+
+const deleteNewsletterFeedItemStatuses = `-- name: DeleteNewsletterFeedItemStatuses :exec
+DELETE FROM newsletter_feed_item_status WHERE user_id = $1
+`
+
+func (q *Queries) DeleteNewsletterFeedItemStatuses(ctx context.Context, userID string) error {
+	_, err := q.db.Exec(ctx, deleteNewsletterFeedItemStatuses, userID)
 	return err
 }
 
 const doesFeedExist = `-- name: DoesFeedExist :one
 SELECT EXISTS(
-    SELECT 1 FROM feed AS f 
+    SELECT 1 FROM newsletter_feed AS f 
     INNER JOIN newsletter AS nl ON f.newsletter_id = nl.id 
     WHERE f.id = $1 AND f.newsletter_id = $2 AND nl.user_id = $3
 )
@@ -71,16 +93,44 @@ func (q *Queries) DoesFeedExist(ctx context.Context, arg DoesFeedExistParams) (b
 	return exists, err
 }
 
+const getCachedFeedDetails = `-- name: GetCachedFeedDetails :one
+SELECT f.id, f.title, f.url, f.description 
+FROM feed_url AS furl
+INNER JOIN feed AS f ON furl.feed_id = f.id 
+WHERE furl.url = $1
+`
+
+type GetCachedFeedDetailsRow struct {
+	ID          string
+	Title       string
+	Url         string
+	Description string
+}
+
+func (q *Queries) GetCachedFeedDetails(ctx context.Context, url string) (GetCachedFeedDetailsRow, error) {
+	row := q.db.QueryRow(ctx, getCachedFeedDetails, url)
+	var i GetCachedFeedDetailsRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Url,
+		&i.Description,
+	)
+	return i, err
+}
+
 const getFeedsForManyNewsletters = `-- name: GetFeedsForManyNewsletters :many
-SELECT newsletter_id, id, name, url, last_retrieved_at FROM feed WHERE newsletter_id = ANY($1::UUID[])
+SELECT f.id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id FROM newsletter_feed AS nlf
+INNER JOIN feed AS f ON nlf.feed_id = f.id
+WHERE nlf.newsletter_id = ANY($1::UUID[])
 `
 
 type GetFeedsForManyNewslettersRow struct {
-	NewsletterID    string
 	ID              string
-	Name            string
+	Title           string
 	Url             string
-	LastRetrievedAt pgtype.Timestamptz
+	LastRetrievedAt time.Time
+	NewsletterID    string
 }
 
 func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []string) ([]GetFeedsForManyNewslettersRow, error) {
@@ -93,11 +143,11 @@ func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []str
 	for rows.Next() {
 		var i GetFeedsForManyNewslettersRow
 		if err := rows.Scan(
-			&i.NewsletterID,
 			&i.ID,
-			&i.Name,
+			&i.Title,
 			&i.Url,
 			&i.LastRetrievedAt,
+			&i.NewsletterID,
 		); err != nil {
 			return nil, err
 		}
@@ -110,26 +160,32 @@ func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []str
 }
 
 const getFeedsForNewsletter = `-- name: GetFeedsForNewsletter :many
-SELECT id, newsletter_id, name, url, last_retrieved_at, created_at, updated_at FROM feed WHERE newsletter_id = $1
+SELECT f.title, f.description, f.url, nf.alias FROM newsletter_feed AS nf
+INNER JOIN feed AS f ON nf.feed_id = f.id
+WHERE newsletter_id = $1
 `
 
-func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string) ([]Feed, error) {
+type GetFeedsForNewsletterRow struct {
+	Title       string
+	Description string
+	Url         string
+	Alias       string
+}
+
+func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string) ([]GetFeedsForNewsletterRow, error) {
 	rows, err := q.db.Query(ctx, getFeedsForNewsletter, newsletterID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Feed
+	var items []GetFeedsForNewsletterRow
 	for rows.Next() {
-		var i Feed
+		var i GetFeedsForNewsletterRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.NewsletterID,
-			&i.Name,
+			&i.Title,
+			&i.Description,
 			&i.Url,
-			&i.LastRetrievedAt,
-			&i.CreatedAt,
-			&i.UpdatedAt,
+			&i.Alias,
 		); err != nil {
 			return nil, err
 		}
@@ -141,23 +197,56 @@ func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string
 	return items, nil
 }
 
-const updateFeed = `-- name: UpdateFeed :exec
-UPDATE feed SET name = $1, url = $2 WHERE newsletter_id = $3 AND id = $4
+const saveFeedDetails = `-- name: SaveFeedDetails :one
+INSERT INTO feed (title, url, description, last_retrieved_at) 
+VALUES ($1, $2, $3, $4)
+RETURNING id
 `
 
-type UpdateFeedParams struct {
-	Name         string
-	Url          string
+type SaveFeedDetailsParams struct {
+	Title           string
+	Url             string
+	Description     string
+	LastRetrievedAt time.Time
+}
+
+func (q *Queries) SaveFeedDetails(ctx context.Context, arg SaveFeedDetailsParams) (string, error) {
+	row := q.db.QueryRow(ctx, saveFeedDetails,
+		arg.Title,
+		arg.Url,
+		arg.Description,
+		arg.LastRetrievedAt,
+	)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
+type SaveFeedItemDetailsParams struct {
+	FeedID      string
+	Title       string
+	Url         string
+	PublishDate time.Time
+	RetrievedAt time.Time
+}
+
+type SaveFeedUrlsParams struct {
+	FeedID string
+	Url    string
+	Source Feedurlsource
+}
+
+const updateNewsletterFeed = `-- name: UpdateNewsletterFeed :exec
+UPDATE newsletter_feed SET alias = $1 WHERE newsletter_id = $2 AND id = $3
+`
+
+type UpdateNewsletterFeedParams struct {
+	Alias        string
 	NewsletterID string
 	ID           string
 }
 
-func (q *Queries) UpdateFeed(ctx context.Context, arg UpdateFeedParams) error {
-	_, err := q.db.Exec(ctx, updateFeed,
-		arg.Name,
-		arg.Url,
-		arg.NewsletterID,
-		arg.ID,
-	)
+func (q *Queries) UpdateNewsletterFeed(ctx context.Context, arg UpdateNewsletterFeedParams) error {
+	_, err := q.db.Exec(ctx, updateNewsletterFeed, arg.Alias, arg.NewsletterID, arg.ID)
 	return err
 }

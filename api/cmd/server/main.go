@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/config"
@@ -14,6 +13,7 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/handler"
 	"github.com/ben-rieth/newsletter-api/internal/newsletters"
 	"github.com/ben-rieth/newsletter-api/internal/templates"
+	"github.com/ben-rieth/newsletter-api/internal/users"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -34,14 +34,15 @@ func main() {
 
 	queries := db.New(pool)
 
-	newsletterService := newsletters.NewNewsletterService(queries)
-	
-	httpClient := &http.Client{
-		Timeout: 10 * time.Second,
-	}
-
-	rssService := feeds.NewRssService(httpClient)
+	rssService := feeds.NewRssService()
 	emailService := newsletters.NewResendEmailService(&cfg)
+
+	newsletterService := newsletters.NewNewsletterService(queries, pool)
+	
+	feeds.InitBlockedIPs()
+	feedsService := feeds.NewFeedService(rssService, queries, pool)
+
+	userService := users.NewUserService(queries, pool)
 	
 	tmpl, err := templates.ParseEmailTemplates()
 	if err != nil {
@@ -76,13 +77,13 @@ func main() {
 	protectedApi := huma.NewGroup(api)
 	protectedApi.UseMiddleware(auth.AuthMiddleware(api))
 
-	newsletterHandler := handler.NewNewsletterHandler(queries, pool)
+	newsletterHandler := handler.NewNewsletterHandler(queries, newsletterService)
 	newsletterHandler.RegisterRoutes(protectedApi)
 
-	feedsHandler := handler.NewFeedHandler(queries)
+	feedsHandler := handler.NewFeedHandler(queries, feedsService)
 	feedsHandler.RegisterRoutes(protectedApi)
 
-	userHandler := handler.NewUserHandler(queries)
+	userHandler := handler.NewUserHandler(queries, userService)
 	userHandler.RegisterRoutes(protectedApi)
 
 	c := cors.New(cors.Options{

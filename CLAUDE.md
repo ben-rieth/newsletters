@@ -22,7 +22,7 @@ pnpm api:generate # Regenerate TypeScript types from backend OpenAPI spec
 - **Framework:** [TanStack Start](https://tanstack.com/start) (React meta-framework) with Vite.
 - **Routing:** TanStack Router with file-based routing in `src/routes/`. The route tree (`routeTree.gen.ts`) is auto-generated — do not edit it manually.
 - **Data fetching:** TanStack Query (v5). `QueryClient` is injected into the router context and available in all routes via `route.useRouteContext()`.
-- **API client:** `openapi-fetch` with types auto-generated from the backend's OpenAPI spec. Client is in `src/api/client.ts`, types in `src/api/schema.d.ts`. Run `pnpm api:generate` after backend changes to refresh types.
+- **API client:** `openapi-fetch` with types auto-generated from the backend's OpenAPI spec. Client is in `src/api/client.ts`, types in `src/api/schema.d.ts`. Run `pnpm api:generate` after backend changes to refresh types. Fields in API should be in camel case, notify the user if fields are not in camelCase.
 - **UI components:** Shadcn/ui in `src/components/ui/`. Use `cn()` from `src/lib/utils.ts` for conditional class merging.
 - **Styling:** Tailwind CSS v4.
 - **Data loading pattern:** Route loaders use `queryClient.ensureQueryData()` to prefetch before render, then `useSuspenseQuery()` in the component.

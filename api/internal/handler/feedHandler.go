@@ -2,21 +2,23 @@ package handler
 
 import (
 	"context"
-	"log"
+	"errors"
 	"net/http"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
+	"github.com/ben-rieth/newsletter-api/internal/utils"
 	"github.com/danielgtaylor/huma/v2"
 )
 
 type FeedHandler struct {
 	queries *db.Queries
+	feedService *feeds.FeedService
 }
 
-func NewFeedHandler(queries *db.Queries) *FeedHandler {
-	return &FeedHandler{queries: queries}
+func NewFeedHandler(queries *db.Queries, feedService *feeds.FeedService) *FeedHandler {
+	return &FeedHandler{queries, feedService}
 }
 
 type newsletterIdPath struct {
@@ -24,31 +26,21 @@ type newsletterIdPath struct {
 }
 
 type feedIdPath struct {
-	newsletterIdPath
+	NewsletterID string `path:"newsletterId"`
 	FeedID string `path:"feedId"`
 }
 
-type submittableFeedFields struct {
-	Name string `json:"name" minLength:"1"`
-	Url string `json:"url" doc:"Must be a valid HTTPS URL" pattern:"^https:\\/\\/([\\w-]+\\.)+[\\w]{2,}(\\/[\\w\\-.~:/?#\\[\\]@!$&'()*+,;=%]*)?$"`
-}
-
-type addFeedInput struct {
-	newsletterIdPath
-	Body submittableFeedFields
-}
-
-type listFeedsOutput struct {
-	Body []feeds.Feed
-}
-
-type updateFeedInput struct {
-	feedIdPath
-	Body submittableFeedFields
-}
-
-
 func (h *FeedHandler) RegisterRoutes(api huma.API) {
+	type submittableFeedFields struct {
+		Alias string `json:"alias"`
+		Url string `json:"url"`
+	}
+
+	type addFeedInput struct {
+		NewsletterID string `path:"newsletterId"`
+		Body submittableFeedFields
+	}
+	
 	huma.Register(api, huma.Operation{
 		OperationID: "add-feed",
 		Method: "POST",
@@ -67,25 +59,46 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		})
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError("Failed to add feed")
+			return nil, internalServerError
 		}
 
 		if !exists {
 			return nil, huma.Error400BadRequest("Newsletter does not exist. Cannot add feed.")
 		}
+
+
+		feed, err := h.feedService.GetFeedMetaData(ctx, input.Body.Url, true)
+		if err != nil {
+			if errors.Is(err, utils.UserError) {
+				return nil, huma.Error400BadRequest("URL is invalid")
+			} 
+			return nil, internalServerError
+		}
 		
-		err = h.queries.AddFeed(ctx, db.AddFeedParams{
+		err = h.queries.AddNewsletterFeed(ctx, db.AddNewsletterFeedParams{
 			NewsletterID: input.NewsletterID,
-			Name: input.Body.Name,
-			Url: input.Body.Url,
+			UserID: claims.Subject,
+			Alias: input.Body.Alias,
+			FeedID: feed.Id,
 		})
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError("Failed to add feed")
+			return nil, internalServerError
 		}
 
 		return nil, nil
 	})
+
+	type uiFeed struct {
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		Url         string `json:"url"`
+		Alias       string `json:"alias"`
+	}
+
+	type listFeedsOutput struct {
+		Body []uiFeed
+	}
 
 	huma.Register(api, huma.Operation{
 		OperationID: "list-feeds",
@@ -93,8 +106,6 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		Path: "/newsletters/{newsletterId}/feeds",
 		Summary: "Get all feeds included in a newsletter",
 	}, func(ctx context.Context, input *newsletterIdPath) (*listFeedsOutput, error) {
-		serverError := huma.Error500InternalServerError("Failed to get feeds")
-		
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, huma.Error401Unauthorized("Not authorized")
@@ -109,29 +120,45 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		})
 
 		if err != nil {
-			log.Printf("error: %v", err)
-			return nil, serverError
+			return nil, internalServerError
 		}
 
 		if !exists {
 			return nil, huma.Error400BadRequest("Newsletter does not exist. Cannot get feeds.")
 		}
 
-		var feeds []db.Feed
-		feeds, err = h.queries.GetFeedsForNewsletter(ctx, input.NewsletterID)
-
+		nlFeeds, err := h.queries.GetFeedsForNewsletter(ctx, input.NewsletterID)
 		if err != nil {
-			log.Printf("error: %v", err)
-			return nil, serverError
+			return nil, internalServerError
 		}
 
-		out := &listFeedsOutput{}
-		for _, feed := range feeds {
-			out.Body = append(out.Body,dbFeedToFeedType(feed))
+		uiFeeds := make([]uiFeed, 0, len(nlFeeds))
+		for _, nlFeed := range nlFeeds {
+			uiFeeds = append(uiFeeds, uiFeed{
+				Title: nlFeed.Title,
+				Description: nlFeed.Description,
+				Url: nlFeed.Url,
+				Alias: nlFeed.Alias,
+			})
+		}
+
+		out := &listFeedsOutput{
+			Body: uiFeeds,
 		}
 
 		return out, nil
 	})
+
+	type updatableFeedFields struct {
+		Alias string `json:"alias"`
+	}
+
+	type updateFeedInput struct {
+		NewsletterID string `path:"newsletterId"`
+		FeedID string `path:"feedId"`
+		Body updatableFeedFields
+	}
+
 
 	huma.Register(api, huma.Operation{
 		OperationID: "update-feed",
@@ -161,11 +188,10 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 			return nil, huma.Error404NotFound("This feed does not exist.")
 		}
 
-		err = h.queries.UpdateFeed(ctx, db.UpdateFeedParams{
+		err = h.queries.UpdateNewsletterFeed(ctx, db.UpdateNewsletterFeedParams{
 			NewsletterID: input.NewsletterID,
 			ID: input.FeedID,
-			Name: input.Body.Name,
-			Url: input.Body.Url,
+			Alias: input.Body.Alias,
 		})
 
 		if err != nil {
@@ -203,7 +229,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 			return nil, huma.Error404NotFound("This feed does not exist.")
 		}
 
-		err = h.queries.DeleteFeed(ctx, db.DeleteFeedParams{
+		err = h.queries.DeleteNewsletterFeed(ctx, db.DeleteNewsletterFeedParams{
 			NewsletterID: input.NewsletterID,
 			ID: input.FeedID,
 		})
@@ -214,16 +240,35 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 		return nil, nil
 	})
-}
 
-func dbFeedToFeedType (feed db.Feed) feeds.Feed {
-	return feeds.Feed{
-		ID: feed.ID,
-		NewsletterId: feed.NewsletterID,
-		Name: feed.Name,
-		Url: feed.Url,
-		LastRetrievedAt: &feed.LastRetrievedAt.Time,
-		CreatedAt: feed.CreatedAt,
-		UpdatedAt: feed.UpdatedAt,
+	type getFeedMetaDataInput struct {
+		Body struct {
+			URL string `json:"url"`
+		}
 	}
+
+	type getFeedMetaDataOutput struct {
+		Body feeds.FeedMetaData
+	}
+
+	huma.Register(api, huma.Operation{
+		OperationID: "get-feed-metadata",
+		Method: "POST",
+		Path: "/feed",
+		Summary: "Gets data about an RSS feed URL",
+	}, func(ctx context.Context, i *getFeedMetaDataInput) (*getFeedMetaDataOutput, error) {
+		err := feeds.IsSafeFeedUrl(i.Body.URL)
+		if err != nil {
+			return nil, huma.Error400BadRequest("Invalid Url", err)
+		}
+		
+		metadata, err := h.feedService.GetFeedMetaData(ctx, i.Body.URL, false)
+		if err != nil || metadata == nil {
+			return nil, internalServerError
+		}
+
+		return &getFeedMetaDataOutput{
+			Body: *metadata,
+		}, nil
+	})
 }

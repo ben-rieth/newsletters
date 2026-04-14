@@ -12,7 +12,6 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/newsletters"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type listNewslettersOutput struct {
@@ -47,11 +46,11 @@ type updateNewsletterInput struct {
 
 type NewsletterHandler struct {
 	queries *db.Queries
-	db *pgxpool.Pool
+	nlService *newsletters.NewsletterService
 }
 
-func NewNewsletterHandler(queries *db.Queries, db *pgxpool.Pool) *NewsletterHandler {
-	return &NewsletterHandler{queries: queries, db: db}
+func NewNewsletterHandler(queries *db.Queries, nlService *newsletters.NewsletterService) *NewsletterHandler {
+	return &NewsletterHandler{queries, nlService}
 }
 
 func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
@@ -92,17 +91,17 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			return nil, huma.Error401Unauthorized("Not authorized")
 		}
 		
-		var sendDay int32
+		var sendDay int
 		
 		if input.Body.SendDay == nil {
 			sendDay = 0
 		} else {
-			sendDay = int32(*input.Body.SendDay)
+			sendDay = int(*input.Body.SendDay)
 		}
 
 		nextSendTime, nextErr := newsletters.ComputeNextSendTime(
 			db.Frequency(input.Body.Frequency),
-			int(*input.Body.SendDay), int(input.Body.SendHour), int(input.Body.SendMinute),
+			sendDay, int(input.Body.SendHour), int(input.Body.SendMinute),
 			input.Body.SendTimezone, time.Now(),
 		)
 
@@ -113,7 +112,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		err := h.queries.CreateNewsletter(ctx, db.CreateNewsletterParams{
 			Name: input.Body.Name,
 			Frequency: db.Frequency(input.Body.Frequency),
-			SendDay: sendDay,
+			SendDay: int32(sendDay),
 			SendHour:  int32(input.Body.SendHour),
 			SendMinute: int32(input.Body.SendMinute),
 			SendTimezone: input.Body.SendTimezone,
@@ -235,26 +234,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			return nil, huma.Error400BadRequest("Newsletter does not exist.")
 		}
 
-		tx, err := h.db.Begin(ctx)
-		if err != nil {
-			return nil, internalServerError
-		}
-
-		defer tx.Rollback(ctx)
-
-		qtx := h.queries.WithTx(tx)
-
-		err = qtx.DeleteAllFeedsInNewsletter(ctx, input.ID)
-		if err != nil {
-			return nil, internalServerError
-		}
-
-		err = qtx.DeleteNewsletter(ctx, input.ID)
-		if err != nil {
-			return nil, internalServerError
-		}
-
-		err = tx.Commit(ctx)
+		err = h.nlService.DeleteNewsletter(ctx, input.ID)
 		if err != nil {
 			return nil, internalServerError
 		}

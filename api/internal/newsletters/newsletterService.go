@@ -8,6 +8,7 @@ import (
 
 	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type Newsletter struct {
@@ -26,10 +27,11 @@ type Newsletter struct {
 
 type NewsletterService struct {
 	queries *db.Queries
+	db *pgxpool.Pool
 }
 
-func NewNewsletterService (queries *db.Queries) *NewsletterService {
-	return &NewsletterService{queries: queries}
+func NewNewsletterService (queries *db.Queries, db *pgxpool.Pool) *NewsletterService {
+	return &NewsletterService{queries, db}
 }
 
 func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]SendableNewsletter, error) {
@@ -69,22 +71,16 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 		return nil, errors.New("Database Failure")
 	}
 
+	
 	feedsByNewsletter := make(map[string][]feeds.BaseFeed)
 	for _, row := range feedsResult {
-		var lastRetrievedAt time.Time
-		if row.LastRetrievedAt.Valid {
-			lastRetrievedAt = row.LastRetrievedAt.Time
-		} else {
-			lastRetrievedAt = lastSendTimeByNewsletter[row.NewsletterID]
-		}
-		
 		feedsByNewsletter[row.NewsletterID] = append(
 			feedsByNewsletter[row.NewsletterID], 
 			feeds.BaseFeed{
 				Id: row.ID,
-				Name: row.Name,
+				Name: row.Title,
 				URL: row.Url,
-				LastRetrievedAt: lastRetrievedAt,
+				LastRetrievedAt: row.LastRetrievedAt,
 			},
 		)
 	}
@@ -136,4 +132,30 @@ func (s *NewsletterService) UpdateSendTimes(
 	})
 
 	return nil
+}
+
+func (s *NewsletterService) DeleteNewsletter(
+	ctx context.Context,
+	id string,
+) error {
+		tx, err := s.db.Begin(ctx)
+		if err != nil {
+			return err
+		}
+
+		defer tx.Rollback(ctx)
+
+		qtx := s.queries.WithTx(tx)
+
+		err = qtx.DeleteAllFeedsInNewsletter(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		err = qtx.DeleteNewsletter(ctx, id)
+		if err != nil {
+			return err
+		}
+
+		return tx.Commit(ctx)
 }

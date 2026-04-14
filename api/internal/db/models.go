@@ -12,6 +12,50 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type Feedurlsource string
+
+const (
+	FeedurlsourceCanonical      Feedurlsource = "canonical"
+	FeedurlsourceUserSubmitted  Feedurlsource = "user_submitted"
+	FeedurlsourceInFeedResponse Feedurlsource = "in_feed_response"
+	FeedurlsourceUnknown        Feedurlsource = "unknown"
+)
+
+func (e *Feedurlsource) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = Feedurlsource(s)
+	case string:
+		*e = Feedurlsource(s)
+	default:
+		return fmt.Errorf("unsupported scan type for Feedurlsource: %T", src)
+	}
+	return nil
+}
+
+type NullFeedurlsource struct {
+	Feedurlsource Feedurlsource
+	Valid         bool // Valid is true if Feedurlsource is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullFeedurlsource) Scan(value interface{}) error {
+	if value == nil {
+		ns.Feedurlsource, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.Feedurlsource.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullFeedurlsource) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.Feedurlsource), nil
+}
+
 type Frequency string
 
 const (
@@ -55,6 +99,48 @@ func (ns NullFrequency) Value() (driver.Value, error) {
 	return string(ns.Frequency), nil
 }
 
+type Itemstate string
+
+const (
+	ItemstateRead   Itemstate = "read"
+	ItemstateUnread Itemstate = "unread"
+)
+
+func (e *Itemstate) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = Itemstate(s)
+	case string:
+		*e = Itemstate(s)
+	default:
+		return fmt.Errorf("unsupported scan type for Itemstate: %T", src)
+	}
+	return nil
+}
+
+type NullItemstate struct {
+	Itemstate Itemstate
+	Valid     bool // Valid is true if Itemstate is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullItemstate) Scan(value interface{}) error {
+	if value == nil {
+		ns.Itemstate, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.Itemstate.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullItemstate) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.Itemstate), nil
+}
+
 type AppUser struct {
 	ID        string
 	Email     string
@@ -65,12 +151,32 @@ type AppUser struct {
 
 type Feed struct {
 	ID              string
-	NewsletterID    string
-	Name            string
+	Title           string
+	Description     string
 	Url             string
-	LastRetrievedAt pgtype.Timestamptz
+	LastRetrievedAt time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+}
+
+type FeedItem struct {
+	ID          string
+	FeedID      string
+	Title       string
+	Url         string
+	PublishDate time.Time
+	RetrievedAt time.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+type FeedUrl struct {
+	ID        string
+	FeedID    string
+	Url       string
+	Source    Feedurlsource
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type Newsletter struct {
@@ -83,9 +189,29 @@ type Newsletter struct {
 	SendTimezone string
 	LastSentAt   pgtype.Timestamptz
 	NextSendTime time.Time
+	UserID       string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+}
+
+type NewsletterFeed struct {
+	ID           string
+	NewsletterID string
+	FeedID       string
 	UserID       string
+	Alias        string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+type NewsletterFeedItemStatus struct {
+	ID               string
+	NewsletterFeedID string
+	ItemID           string
+	UserID           string
+	State            Itemstate
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
 }
 
 type RefreshToken struct {

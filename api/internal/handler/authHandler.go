@@ -47,11 +47,10 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 		Path: "/auth/sign-up",
 		Summary: "Sign up",
 	}, func(ctx context.Context, i *authInput) (*authOutput, error) {
-		serverError := huma.Error500InternalServerError("Sign up failed")
 		
 		hash, err := bcrypt.GenerateFromPassword([]byte(i.Body.Password), bcrypt.DefaultCost)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError
 		}
 
 		var id string
@@ -65,12 +64,12 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 				return nil, huma.Error409Conflict("Email already in use")
 			}
 
-			return nil, serverError
+			return nil, internalServerError
 		}
 
 		token, err := auth.GenerateToken(id, h.config.JWTSecret)
-		if err == nil {
-			return nil, serverError
+		if err != nil {
+			return nil, internalServerError
 		}
 
 		return &authOutput{

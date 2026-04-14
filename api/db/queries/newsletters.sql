@@ -38,4 +38,7 @@ WHERE nl.next_send_time <= NOW();
 UPDATE newsletter SET next_send_time = $1 WHERE id = $2 AND user_id = $3;
 
 -- name: UpdateNewsletterSendTimes :exec
-UPDATE newsletter SET next_send_time = $1 AND last_sent_at = $2 WHERE id = $3 AND user_id = $4;
+UPDATE newsletter SET next_send_time = $1, last_sent_at = $2 WHERE id = $3 AND user_id = $4;
+
+-- name: DeleteAllNewslettersForUser :exec
+DELETE FROM newsletter WHERE user_id = $1;

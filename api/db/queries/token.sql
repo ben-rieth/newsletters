@@ -6,3 +6,6 @@ SELECT token, revoked_at, expires_at, user_id FROM refresh_token WHERE token = $
 
 -- name: RevokeToken :exec
 UPDATE refresh_token SET revoked_at = NOW() WHERE token = $1;
+
+-- name: DeleteAllRefreshTokensForUser :exec
+DELETE FROM refresh_token WHERE user_id = $1;

@@ -44,6 +44,15 @@ func (q *Queries) CreateNewsletter(ctx context.Context, arg CreateNewsletterPara
 	return err
 }
 
+const deleteAllNewslettersForUser = `-- name: DeleteAllNewslettersForUser :exec
+DELETE FROM newsletter WHERE user_id = $1
+`
+
+func (q *Queries) DeleteAllNewslettersForUser(ctx context.Context, userID string) error {
+	_, err := q.db.Exec(ctx, deleteAllNewslettersForUser, userID)
+	return err
+}
+
 const deleteNewsletter = `-- name: DeleteNewsletter :exec
 DELETE FROM newsletter WHERE id = $1
 `
@@ -120,7 +129,7 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 }
 
 const getNewsletter = `-- name: GetNewsletter :one
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, created_at, updated_at, user_id FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, created_at, updated_at FROM newsletter
 WHERE id = $1 AND user_id = $2
 `
 
@@ -142,15 +151,15 @@ func (q *Queries) GetNewsletter(ctx context.Context, arg GetNewsletterParams) (N
 		&i.SendTimezone,
 		&i.LastSentAt,
 		&i.NextSendTime,
+		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.UserID,
 	)
 	return i, err
 }
 
 const listNewsletters = `-- name: ListNewsletters :many
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, created_at, updated_at, user_id FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, created_at, updated_at FROM newsletter
 WHERE user_id = $1
 ORDER BY created_at DESC
 `
@@ -174,9 +183,9 @@ func (q *Queries) ListNewsletters(ctx context.Context, userID string) ([]Newslet
 			&i.SendTimezone,
 			&i.LastSentAt,
 			&i.NextSendTime,
+			&i.UserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
-			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -244,7 +253,7 @@ func (q *Queries) UpdateNewsletterSendTime(ctx context.Context, arg UpdateNewsle
 }
 
 const updateNewsletterSendTimes = `-- name: UpdateNewsletterSendTimes :exec
-UPDATE newsletter SET next_send_time = $1 AND last_sent_at = $2 WHERE id = $3 AND user_id = $4
+UPDATE newsletter SET next_send_time = $1, last_sent_at = $2 WHERE id = $3 AND user_id = $4
 `
 
 type UpdateNewsletterSendTimesParams struct {

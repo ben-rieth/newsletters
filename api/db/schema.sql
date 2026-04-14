@@ -1,4 +1,4 @@
-\restrict yhwMZ7npD8R7vZDQygBsumRhbSa2kHRRCS2leWju1nncahH9l3BmxC92HoUqBpt
+\restrict 4b4LclgcPQg6rDm8eT15swLJz5mQFDmUqSRzeeOjpgBNyKAnXY52ShEyMdlN5EG
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -13,6 +13,18 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: feedurlsource; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.feedurlsource AS ENUM (
+    'canonical',
+    'user_submitted',
+    'in_feed_response',
+    'unknown'
+);
+
 
 --
 -- Name: frequency; Type: TYPE; Schema: public; Owner: -
@@ -58,10 +70,10 @@ CREATE TABLE public.app_user (
 
 CREATE TABLE public.feed (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    name text NOT NULL,
+    title text NOT NULL,
     description text NOT NULL,
     url text NOT NULL,
-    last_retrieved_at timestamp with time zone,
+    last_retrieved_at timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -78,6 +90,20 @@ CREATE TABLE public.feed_item (
     url text NOT NULL,
     publish_date timestamp with time zone NOT NULL,
     retrieved_at timestamp with time zone NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
+-- Name: feed_url; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.feed_url (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    feed_id uuid NOT NULL,
+    url text NOT NULL,
+    source public.feedurlsource NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -216,6 +242,30 @@ ALTER TABLE ONLY public.feed
 
 
 --
+-- Name: feed feed_url_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.feed
+    ADD CONSTRAINT feed_url_key UNIQUE (url);
+
+
+--
+-- Name: feed_url feed_url_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.feed_url
+    ADD CONSTRAINT feed_url_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: feed_url feed_url_url_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.feed_url
+    ADD CONSTRAINT feed_url_url_key UNIQUE (url);
+
+
+--
 -- Name: newsletter_feed_item_status newsletter_feed_item_status_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -268,7 +318,15 @@ ALTER TABLE ONLY public.schema_migrations
 --
 
 ALTER TABLE ONLY public.feed_item
-    ADD CONSTRAINT feed_item_feed_id_fkey FOREIGN KEY (feed_id) REFERENCES public.feed(id) ON DELETE CASCADE;
+    ADD CONSTRAINT feed_item_feed_id_fkey FOREIGN KEY (feed_id) REFERENCES public.feed(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: feed_url feed_url_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.feed_url
+    ADD CONSTRAINT feed_url_feed_id_fkey FOREIGN KEY (feed_id) REFERENCES public.feed(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
@@ -276,7 +334,7 @@ ALTER TABLE ONLY public.feed_item
 --
 
 ALTER TABLE ONLY public.newsletter_feed
-    ADD CONSTRAINT newsletter_feed_feed_id_fkey FOREIGN KEY (feed_id) REFERENCES public.feed(id) ON DELETE CASCADE;
+    ADD CONSTRAINT newsletter_feed_feed_id_fkey FOREIGN KEY (feed_id) REFERENCES public.feed(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
@@ -284,7 +342,7 @@ ALTER TABLE ONLY public.newsletter_feed
 --
 
 ALTER TABLE ONLY public.newsletter_feed_item_status
-    ADD CONSTRAINT newsletter_feed_item_status_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.feed_item(id) ON DELETE CASCADE;
+    ADD CONSTRAINT newsletter_feed_item_status_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.feed_item(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
@@ -292,7 +350,7 @@ ALTER TABLE ONLY public.newsletter_feed_item_status
 --
 
 ALTER TABLE ONLY public.newsletter_feed_item_status
-    ADD CONSTRAINT newsletter_feed_item_status_newsletter_feed_id_fkey FOREIGN KEY (newsletter_feed_id) REFERENCES public.newsletter_feed(id) ON DELETE CASCADE;
+    ADD CONSTRAINT newsletter_feed_item_status_newsletter_feed_id_fkey FOREIGN KEY (newsletter_feed_id) REFERENCES public.newsletter_feed(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
@@ -300,7 +358,7 @@ ALTER TABLE ONLY public.newsletter_feed_item_status
 --
 
 ALTER TABLE ONLY public.newsletter_feed_item_status
-    ADD CONSTRAINT newsletter_feed_item_status_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+    ADD CONSTRAINT newsletter_feed_item_status_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
@@ -308,7 +366,7 @@ ALTER TABLE ONLY public.newsletter_feed_item_status
 --
 
 ALTER TABLE ONLY public.newsletter_feed
-    ADD CONSTRAINT newsletter_feed_newsletter_id_fkey FOREIGN KEY (newsletter_id) REFERENCES public.newsletter(id) ON DELETE CASCADE;
+    ADD CONSTRAINT newsletter_feed_newsletter_id_fkey FOREIGN KEY (newsletter_id) REFERENCES public.newsletter(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
@@ -316,7 +374,7 @@ ALTER TABLE ONLY public.newsletter_feed
 --
 
 ALTER TABLE ONLY public.newsletter_feed
-    ADD CONSTRAINT newsletter_feed_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+    ADD CONSTRAINT newsletter_feed_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
@@ -324,7 +382,7 @@ ALTER TABLE ONLY public.newsletter_feed
 --
 
 ALTER TABLE ONLY public.newsletter
-    ADD CONSTRAINT newsletter_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+    ADD CONSTRAINT newsletter_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
@@ -332,14 +390,14 @@ ALTER TABLE ONLY public.newsletter
 --
 
 ALTER TABLE ONLY public.refresh_token
-    ADD CONSTRAINT refresh_token_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+    ADD CONSTRAINT refresh_token_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
 -- PostgreSQL database dump complete
 --
 
-\unrestrict yhwMZ7npD8R7vZDQygBsumRhbSa2kHRRCS2leWju1nncahH9l3BmxC92HoUqBpt
+\unrestrict 4b4LclgcPQg6rDm8eT15swLJz5mQFDmUqSRzeeOjpgBNyKAnXY52ShEyMdlN5EG
 
 
 --
