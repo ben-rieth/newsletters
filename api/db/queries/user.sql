@@ -11,10 +11,10 @@ SELECT * FROM app_user WHERE email = $1;
 SELECT * FROM app_user WHERE id = $1;
 
 -- name: UpdateUserEmail :exec
-UPDATE app_user SET email = $1 WHERE id = $2;
+UPDATE app_user SET email = $1, updated_at = NOW() WHERE id = $2;
 
 -- name: UpdateUserPassword :exec
-UPDATE app_user SET password = $1 WHERE id = $2;
+UPDATE app_user SET password = $1, updated_at = NOW() WHERE id = $2;
 
 -- name: DeleteUser :exec
 DELETE FROM app_user WHERE id = $1;

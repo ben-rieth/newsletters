@@ -17,7 +17,7 @@ type emailService interface {
 
 type Scheduler struct {
 	newsletterService *NewsletterService
-	rssService *feeds.RssService
+	feedService *feeds.FeedService
 	emailService emailService
 	schedulerConfig *SchedulerConfig
 	tmpl *template.Template
@@ -29,14 +29,14 @@ type SchedulerConfig struct {
 
 func NewScheduler(
 	newsletterService *NewsletterService,
-	rssService *feeds.RssService,
+	feedService *feeds.FeedService,
 	emailService emailService,
 	schedulerConfig *SchedulerConfig,
 	tmpl *template.Template,
 ) *Scheduler {
 	return &Scheduler{
 		newsletterService, 
-		rssService, 
+		feedService, 
 		emailService,
 		schedulerConfig,
 		tmpl,
@@ -96,33 +96,31 @@ func (sch *Scheduler) pollNewsletters(ctx context.Context) {
 				return
 			}
 
-			var sentAt time.Time
-			if len(feedResults) > 0 {
-				newsletterHtml, err := sch.assembleNewsletter(&nl, feedResults)
-				if err != nil {
-					nlErrors[index] = err
-					return
-				}
-
-				result, err := sch.emailService.Send(
-					ctx,
-					nl.Name,
-					"",
-					nl.Email,
-					newsletterHtml,
-				)
-
-				if err != nil {
-					nlErrors[index] = err
-					return
-				}
-
-				sentAt = result.Time
-			} else {
-				sentAt = time.Now()
+			newsletterHtml, err := sch.assembleNewsletter(&nl, feedResults)
+			if err != nil {
+				nlErrors[index] = err
+				return
 			}
 
+			result, err := sch.emailService.Send(
+				ctx,
+				nl.Name,
+				"",
+				nl.Email,
+				newsletterHtml,
+			)
+
+			if err != nil {
+				nlErrors[index] = err
+				return
+			}
+
+			sentAt := result.Time
+
 			err = sch.newsletterService.UpdateSendTimes(ctx, &nl, sentAt)
+			if err != nil {
+				nlErrors[index] = err
+			}
 		}(ctx, i, nl, sem)
 	}
 
@@ -133,11 +131,11 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 	ctx context.Context,
 	nl *SendableNewsletter, 
 	sem chan struct{},
-) ([]*feeds.FetchFeedResult, error) {
+) ([]feeds.FeedView, error) {
 	var wg sync.WaitGroup
 
-	results := make([]*feeds.FetchFeedResult, len(nl.Feeds))
-	errors := make([]error, len(nl.Feeds))
+	results := make([]*feeds.FeedView, len(nl.Feeds))
+	feedErrors := make([]error, len(nl.Feeds))
 
 	for i, feed := range nl.Feeds {
 		wg.Add(1)
@@ -147,23 +145,23 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 			defer wg.Done()
 			defer func() { <- sem }()
 
-			feedResult, err := sch.rssService.FetchFeed(ctx, feed.URL, feed.LastRetrievedAt)
+			feedResult, err := sch.feedService.GetFeedDataSince(ctx, feed, nl.LastSendTime)
 			if err != nil {
-				errors[index] = err
+				feedErrors[index] = err
 				results[index] = nil
 
 				return
 			}
 
 			results[index] = feedResult
-			errors[index] = nil
+			feedErrors[index] = nil
 		}(i, feed)
 	}
 
 	wg.Wait()
 
 	var failed []string
-	for i, err := range errors {
+	for i, err := range feedErrors {
 		if err != nil {
 			log.Printf("Failed to fetch feed with id %s and url %s: %v", nl.Feeds[i].Id, nl.Feeds[i].URL, err)
 			failed = append(failed, nl.Feeds[i].Id)
@@ -172,10 +170,10 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 
 	// TODO: save failed feeds to display to the user in the UI or send a warning
 
-	var notNilResults []*feeds.FetchFeedResult
+	var notNilResults []feeds.FeedView
 	for _, result := range results {
 		if result != nil {
-			notNilResults = append(notNilResults, result)
+			notNilResults = append(notNilResults, *result)
 		}
 	}
 
@@ -184,26 +182,9 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 
 func (sch *Scheduler) assembleNewsletter(
 	newsletter *SendableNewsletter,
-	rssFeeds []*feeds.FetchFeedResult,
+	feedViews []feeds.FeedView,
 ) (string, error) {
 	buffer := new(bytes.Buffer)
-
-	feedViews := make([]feeds.FeedView, 0, len(rssFeeds))
-	for _, rssFeed := range rssFeeds {
-		itemViews := make([]feeds.FeedItemView, 0, len(rssFeed.Feed.Items))
-		for _, item := range rssFeed.Feed.Items {
-			itemViews = append(itemViews, feeds.FeedItemView{
-				Title: item.Title,
-				URL: item.Link,
-			})
-		}
-		
-		feedViews = append(feedViews, feeds.FeedView{
-			Title: rssFeed.Feed.Title,
-			Items: itemViews,
-		})
-	}
-
 	err := sch.tmpl.ExecuteTemplate(buffer, "newsletter.html", map[string]any{
 		"NewsletterName": newsletter.Name,
 		"Feeds": feedViews,

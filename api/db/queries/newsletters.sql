@@ -35,10 +35,10 @@ INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE nl.next_send_time <= NOW();
 
 -- name: UpdateNewsletterSendTime :exec
-UPDATE newsletter SET next_send_time = $1 WHERE id = $2 AND user_id = $3;
+UPDATE newsletter SET next_send_time = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3;
 
 -- name: UpdateNewsletterSendTimes :exec
-UPDATE newsletter SET next_send_time = $1, last_sent_at = $2 WHERE id = $3 AND user_id = $4;
+UPDATE newsletter SET next_send_time = $1, last_sent_at = $2, updated_at = NOW() WHERE id = $3 AND user_id = $4;
 
 -- name: DeleteAllNewslettersForUser :exec
 DELETE FROM newsletter WHERE user_id = $1;

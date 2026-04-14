@@ -80,7 +80,7 @@ func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
 }
 
 const updateUserEmail = `-- name: UpdateUserEmail :exec
-UPDATE app_user SET email = $1 WHERE id = $2
+UPDATE app_user SET email = $1, updated_at = NOW() WHERE id = $2
 `
 
 type UpdateUserEmailParams struct {
@@ -94,7 +94,7 @@ func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams
 }
 
 const updateUserPassword = `-- name: UpdateUserPassword :exec
-UPDATE app_user SET password = $1 WHERE id = $2
+UPDATE app_user SET password = $1, updated_at = NOW() WHERE id = $2
 `
 
 type UpdateUserPasswordParams struct {

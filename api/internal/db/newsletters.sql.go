@@ -238,7 +238,7 @@ func (q *Queries) UpdateNewsletter(ctx context.Context, arg UpdateNewsletterPara
 }
 
 const updateNewsletterSendTime = `-- name: UpdateNewsletterSendTime :exec
-UPDATE newsletter SET next_send_time = $1 WHERE id = $2 AND user_id = $3
+UPDATE newsletter SET next_send_time = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3
 `
 
 type UpdateNewsletterSendTimeParams struct {
@@ -253,7 +253,7 @@ func (q *Queries) UpdateNewsletterSendTime(ctx context.Context, arg UpdateNewsle
 }
 
 const updateNewsletterSendTimes = `-- name: UpdateNewsletterSendTimes :exec
-UPDATE newsletter SET next_send_time = $1, last_sent_at = $2 WHERE id = $3 AND user_id = $4
+UPDATE newsletter SET next_send_time = $1, last_sent_at = $2, updated_at = NOW() WHERE id = $3 AND user_id = $4
 `
 
 type UpdateNewsletterSendTimesParams struct {

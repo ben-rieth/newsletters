@@ -51,7 +51,7 @@ func main() {
 
 	scheduler := newsletters.NewScheduler(
 		newsletterService, 
-		rssService, 
+		feedsService, 
 		emailService,
 		&newsletters.SchedulerConfig{
 			MaxWorkers: 5,

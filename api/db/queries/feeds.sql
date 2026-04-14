@@ -31,7 +31,7 @@ SELECT EXISTS(
 );
 
 -- name: UpdateNewsletterFeed :exec
-UPDATE newsletter_feed SET alias = $1 WHERE newsletter_id = $2 AND id = $3;
+UPDATE newsletter_feed SET alias = $1, updated_at = NOW() WHERE newsletter_id = $2 AND id = $3;
 
 -- name: DeleteNewsletterFeed :exec
 DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2;
@@ -49,3 +49,9 @@ DELETE FROM newsletter_feed WHERE user_id = $1;
 
 -- name: DeleteNewsletterFeedItemStatuses :exec
 DELETE FROM newsletter_feed_item_status WHERE user_id = $1;
+
+-- name: GetFeedItemsPublishedAfter :many
+SELECT title, url FROM feed_item WHERE feed_id = $1 AND publish_date > $2;
+
+-- name: UpdateFeedLastRetrievedTime :exec
+UPDATE feed SET last_retrieved_at = $1, updated_at = NOW() WHERE id = $2;

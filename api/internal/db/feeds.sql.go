@@ -119,6 +119,40 @@ func (q *Queries) GetCachedFeedDetails(ctx context.Context, url string) (GetCach
 	return i, err
 }
 
+const getFeedItemsPublishedAfter = `-- name: GetFeedItemsPublishedAfter :many
+SELECT title, url FROM feed_item WHERE feed_id = $1 AND publish_date > $2
+`
+
+type GetFeedItemsPublishedAfterParams struct {
+	FeedID      string
+	PublishDate time.Time
+}
+
+type GetFeedItemsPublishedAfterRow struct {
+	Title string
+	Url   string
+}
+
+func (q *Queries) GetFeedItemsPublishedAfter(ctx context.Context, arg GetFeedItemsPublishedAfterParams) ([]GetFeedItemsPublishedAfterRow, error) {
+	rows, err := q.db.Query(ctx, getFeedItemsPublishedAfter, arg.FeedID, arg.PublishDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetFeedItemsPublishedAfterRow
+	for rows.Next() {
+		var i GetFeedItemsPublishedAfterRow
+		if err := rows.Scan(&i.Title, &i.Url); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getFeedsForManyNewsletters = `-- name: GetFeedsForManyNewsletters :many
 SELECT f.id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
@@ -236,8 +270,22 @@ type SaveFeedUrlsParams struct {
 	Source Feedurlsource
 }
 
+const updateFeedLastRetrievedTime = `-- name: UpdateFeedLastRetrievedTime :exec
+UPDATE feed SET last_retrieved_at = $1, updated_at = NOW() WHERE id = $2
+`
+
+type UpdateFeedLastRetrievedTimeParams struct {
+	LastRetrievedAt time.Time
+	ID              string
+}
+
+func (q *Queries) UpdateFeedLastRetrievedTime(ctx context.Context, arg UpdateFeedLastRetrievedTimeParams) error {
+	_, err := q.db.Exec(ctx, updateFeedLastRetrievedTime, arg.LastRetrievedAt, arg.ID)
+	return err
+}
+
 const updateNewsletterFeed = `-- name: UpdateNewsletterFeed :exec
-UPDATE newsletter_feed SET alias = $1 WHERE newsletter_id = $2 AND id = $3
+UPDATE newsletter_feed SET alias = $1, updated_at = NOW() WHERE newsletter_id = $2 AND id = $3
 `
 
 type UpdateNewsletterFeedParams struct {
