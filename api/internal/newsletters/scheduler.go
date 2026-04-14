@@ -126,12 +126,17 @@ func (sch *Scheduler) pollNewsletters(ctx context.Context) {
 
 	nlWaitGroup.Wait()
 }
+
+type newsletterFetchFeedResult struct {
+	Succeeded []feeds.FeedView
+	Failed []feeds.BaseFeed
+}
   
 func (sch *Scheduler) fetchFeedsForNewsletter(
 	ctx context.Context,
 	nl *SendableNewsletter, 
 	sem chan struct{},
-) ([]feeds.FeedView, error) {
+) (newsletterFetchFeedResult, error) {
 	var wg sync.WaitGroup
 
 	results := make([]*feeds.FeedView, len(nl.Feeds))
@@ -160,15 +165,13 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 
 	wg.Wait()
 
-	var failed []string
+	var failed []feeds.BaseFeed
 	for i, err := range feedErrors {
 		if err != nil {
 			log.Printf("Failed to fetch feed with id %s and url %s: %v", nl.Feeds[i].Id, nl.Feeds[i].URL, err)
-			failed = append(failed, nl.Feeds[i].Id)
+			failed = append(failed, nl.Feeds[i])
 		}
 	}
-
-	// TODO: save failed feeds to display to the user in the UI or send a warning
 
 	var notNilResults []feeds.FeedView
 	for _, result := range results {
@@ -177,17 +180,21 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 		}
 	}
 
-	return notNilResults, nil
+	return newsletterFetchFeedResult{
+		Succeeded: notNilResults,
+		Failed: failed,
+	}, nil
 }
 
 func (sch *Scheduler) assembleNewsletter(
 	newsletter *SendableNewsletter,
-	feedViews []feeds.FeedView,
+	fetchResults newsletterFetchFeedResult,
 ) (string, error) {
 	buffer := new(bytes.Buffer)
 	err := sch.tmpl.ExecuteTemplate(buffer, "newsletter.html", map[string]any{
 		"NewsletterName": newsletter.Name,
-		"Feeds": feedViews,
+		"Feeds": fetchResults.Succeeded,
+		"FailedFeeds": fetchResults.Failed,
 		"UnsubscribeURL": "www.example.com",
 	})
 
