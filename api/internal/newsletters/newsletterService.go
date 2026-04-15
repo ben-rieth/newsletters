@@ -77,7 +77,8 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 		feedsByNewsletter[row.NewsletterID] = append(
 			feedsByNewsletter[row.NewsletterID], 
 			feeds.BaseFeed{
-				Id: row.ID,
+				GlobalFeedId: row.GlobalFeedID,
+				NewsletterFeedId: row.NewsletterFeedID,
 				Name: row.Title,
 				URL: row.Url,
 				LastRetrievedAt: row.LastRetrievedAt,

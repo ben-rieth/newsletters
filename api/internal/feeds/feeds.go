@@ -2,6 +2,8 @@ package feeds
 
 import (
 	"time"
+
+	"github.com/ben-rieth/newsletter-api/internal/db"
 )
 
 type Feed struct {
@@ -15,8 +17,16 @@ type Feed struct {
 }
 
 type BaseFeed struct {
-	Id string
+	GlobalFeedId string
+	NewsletterFeedId string
 	Name string
 	URL string
 	LastRetrievedAt time.Time
+}
+
+type FeedFilter struct {
+	Id string `json:"id"`
+	Field db.FilterField `json:"field"`
+	Operator db.FilterOperator `json:"operator"`
+	Pattern string `json:"pattern"`
 }

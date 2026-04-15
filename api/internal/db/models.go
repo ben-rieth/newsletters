@@ -12,48 +12,132 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-type Feedurlsource string
+type FeedUrlSource string
 
 const (
-	FeedurlsourceCanonical      Feedurlsource = "canonical"
-	FeedurlsourceUserSubmitted  Feedurlsource = "user_submitted"
-	FeedurlsourceInFeedResponse Feedurlsource = "in_feed_response"
-	FeedurlsourceUnknown        Feedurlsource = "unknown"
+	FeedUrlSourceCanonical      FeedUrlSource = "canonical"
+	FeedUrlSourceUserSubmitted  FeedUrlSource = "user_submitted"
+	FeedUrlSourceInFeedResponse FeedUrlSource = "in_feed_response"
+	FeedUrlSourceUnknown        FeedUrlSource = "unknown"
 )
 
-func (e *Feedurlsource) Scan(src interface{}) error {
+func (e *FeedUrlSource) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = Feedurlsource(s)
+		*e = FeedUrlSource(s)
 	case string:
-		*e = Feedurlsource(s)
+		*e = FeedUrlSource(s)
 	default:
-		return fmt.Errorf("unsupported scan type for Feedurlsource: %T", src)
+		return fmt.Errorf("unsupported scan type for FeedUrlSource: %T", src)
 	}
 	return nil
 }
 
-type NullFeedurlsource struct {
-	Feedurlsource Feedurlsource
-	Valid         bool // Valid is true if Feedurlsource is not NULL
+type NullFeedUrlSource struct {
+	FeedUrlSource FeedUrlSource
+	Valid         bool // Valid is true if FeedUrlSource is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullFeedurlsource) Scan(value interface{}) error {
+func (ns *NullFeedUrlSource) Scan(value interface{}) error {
 	if value == nil {
-		ns.Feedurlsource, ns.Valid = "", false
+		ns.FeedUrlSource, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.Feedurlsource.Scan(value)
+	return ns.FeedUrlSource.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullFeedurlsource) Value() (driver.Value, error) {
+func (ns NullFeedUrlSource) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.Feedurlsource), nil
+	return string(ns.FeedUrlSource), nil
+}
+
+type FilterField string
+
+const (
+	FilterFieldTitle FilterField = "title"
+	FilterFieldUrl   FilterField = "url"
+)
+
+func (e *FilterField) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = FilterField(s)
+	case string:
+		*e = FilterField(s)
+	default:
+		return fmt.Errorf("unsupported scan type for FilterField: %T", src)
+	}
+	return nil
+}
+
+type NullFilterField struct {
+	FilterField FilterField
+	Valid       bool // Valid is true if FilterField is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullFilterField) Scan(value interface{}) error {
+	if value == nil {
+		ns.FilterField, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.FilterField.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullFilterField) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.FilterField), nil
+}
+
+type FilterOperator string
+
+const (
+	FilterOperatorContains       FilterOperator = "contains"
+	FilterOperatorDoesNotContain FilterOperator = "does_not_contain"
+)
+
+func (e *FilterOperator) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = FilterOperator(s)
+	case string:
+		*e = FilterOperator(s)
+	default:
+		return fmt.Errorf("unsupported scan type for FilterOperator: %T", src)
+	}
+	return nil
+}
+
+type NullFilterOperator struct {
+	FilterOperator FilterOperator
+	Valid          bool // Valid is true if FilterOperator is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullFilterOperator) Scan(value interface{}) error {
+	if value == nil {
+		ns.FilterOperator, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.FilterOperator.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullFilterOperator) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.FilterOperator), nil
 }
 
 type Frequency string
@@ -99,46 +183,46 @@ func (ns NullFrequency) Value() (driver.Value, error) {
 	return string(ns.Frequency), nil
 }
 
-type Itemstate string
+type ItemState string
 
 const (
-	ItemstateRead   Itemstate = "read"
-	ItemstateUnread Itemstate = "unread"
+	ItemStateRead   ItemState = "read"
+	ItemStateUnread ItemState = "unread"
 )
 
-func (e *Itemstate) Scan(src interface{}) error {
+func (e *ItemState) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = Itemstate(s)
+		*e = ItemState(s)
 	case string:
-		*e = Itemstate(s)
+		*e = ItemState(s)
 	default:
-		return fmt.Errorf("unsupported scan type for Itemstate: %T", src)
+		return fmt.Errorf("unsupported scan type for ItemState: %T", src)
 	}
 	return nil
 }
 
-type NullItemstate struct {
-	Itemstate Itemstate
-	Valid     bool // Valid is true if Itemstate is not NULL
+type NullItemState struct {
+	ItemState ItemState
+	Valid     bool // Valid is true if ItemState is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullItemstate) Scan(value interface{}) error {
+func (ns *NullItemState) Scan(value interface{}) error {
 	if value == nil {
-		ns.Itemstate, ns.Valid = "", false
+		ns.ItemState, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.Itemstate.Scan(value)
+	return ns.ItemState.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullItemstate) Value() (driver.Value, error) {
+func (ns NullItemState) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.Itemstate), nil
+	return string(ns.ItemState), nil
 }
 
 type AppUser struct {
@@ -174,7 +258,7 @@ type FeedUrl struct {
 	ID        string
 	FeedID    string
 	Url       string
-	Source    Feedurlsource
+	Source    FeedUrlSource
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -204,12 +288,23 @@ type NewsletterFeed struct {
 	UpdatedAt    time.Time
 }
 
+type NewsletterFeedFilter struct {
+	ID               string
+	NewsletterFeedID string
+	UserID           string
+	Field            FilterField
+	Operator         FilterOperator
+	Pattern          string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
 type NewsletterFeedItemStatus struct {
 	ID               string
 	NewsletterFeedID string
 	ItemID           string
 	UserID           string
-	State            Itemstate
+	State            ItemState
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
 }

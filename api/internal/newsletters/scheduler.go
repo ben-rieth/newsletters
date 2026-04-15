@@ -150,7 +150,7 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 			defer wg.Done()
 			defer func() { <- sem }()
 
-			feedResult, err := sch.feedService.GetFeedDataSince(ctx, feed, nl.LastSendTime)
+			feedResult, err := sch.feedService.GetFeedDataSince(ctx, feed, nl.LastSendTime, nl.UserID)
 			if err != nil {
 				feedErrors[index] = err
 				results[index] = nil
@@ -168,7 +168,7 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 	var failed []feeds.BaseFeed
 	for i, err := range feedErrors {
 		if err != nil {
-			log.Printf("Failed to fetch feed with id %s and url %s: %v", nl.Feeds[i].Id, nl.Feeds[i].URL, err)
+			log.Printf("Failed to fetch feed with id %s and url %s: %v", nl.Feeds[i].NewsletterFeedId, nl.Feeds[i].URL, err)
 			failed = append(failed, nl.Feeds[i])
 		}
 	}

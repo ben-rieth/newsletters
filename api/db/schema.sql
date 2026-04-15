@@ -1,4 +1,4 @@
-\restrict 4b4LclgcPQg6rDm8eT15swLJz5mQFDmUqSRzeeOjpgBNyKAnXY52ShEyMdlN5EG
+\restrict BjBUKYlZ8mWlpIGIGioo7tG0h6qReRe3n7oYdaqSuix9nadAJKQNbr1x9SLJHdZ
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -15,14 +15,34 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: feedurlsource; Type: TYPE; Schema: public; Owner: -
+-- Name: feed_url_source; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public.feedurlsource AS ENUM (
+CREATE TYPE public.feed_url_source AS ENUM (
     'canonical',
     'user_submitted',
     'in_feed_response',
     'unknown'
+);
+
+
+--
+-- Name: filter_field; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.filter_field AS ENUM (
+    'title',
+    'url'
+);
+
+
+--
+-- Name: filter_operator; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.filter_operator AS ENUM (
+    'contains',
+    'does_not_contain'
 );
 
 
@@ -38,10 +58,10 @@ CREATE TYPE public.frequency AS ENUM (
 
 
 --
--- Name: itemstate; Type: TYPE; Schema: public; Owner: -
+-- Name: item_state; Type: TYPE; Schema: public; Owner: -
 --
 
-CREATE TYPE public.itemstate AS ENUM (
+CREATE TYPE public.item_state AS ENUM (
     'read',
     'unread'
 );
@@ -103,7 +123,7 @@ CREATE TABLE public.feed_url (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     feed_id uuid NOT NULL,
     url text NOT NULL,
-    source public.feedurlsource NOT NULL,
+    source public.feed_url_source NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -145,6 +165,22 @@ CREATE TABLE public.newsletter_feed (
 
 
 --
+-- Name: newsletter_feed_filter; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.newsletter_feed_filter (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    newsletter_feed_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    field public.filter_field NOT NULL,
+    operator public.filter_operator NOT NULL,
+    pattern text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: newsletter_feed_item_status; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -153,7 +189,7 @@ CREATE TABLE public.newsletter_feed_item_status (
     newsletter_feed_id uuid NOT NULL,
     item_id uuid NOT NULL,
     user_id uuid NOT NULL,
-    state public.itemstate DEFAULT 'unread'::public.itemstate NOT NULL,
+    state public.item_state DEFAULT 'unread'::public.item_state NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -266,6 +302,14 @@ ALTER TABLE ONLY public.feed_url
 
 
 --
+-- Name: newsletter_feed_filter newsletter_feed_filter_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed_filter
+    ADD CONSTRAINT newsletter_feed_filter_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: newsletter_feed_item_status newsletter_feed_item_status_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -338,6 +382,22 @@ ALTER TABLE ONLY public.newsletter_feed
 
 
 --
+-- Name: newsletter_feed_filter newsletter_feed_filter_newsletter_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed_filter
+    ADD CONSTRAINT newsletter_feed_filter_newsletter_feed_id_fkey FOREIGN KEY (newsletter_feed_id) REFERENCES public.newsletter_feed(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: newsletter_feed_filter newsletter_feed_filter_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed_filter
+    ADD CONSTRAINT newsletter_feed_filter_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
 -- Name: newsletter_feed_item_status newsletter_feed_item_status_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -397,7 +457,7 @@ ALTER TABLE ONLY public.refresh_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 4b4LclgcPQg6rDm8eT15swLJz5mQFDmUqSRzeeOjpgBNyKAnXY52ShEyMdlN5EG
+\unrestrict BjBUKYlZ8mWlpIGIGioo7tG0h6qReRe3n7oYdaqSuix9nadAJKQNbr1x9SLJHdZ
 
 
 --

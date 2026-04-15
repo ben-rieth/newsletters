@@ -1,5 +1,5 @@
 -- name: GetCachedFeedDetails :one
-SELECT f.id, f.title, f.url, f.description 
+SELECT f.id, f.title, f.url, f.description
 FROM feed_url AS furl
 INNER JOIN feed AS f ON furl.feed_id = f.id 
 WHERE furl.url = $1;
@@ -16,7 +16,7 @@ INSERT INTO feed_item (feed_id, title, url, publish_date, retrieved_at) VALUES (
 INSERT INTO feed_url (feed_id, url, source) VALUES ($1, $2, $3);
 
 -- name: GetFeedsForNewsletter :many
-SELECT f.title, f.description, f.url, nf.alias FROM newsletter_feed AS nf
+SELECT f.title, f.description, f.url, nf.alias, nf.id FROM newsletter_feed AS nf
 INNER JOIN feed AS f ON nf.feed_id = f.id
 WHERE newsletter_id = $1;
 
@@ -37,7 +37,8 @@ UPDATE newsletter_feed SET alias = $1, updated_at = NOW() WHERE newsletter_id = 
 DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2;
 
 -- name: GetFeedsForManyNewsletters :many
-SELECT f.id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id FROM newsletter_feed AS nlf
+SELECT f.id AS global_feed_id, nlf.id AS newsletter_feed_id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id 
+FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.newsletter_id = ANY($1::UUID[]);
 
@@ -51,7 +52,51 @@ DELETE FROM newsletter_feed WHERE user_id = $1;
 DELETE FROM newsletter_feed_item_status WHERE user_id = $1;
 
 -- name: GetFeedItemsPublishedAfter :many
-SELECT title, url FROM feed_item WHERE feed_id = $1 AND publish_date > $2;
+SELECT title, url FROM feed_item AS item
+WHERE feed_id = @global_feed_id AND publish_date > @publish_date
+AND NOT EXISTS (
+    SELECT 1 FROM newsletter_feed_filter AS ff
+    WHERE ff.newsletter_feed_id = @newsletter_feed_id AND ff.user_id = @user_id
+        AND (
+            (ff.operator = 'contains' AND (
+                ('title' = ff.field AND item.title ILIKE '%' || ff.pattern || '%')
+                OR
+                ('url' = ff.field AND item.url ILIKE '%' || ff.pattern || '%')
+            ))
+            OR
+            (ff.operator = 'does_not_contain' AND (
+                ('title' = ff.field AND item.title NOT ILIKE '%' || ff.pattern || '%')
+                OR
+                ('url' = ff.field AND item.url NOT ILIKE '%' || ff.pattern || '%')
+            ))
+        )
+);
+
+-- name: PreviewFeed :many
+SELECT item.id AS item_id, item.title, item.url, ff.id AS filter_id, ff.field, ff.operator, ff.pattern
+FROM newsletter_feed AS nlf
+INNER JOIN feed AS f ON nlf.feed_id = f.id
+INNER JOIN feed_item AS item ON item.feed_id = f.id
+LEFT JOIN newsletter_feed_filter AS ff ON ff.user_id = @user_id AND ff.newsletter_feed_id = @newsletter_feed_id
+AND (
+    (ff.operator = 'contains' AND (
+        ('title' = ff.field AND item.title ILIKE '%' || ff.pattern || '%')
+        OR
+        ('url' = ff.field AND item.url ILIKE '%' || ff.pattern || '%')
+    ))
+    OR
+    (ff.operator = 'does_not_contain' AND (
+        ('title' = ff.field AND item.title NOT ILIKE '%' || ff.pattern || '%')
+        OR
+        ('url' = ff.field AND item.url NOT ILIKE '%' || ff.pattern || '%')
+    ))
+)
+WHERE item.publish_date > @publish_date_greater_than;
 
 -- name: UpdateFeedLastRetrievedTime :exec
 UPDATE feed SET last_retrieved_at = $1, updated_at = NOW() WHERE id = $2;
+
+-- name: GetFeedById :one
+SELECT nlf.id, f.title, f.description, f.url, nlf.alias FROM newsletter_feed AS nlf
+INNER JOIN feed AS f ON nlf.feed_id = f.id
+WHERE nlf.id = $1 AND nlf.user_id = $2;

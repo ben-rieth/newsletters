@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/db"
@@ -40,17 +41,19 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		NewsletterID string `path:"newsletterId"`
 		Body submittableFeedFields
 	}
+
+	doesFeedExistMiddleware := newDoesFeedExistMiddleware(api, h.queries)
 	
 	huma.Register(api, huma.Operation{
 		OperationID: "add-feed",
 		Method: "POST",
-		Path: "/newsletters/{newsletterId}/feeds",
+		Path: "/newsletter/{newsletterId}/feed",
 		Summary: "Add a feed to a newsletter",
 		DefaultStatus: http.StatusNoContent,
 	}, func (ctx context.Context, input *addFeedInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, huma.Error401Unauthorized("Not authorized")
+			return nil, unauthorizedError
 		}
 		
 		exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
@@ -90,6 +93,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	})
 
 	type uiFeed struct {
+		Id string `json:"id"`
 		Title       string `json:"title"`
 		Description string `json:"description"`
 		Url         string `json:"url"`
@@ -103,12 +107,12 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "list-feeds",
 		Method: "GET",
-		Path: "/newsletters/{newsletterId}/feeds",
+		Path: "/newsletter/{newsletterId}/feed",
 		Summary: "Get all feeds included in a newsletter",
 	}, func(ctx context.Context, input *newsletterIdPath) (*listFeedsOutput, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, huma.Error401Unauthorized("Not authorized")
+			return nil, unauthorizedError
 		}
 
 		var exists bool
@@ -135,6 +139,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		uiFeeds := make([]uiFeed, 0, len(nlFeeds))
 		for _, nlFeed := range nlFeeds {
 			uiFeeds = append(uiFeeds, uiFeed{
+				Id: nlFeed.ID,
 				Title: nlFeed.Title,
 				Description: nlFeed.Description,
 				Url: nlFeed.Url,
@@ -163,32 +168,19 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "update-feed",
 		Method: "PUT",
-		Path: "/newsletters/{newsletterId}/feeds/{feedId}",
+		Path: "/newsletter/{newsletterId}/feed/{feedId}",
 		Summary: "Update the name and URL of a feed",
 		DefaultStatus: http.StatusNoContent,
+		Middlewares: huma.Middlewares{doesFeedExistMiddleware},
 	}, func(ctx context.Context, input *updateFeedInput) (*struct{}, error) {
 		serverError := huma.Error500InternalServerError("Failed to get feeds")
 		
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, huma.Error401Unauthorized("Not authorized")
-		}
-		
-		exists, err := h.queries.DoesFeedExist(ctx, db.DoesFeedExistParams{
-			NewsletterID: input.NewsletterID,
-			ID: input.FeedID,
-			UserID: claims.Subject,
-		})
-
-		if err != nil {
-			return nil, serverError
+			return nil, unauthorizedError
 		}
 
-		if !exists {
-			return nil, huma.Error404NotFound("This feed does not exist.")
-		}
-
-		err = h.queries.UpdateNewsletterFeed(ctx, db.UpdateNewsletterFeedParams{
+		err := h.queries.UpdateNewsletterFeed(ctx, db.UpdateNewsletterFeedParams{
 			NewsletterID: input.NewsletterID,
 			ID: input.FeedID,
 			Alias: input.Body.Alias,
@@ -204,41 +196,90 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "delete-feed",
 		Method: "DELETE",
-		Path: "/newsletters/{newsletterId}/feeds/{feedId}",
+		Path: "/newsletter/{newsletterId}/feed/{feedId}",
 		Summary: "Deletes a feed from a newsletter",
 		DefaultStatus: http.StatusNoContent,
+		Middlewares: huma.Middlewares{doesFeedExistMiddleware},
 	}, func(ctx context.Context, input *feedIdPath) (*struct{}, error) {
-		serverError := huma.Error500InternalServerError("Failed to get feeds")
-	
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, huma.Error401Unauthorized("Not authorized")
-		}
-		
-		exists, err := h.queries.DoesFeedExist(ctx, db.DoesFeedExistParams{
-			NewsletterID: input.NewsletterID,
-			ID: input.FeedID,
-			UserID: claims.Subject,
-		})
-
-		if err != nil {
-			return nil, serverError
+			return nil, unauthorizedError
 		}
 
-		if !exists {
-			return nil, huma.Error404NotFound("This feed does not exist.")
-		}
-
-		err = h.queries.DeleteNewsletterFeed(ctx, db.DeleteNewsletterFeedParams{
+		err := h.queries.DeleteNewsletterFeed(ctx, db.DeleteNewsletterFeedParams{
 			NewsletterID: input.NewsletterID,
 			ID: input.FeedID,
 		})
 
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError
 		}
 
 		return nil, nil
+	})
+	
+	type uiDetailedFeed struct {
+		Id string `json:"id"`
+		Alias string `json:"alias"`
+		Title string `json:"title"`
+		Url string `json:"url"`
+		Description string `json:"description"`
+		Filters []feeds.FeedFilter `json:"filters"`
+	}
+
+	type getFeedOutput struct {
+		Body uiDetailedFeed
+	}
+
+	huma.Register(api, huma.Operation{
+		OperationID: "get-feed",
+		Method: "GET",
+		Path: "/newsletter/{newsletterId}/feed/{feedId}",
+		Summary: "Get data associated with a feed",
+		Middlewares: huma.Middlewares{doesFeedExistMiddleware},
+	}, func(ctx context.Context, i *feedIdPath) (*getFeedOutput, error) {
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, unauthorizedError
+		}
+
+		filters, err := h.queries.GetFiltersForFeed(ctx, db.GetFiltersForFeedParams{
+			UserID: claims.Subject,
+			NewsletterFeedID: i.FeedID,
+		})
+
+		if err != nil {
+			return nil, internalServerError
+		}
+
+		feedFilters := make([]feeds.FeedFilter, 0, len(filters))
+		for _, filter := range filters {
+			feedFilters = append(feedFilters, feeds.FeedFilter{
+				Id: filter.ID,
+				Pattern: filter.Pattern,
+				Operator: filter.Operator,
+				Field: filter.Field,
+			})
+		}
+
+		feed, err := h.queries.GetFeedById(ctx, db.GetFeedByIdParams{
+			ID: i.FeedID,
+			UserID: claims.Subject,
+		})
+		if err != nil {
+			return nil, internalServerError
+		}
+
+		return &getFeedOutput{
+			Body: uiDetailedFeed{
+				Id: i.FeedID,
+				Alias: feed.Alias,
+				Title: feed.Title,
+				Url: feed.Url,
+				Description: feed.Description,
+				Filters: feedFilters,
+			},
+		}, nil
 	})
 
 	type getFeedMetaDataInput struct {
@@ -271,4 +312,102 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 			Body: *metadata,
 		}, nil
 	})
+
+	type itemPreview struct {
+		Id string `json:"id"`
+		Title string `json:"title"`
+		Url string `json:"url"`
+		MatchedFilter *feeds.FeedFilter `json:"matchedFilter,omitempty"`
+	}
+
+	type previewFeedOutput struct {
+		Body []itemPreview
+	}
+
+	huma.Register(api, huma.Operation{
+		OperationID: "preview-feed",
+		Method: "GET",
+		Path: "/newsletter/{newsletterId}/feed/{feedId}/preview",
+		Summary: "Preview hwo filters impact the items in the feed",
+		Middlewares: huma.Middlewares{doesFeedExistMiddleware},
+	}, func(ctx context.Context, i *feedIdPath) (*previewFeedOutput, error) {
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, unauthorizedError
+		}
+
+		thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
+		preview, err := h.queries.PreviewFeed(ctx, db.PreviewFeedParams{
+			UserID: claims.Subject,
+			NewsletterFeedID: i.FeedID,
+			PublishDateGreaterThan: thirtyDaysAgo,
+		})
+
+		if err != nil {
+			return nil, internalServerError
+		}
+
+		itemPreviews := make([]itemPreview, 0, len(preview))
+
+		for _, item := range preview {
+			itemPreview := itemPreview{
+				Id: item.ItemID,
+				Title: item.Title,
+				Url: item.Url,
+			}
+
+			if item.FilterID.Valid {
+				matchedFilter := feeds.FeedFilter{
+					Id: item.FilterID.String(),
+					Field: item.Field.FilterField,
+					Operator: item.Operator.FilterOperator,
+					Pattern: item.Pattern.String,
+				}
+
+				itemPreview.MatchedFilter = &matchedFilter
+			}
+
+			itemPreviews = append(itemPreviews, itemPreview)
+		}
+
+		return &previewFeedOutput{
+			Body: itemPreviews,
+		}, nil
+	})
+}
+
+func newDoesFeedExistMiddleware(api huma.API, queries *db.Queries) func (ctx huma.Context, next func(huma.Context)) {
+	return func(ctx huma.Context, next func(huma.Context)) {
+		claims, ok := auth.ClaimsFromContext(ctx.Context())
+		if !ok || claims == nil {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, unauthorizedError.Error())
+			return
+		}
+
+		newsletterId := ctx.Param("newsletterId");
+		feedId := ctx.Param("feedId");
+
+		if feedId == "" || newsletterId == "" {
+			huma.WriteErr(api, ctx, http.StatusBadRequest, "Request does not have all required information")
+			return
+		}
+
+		exists, err := queries.DoesFeedExist(ctx.Context(), db.DoesFeedExistParams{
+			NewsletterID: newsletterId,
+			ID: feedId,
+			UserID: claims.Subject,
+		})
+
+		if err != nil {
+			huma.WriteErr(api, ctx, http.StatusInternalServerError, internalServerError.Error(), err)
+			return
+		}
+
+		if !exists {
+			huma.WriteErr(api, ctx, http.StatusNotFound, "This feed does not exist")
+			return
+		}
+		
+		next(ctx)
+	}
 }

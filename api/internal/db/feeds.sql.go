@@ -8,6 +8,8 @@ package db
 import (
 	"context"
 	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const addNewsletterFeed = `-- name: AddNewsletterFeed :exec
@@ -94,7 +96,7 @@ func (q *Queries) DoesFeedExist(ctx context.Context, arg DoesFeedExistParams) (b
 }
 
 const getCachedFeedDetails = `-- name: GetCachedFeedDetails :one
-SELECT f.id, f.title, f.url, f.description 
+SELECT f.id, f.title, f.url, f.description
 FROM feed_url AS furl
 INNER JOIN feed AS f ON furl.feed_id = f.id 
 WHERE furl.url = $1
@@ -119,13 +121,65 @@ func (q *Queries) GetCachedFeedDetails(ctx context.Context, url string) (GetCach
 	return i, err
 }
 
+const getFeedById = `-- name: GetFeedById :one
+SELECT nlf.id, f.title, f.description, f.url, nlf.alias FROM newsletter_feed AS nlf
+INNER JOIN feed AS f ON nlf.feed_id = f.id
+WHERE nlf.id = $1 AND nlf.user_id = $2
+`
+
+type GetFeedByIdParams struct {
+	ID     string
+	UserID string
+}
+
+type GetFeedByIdRow struct {
+	ID          string
+	Title       string
+	Description string
+	Url         string
+	Alias       string
+}
+
+func (q *Queries) GetFeedById(ctx context.Context, arg GetFeedByIdParams) (GetFeedByIdRow, error) {
+	row := q.db.QueryRow(ctx, getFeedById, arg.ID, arg.UserID)
+	var i GetFeedByIdRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.Url,
+		&i.Alias,
+	)
+	return i, err
+}
+
 const getFeedItemsPublishedAfter = `-- name: GetFeedItemsPublishedAfter :many
-SELECT title, url FROM feed_item WHERE feed_id = $1 AND publish_date > $2
+SELECT title, url FROM feed_item AS item
+WHERE feed_id = $1 AND publish_date > $2
+AND NOT EXISTS (
+    SELECT 1 FROM newsletter_feed_filter AS ff
+    WHERE ff.newsletter_feed_id = $3 AND ff.user_id = $4
+        AND (
+            (ff.operator = 'contains' AND (
+                ('title' = ff.field AND item.title ILIKE '%' || ff.pattern || '%')
+                OR
+                ('url' = ff.field AND item.url ILIKE '%' || ff.pattern || '%')
+            ))
+            OR
+            (ff.operator = 'does_not_contain' AND (
+                ('title' = ff.field AND item.title NOT ILIKE '%' || ff.pattern || '%')
+                OR
+                ('url' = ff.field AND item.url NOT ILIKE '%' || ff.pattern || '%')
+            ))
+        )
+)
 `
 
 type GetFeedItemsPublishedAfterParams struct {
-	FeedID      string
-	PublishDate time.Time
+	GlobalFeedID     string
+	PublishDate      time.Time
+	NewsletterFeedID string
+	UserID           string
 }
 
 type GetFeedItemsPublishedAfterRow struct {
@@ -134,7 +188,12 @@ type GetFeedItemsPublishedAfterRow struct {
 }
 
 func (q *Queries) GetFeedItemsPublishedAfter(ctx context.Context, arg GetFeedItemsPublishedAfterParams) ([]GetFeedItemsPublishedAfterRow, error) {
-	rows, err := q.db.Query(ctx, getFeedItemsPublishedAfter, arg.FeedID, arg.PublishDate)
+	rows, err := q.db.Query(ctx, getFeedItemsPublishedAfter,
+		arg.GlobalFeedID,
+		arg.PublishDate,
+		arg.NewsletterFeedID,
+		arg.UserID,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -154,17 +213,19 @@ func (q *Queries) GetFeedItemsPublishedAfter(ctx context.Context, arg GetFeedIte
 }
 
 const getFeedsForManyNewsletters = `-- name: GetFeedsForManyNewsletters :many
-SELECT f.id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id FROM newsletter_feed AS nlf
+SELECT f.id AS global_feed_id, nlf.id AS newsletter_feed_id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id 
+FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.newsletter_id = ANY($1::UUID[])
 `
 
 type GetFeedsForManyNewslettersRow struct {
-	ID              string
-	Title           string
-	Url             string
-	LastRetrievedAt time.Time
-	NewsletterID    string
+	GlobalFeedID     string
+	NewsletterFeedID string
+	Title            string
+	Url              string
+	LastRetrievedAt  time.Time
+	NewsletterID     string
 }
 
 func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []string) ([]GetFeedsForManyNewslettersRow, error) {
@@ -177,7 +238,8 @@ func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []str
 	for rows.Next() {
 		var i GetFeedsForManyNewslettersRow
 		if err := rows.Scan(
-			&i.ID,
+			&i.GlobalFeedID,
+			&i.NewsletterFeedID,
 			&i.Title,
 			&i.Url,
 			&i.LastRetrievedAt,
@@ -194,7 +256,7 @@ func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []str
 }
 
 const getFeedsForNewsletter = `-- name: GetFeedsForNewsletter :many
-SELECT f.title, f.description, f.url, nf.alias FROM newsletter_feed AS nf
+SELECT f.title, f.description, f.url, nf.alias, nf.id FROM newsletter_feed AS nf
 INNER JOIN feed AS f ON nf.feed_id = f.id
 WHERE newsletter_id = $1
 `
@@ -204,6 +266,7 @@ type GetFeedsForNewsletterRow struct {
 	Description string
 	Url         string
 	Alias       string
+	ID          string
 }
 
 func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string) ([]GetFeedsForNewsletterRow, error) {
@@ -220,6 +283,73 @@ func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string
 			&i.Description,
 			&i.Url,
 			&i.Alias,
+			&i.ID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const previewFeed = `-- name: PreviewFeed :many
+SELECT item.id AS item_id, item.title, item.url, ff.id AS filter_id, ff.field, ff.operator, ff.pattern
+FROM newsletter_feed AS nlf
+INNER JOIN feed AS f ON nlf.feed_id = f.id
+INNER JOIN feed_item AS item ON item.feed_id = f.id
+LEFT JOIN newsletter_feed_filter AS ff ON ff.user_id = $1 AND ff.newsletter_feed_id = $2
+AND (
+    (ff.operator = 'contains' AND (
+        ('title' = ff.field AND item.title ILIKE '%' || ff.pattern || '%')
+        OR
+        ('url' = ff.field AND item.url ILIKE '%' || ff.pattern || '%')
+    ))
+    OR
+    (ff.operator = 'does_not_contain' AND (
+        ('title' = ff.field AND item.title NOT ILIKE '%' || ff.pattern || '%')
+        OR
+        ('url' = ff.field AND item.url NOT ILIKE '%' || ff.pattern || '%')
+    ))
+)
+WHERE item.publish_date > $3
+`
+
+type PreviewFeedParams struct {
+	UserID                 string
+	NewsletterFeedID       string
+	PublishDateGreaterThan time.Time
+}
+
+type PreviewFeedRow struct {
+	ItemID   string
+	Title    string
+	Url      string
+	FilterID pgtype.UUID
+	Field    NullFilterField
+	Operator NullFilterOperator
+	Pattern  pgtype.Text
+}
+
+func (q *Queries) PreviewFeed(ctx context.Context, arg PreviewFeedParams) ([]PreviewFeedRow, error) {
+	rows, err := q.db.Query(ctx, previewFeed, arg.UserID, arg.NewsletterFeedID, arg.PublishDateGreaterThan)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []PreviewFeedRow
+	for rows.Next() {
+		var i PreviewFeedRow
+		if err := rows.Scan(
+			&i.ItemID,
+			&i.Title,
+			&i.Url,
+			&i.FilterID,
+			&i.Field,
+			&i.Operator,
+			&i.Pattern,
 		); err != nil {
 			return nil, err
 		}
@@ -267,7 +397,7 @@ type SaveFeedItemDetailsParams struct {
 type SaveFeedUrlsParams struct {
 	FeedID string
 	Url    string
-	Source Feedurlsource
+	Source FeedUrlSource
 }
 
 const updateFeedLastRetrievedTime = `-- name: UpdateFeedLastRetrievedTime :exec

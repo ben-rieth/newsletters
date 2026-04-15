@@ -40,7 +40,7 @@ type getNewsletterOutput struct {
 }
 
 type updateNewsletterInput struct {
-	baseNewsletterInput
+	ID string `path:"id"`
 	Body submittableNewsletterFields
 }
 

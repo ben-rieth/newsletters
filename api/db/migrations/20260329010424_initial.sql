@@ -31,13 +31,13 @@ CREATE TABLE feed (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TYPE FeedUrlSource AS ENUM ('canonical', 'user_submitted', 'in_feed_response', 'unknown');
+CREATE TYPE feed_url_source AS ENUM ('canonical', 'user_submitted', 'in_feed_response', 'unknown');
 
 CREATE TABLE feed_url (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     feed_id UUID NOT NULL REFERENCES feed(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     url TEXT UNIQUE NOT NULL,
-    source FeedUrlSource NOT NULL,
+    source feed_url_source NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -54,12 +54,12 @@ CREATE TABLE feed_item (
 );
 
 
-CREATE TYPE Frequency AS ENUM ('monthly', 'weekly', 'daily');
+CREATE TYPE frequency AS ENUM ('monthly', 'weekly', 'daily');
 
 CREATE TABLE newsletter (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name TEXT NOT NULL,
-    frequency Frequency NOT NULL,
+    frequency frequency NOT NULL,
     send_day INT NOT NULL DEFAULT 0,
     send_hour INT NOT NULL,
     send_minute INT NOT NULL DEFAULT 0,
@@ -81,14 +81,28 @@ CREATE TABLE newsletter_feed (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TYPE ItemState AS ENUM ('read', 'unread');
+CREATE TYPE item_state AS ENUM ('read', 'unread');
 
 CREATE TABLE newsletter_feed_item_status (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     newsletter_feed_id UUID NOT NULL REFERENCES newsletter_feed(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     item_id UUID NOT NULL REFERENCES feed_item(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     user_id UUID NOT NULL REFERENCES app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
-    state ItemState NOT NULL DEFAULT 'unread',
+    state item_state NOT NULL DEFAULT 'unread',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TYPE filter_field AS ENUM ('title', 'url');
+CREATE TYPE filter_operator As ENUM ('contains', 'does_not_contain');
+
+CREATE TABLE newsletter_feed_filter (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    newsletter_feed_id UUID NOT NULL REFERENCES newsletter_feed(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    user_id UUID NOT NULL REFERENCES app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    field filter_field NOT NULL,
+    operator filter_operator NOT NULL,
+    pattern TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -96,6 +110,9 @@ CREATE TABLE newsletter_feed_item_status (
 -- migrate:down
 
 DROP TABLE refresh_token;
+DROP TABLE newsletter_feed_filter;
+DROP TYPE filter_operator;
+DROP TYPE filter_field;
 DROP TABLE newsletter_feed_item_status;
 DROP TABLE newsletter_feed;
 DROP TABLE newsletter;
@@ -103,6 +120,6 @@ DROP TABLE feed_item;
 DROP TABLE feed_url;
 DROP TABLE feed;
 DROP TABLE app_user;
-DROP TYPE Frequency;
-DROP TYPE ItemState;
-DROP TYPE FeedUrlSource;
+DROP TYPE frequency;
+DROP TYPE item_state;
+DROP TYPE feed_url_source;

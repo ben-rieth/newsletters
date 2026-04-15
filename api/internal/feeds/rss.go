@@ -42,7 +42,7 @@ func NewRssService() *RssService {
 	return &RssService{httpClient: client}
 }
 
-func (s *RssService) FetchFeed(ctx context.Context, url string, lastRetrieved time.Time) (*FetchFeedResult, error) {
+func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResult, error) {
 	err := IsSafeFeedUrl(url)
 	if err != nil {
 		return nil, utils.UserError
@@ -75,27 +75,6 @@ func (s *RssService) FetchFeed(ctx context.Context, url string, lastRetrieved ti
 	}
 
 	retrievedAt := time.Now()
-
-	finalItems := make([]*gofeed.Item, 0)
-	for _, item := range feed.Items {
-		if item.PublishedParsed == nil {
-			continue
-		}
-
-		publishedAt := *item.PublishedParsed
-
-		if publishedAt.Before(lastRetrieved) {
-			continue
-		}
-
-		finalItems = append(finalItems, item)
-	}
-
-	if len(finalItems) == 0 {
-		return nil, nil
-	}
-
-	feed.Items = finalItems
 
 	return &FetchFeedResult{
 		Feed: feed,

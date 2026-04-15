@@ -83,6 +83,9 @@ func main() {
 	feedsHandler := handler.NewFeedHandler(queries, feedsService)
 	feedsHandler.RegisterRoutes(protectedApi)
 
+	feedFilterHandler := handler.NewFeedFilterHandler(queries)
+	feedFilterHandler.RegisterRoutes(protectedApi)
+
 	userHandler := handler.NewUserHandler(queries, userService)
 	userHandler.RegisterRoutes(protectedApi)
 
