@@ -52,8 +52,8 @@ DELETE FROM newsletter_feed WHERE user_id = $1;
 DELETE FROM newsletter_feed_item_status WHERE user_id = $1;
 
 -- name: GetFeedItemsPublishedAfter :many
-SELECT title, url FROM feed_item AS item
-WHERE feed_id = @global_feed_id AND publish_date > @publish_date
+SELECT title, url, publish_date FROM feed_item AS item
+WHERE feed_id = @global_feed_id AND publish_date > @publish_date_greater_than
 AND NOT EXISTS (
     SELECT 1 FROM newsletter_feed_filter AS ff
     WHERE ff.newsletter_feed_id = @newsletter_feed_id AND ff.user_id = @user_id

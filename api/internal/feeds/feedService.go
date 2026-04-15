@@ -107,7 +107,7 @@ func (s *FeedService) GetFeedDataSince(
 	}
 
 	items, err := s.queries.GetFeedItemsPublishedAfter(ctx, db.GetFeedItemsPublishedAfterParams{
-		PublishDate: since,
+		PublishDateGreaterThan: since,
 		GlobalFeedID: feed.GlobalFeedId,
 		NewsletterFeedID: feed.NewsletterFeedId,
 		UserID: userId,
@@ -122,6 +122,7 @@ func (s *FeedService) GetFeedDataSince(
 		finalItems = append(finalItems, FeedItemView{
 			Title: item.Title,
 			URL: item.Url,
+			PublishDate: item.PublishDate,
 		})
 	}
 

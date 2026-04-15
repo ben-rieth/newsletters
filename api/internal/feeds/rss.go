@@ -17,6 +17,7 @@ type FeedView struct {
 type FeedItemView struct {
 	Title string
 	URL string
+	PublishDate time.Time
 }
 
 type FeedMetaData struct {
