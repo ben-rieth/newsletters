@@ -214,7 +214,7 @@ func (q *Queries) GetFeedItemsPublishedAfter(ctx context.Context, arg GetFeedIte
 }
 
 const getFeedsForManyNewsletters = `-- name: GetFeedsForManyNewsletters :many
-SELECT f.id AS global_feed_id, nlf.id AS newsletter_feed_id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id 
+SELECT f.id AS global_feed_id, nlf.id AS newsletter_feed_id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id, nlf.alias
 FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.newsletter_id = ANY($1::UUID[])
@@ -227,6 +227,7 @@ type GetFeedsForManyNewslettersRow struct {
 	Url              string
 	LastRetrievedAt  time.Time
 	NewsletterID     string
+	Alias            string
 }
 
 func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []string) ([]GetFeedsForManyNewslettersRow, error) {
@@ -245,6 +246,7 @@ func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []str
 			&i.Url,
 			&i.LastRetrievedAt,
 			&i.NewsletterID,
+			&i.Alias,
 		); err != nil {
 			return nil, err
 		}

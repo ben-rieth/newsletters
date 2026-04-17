@@ -89,6 +89,9 @@ func main() {
 	userHandler := handler.NewUserHandler(queries, userService)
 	userHandler.RegisterRoutes(protectedApi)
 
+	exportHandler := handler.NewExportHandler(queries)
+	exportHandler.RegisterRoutes(protectedApi)
+
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{cfg.WebURL},
 		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},

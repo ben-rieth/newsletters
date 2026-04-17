@@ -37,7 +37,7 @@ UPDATE newsletter_feed SET alias = $1, updated_at = NOW() WHERE newsletter_id = 
 DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2;
 
 -- name: GetFeedsForManyNewsletters :many
-SELECT f.id AS global_feed_id, nlf.id AS newsletter_feed_id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id 
+SELECT f.id AS global_feed_id, nlf.id AS newsletter_feed_id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id, nlf.alias
 FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.newsletter_id = ANY($1::UUID[]);

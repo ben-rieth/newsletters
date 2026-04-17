@@ -117,7 +117,7 @@ func (q *Queries) GetFiltersForFeed(ctx context.Context, arg GetFiltersForFeedPa
 }
 
 const getFiltersForManyFeeds = `-- name: GetFiltersForManyFeeds :many
-SELECT id, field, operator, pattern FROM newsletter_feed_filter
+SELECT id, field, operator, pattern, newsletter_feed_id FROM newsletter_feed_filter
 WHERE user_id = $1 AND newsletter_feed_id = ANY($2::UUID[])
 `
 
@@ -127,10 +127,11 @@ type GetFiltersForManyFeedsParams struct {
 }
 
 type GetFiltersForManyFeedsRow struct {
-	ID       string
-	Field    FilterField
-	Operator FilterOperator
-	Pattern  string
+	ID               string
+	Field            FilterField
+	Operator         FilterOperator
+	Pattern          string
+	NewsletterFeedID string
 }
 
 func (q *Queries) GetFiltersForManyFeeds(ctx context.Context, arg GetFiltersForManyFeedsParams) ([]GetFiltersForManyFeedsRow, error) {
@@ -147,6 +148,7 @@ func (q *Queries) GetFiltersForManyFeeds(ctx context.Context, arg GetFiltersForM
 			&i.Field,
 			&i.Operator,
 			&i.Pattern,
+			&i.NewsletterFeedID,
 		); err != nil {
 			return nil, err
 		}

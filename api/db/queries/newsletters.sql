@@ -42,3 +42,4 @@ UPDATE newsletter SET next_send_time = $1, last_sent_at = $2, updated_at = NOW()
 
 -- name: DeleteAllNewslettersForUser :exec
 DELETE FROM newsletter WHERE user_id = $1;
+

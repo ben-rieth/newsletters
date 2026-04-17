@@ -3,7 +3,7 @@ INSERT INTO newsletter_feed_filter (newsletter_feed_id, user_id, field, operator
 VALUES ($1, $2, $3, $4, $5);
 
 -- name: GetFiltersForManyFeeds :many
-SELECT id, field, operator, pattern FROM newsletter_feed_filter
+SELECT id, field, operator, pattern, newsletter_feed_id FROM newsletter_feed_filter
 WHERE user_id = $1 AND newsletter_feed_id = ANY(@feed_ids::UUID[]);
 
 -- name: GetFiltersForFeed :many

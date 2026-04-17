@@ -30,3 +30,12 @@ type FeedFilter struct {
 	Operator db.FilterOperator `json:"operator"`
 	Pattern string `json:"pattern"`
 }
+
+type ExportableFeed struct {
+	ID string `json:"id"`
+	GlobalID string `json:"globalId"`
+	Name string `json:"name"`
+	Alias string `json:"alias"`
+	URL string `json:"url"`
+	Filters []FeedFilter `json:"filters"`
+}
