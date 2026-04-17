@@ -92,7 +92,6 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		}
 		
 		var sendDay int
-		
 		if input.Body.SendDay == nil {
 			sendDay = 0
 		} else {
@@ -181,20 +180,27 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			return nil, huma.Error400BadRequest("Newsletter does not exist.")
 		}
 
+		var sendDay int
+		if input.Body.SendDay == nil {
+			sendDay = 0
+		} else {
+			sendDay = int(*input.Body.SendDay)
+		}
+
 		nextSendTime, err := newsletters.ComputeNextSendTime(
 			db.Frequency(input.Body.Frequency),
-			int(*input.Body.SendDay), int(input.Body.SendHour), int(input.Body.SendMinute),
+			sendDay, int(input.Body.SendHour), int(input.Body.SendMinute),
 			input.Body.SendTimezone, time.Now(),
 		)
 
 		if err != nil {
 			return nil, huma.Error400BadRequest("Cannot update newsletter")
 		}
-		
+
 		err = h.queries.UpdateNewsletter(ctx, db.UpdateNewsletterParams{
 			Name: input.Body.Name,
 			Frequency: db.Frequency(input.Body.Frequency),
-			SendDay: int32(*input.Body.SendDay),
+			SendDay: int32(sendDay),
 			SendHour: int32(input.Body.SendHour),
 			SendMinute: int32(input.Body.SendMinute),
 			SendTimezone: input.Body.SendTimezone,

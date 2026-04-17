@@ -90,6 +90,9 @@ func (s *FeedService) GetFeedDataSince(
 
 	if feed.LastRetrievedAt.Before(oneHourAgo) {
 		feedResult, err := s.rssService.FetchFeed(ctx, feed.URL)
+		if err != nil {
+			return nil, err
+		}
 		feedResult.Feed = pruneFeedItemsBeforeTime(feedResult.Feed, feed.LastRetrievedAt)
 		if err != nil {
 			return nil, err

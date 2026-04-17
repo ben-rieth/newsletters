@@ -125,14 +125,12 @@ func (s *NewsletterService) UpdateSendTimes(
 		return err
 	}
 	
-	s.queries.UpdateNewsletterSendTimes(ctx, db.UpdateNewsletterSendTimesParams{
+	return s.queries.UpdateNewsletterSendTimes(ctx, db.UpdateNewsletterSendTimesParams{
 		ID: nl.ID,
 		UserID: nl.UserID,
 		NextSendTime: nextSendTime,
 		LastSentAt: db.ToTimestamp(&sentAt),
 	})
-
-	return nil
 }
 
 func (s *NewsletterService) DeleteNewsletter(
