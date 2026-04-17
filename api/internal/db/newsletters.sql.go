@@ -81,7 +81,7 @@ func (q *Queries) DoesNewsletterExist(ctx context.Context, arg DoesNewsletterExi
 const getDueNewsletters = `-- name: GetDueNewsletters :many
 SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at FROM newsletter AS nl
 INNER JOIN app_user AS u ON nl.user_id = u.id
-WHERE nl.next_send_time <= NOW()
+WHERE nl.next_send_time <= NOW() AND nl.status = 'active'
 `
 
 type GetDueNewslettersRow struct {
@@ -129,7 +129,7 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 }
 
 const getNewsletter = `-- name: GetNewsletter :one
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, created_at, updated_at FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, created_at, updated_at FROM newsletter
 WHERE id = $1 AND user_id = $2
 `
 
@@ -152,6 +152,7 @@ func (q *Queries) GetNewsletter(ctx context.Context, arg GetNewsletterParams) (N
 		&i.LastSentAt,
 		&i.NextSendTime,
 		&i.UserID,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -159,7 +160,7 @@ func (q *Queries) GetNewsletter(ctx context.Context, arg GetNewsletterParams) (N
 }
 
 const listNewsletters = `-- name: ListNewsletters :many
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, created_at, updated_at FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, created_at, updated_at FROM newsletter
 WHERE user_id = $1
 ORDER BY created_at DESC
 `
@@ -184,6 +185,7 @@ func (q *Queries) ListNewsletters(ctx context.Context, userID string) ([]Newslet
 			&i.LastSentAt,
 			&i.NextSendTime,
 			&i.UserID,
+			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -270,5 +272,20 @@ func (q *Queries) UpdateNewsletterSendTimes(ctx context.Context, arg UpdateNewsl
 		arg.ID,
 		arg.UserID,
 	)
+	return err
+}
+
+const updateNewsletterStatus = `-- name: UpdateNewsletterStatus :exec
+UPDATE newsletter SET status = $1 WHERE id = $2 AND user_id = $3
+`
+
+type UpdateNewsletterStatusParams struct {
+	Status NewsletterStatus
+	ID     string
+	UserID string
+}
+
+func (q *Queries) UpdateNewsletterStatus(ctx context.Context, arg UpdateNewsletterStatusParams) error {
+	_, err := q.db.Exec(ctx, updateNewsletterStatus, arg.Status, arg.ID, arg.UserID)
 	return err
 }

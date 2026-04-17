@@ -51,5 +51,6 @@ func DbNewsletterToNewsletterType (newsletter db.Newsletter) Newsletter {
 		NextSendTime: newsletter.NextSendTime,
 		CreatedAt: newsletter.CreatedAt,
 		UpdatedAt: newsletter.UpdatedAt,
+		Status: string(newsletter.Status),
 	}
 }

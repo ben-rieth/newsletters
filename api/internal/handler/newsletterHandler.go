@@ -39,11 +39,6 @@ type getNewsletterOutput struct {
     Body newsletters.Newsletter
 }
 
-type updateNewsletterInput struct {
-	ID string `path:"id"`
-	Body submittableNewsletterFields
-}
-
 type NewsletterHandler struct {
 	queries *db.Queries
 	nlService *newsletters.NewsletterService
@@ -54,6 +49,8 @@ func NewNewsletterHandler(queries *db.Queries, nlService *newsletters.Newsletter
 }
 
 func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
+	doesNewsletterExistMiddleware := newDoesNewsletterExistMiddleware(api, h.queries)
+	
 	huma.Register(api, huma.Operation{
 		OperationID: "list-newsletters",
 		Method: "GET",
@@ -161,23 +158,15 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Method: "PUT",
 		Path: "/newsletters/{id}",
 		Summary: "Update a single newsletter",
-	}, func (ctx context.Context, input *updateNewsletterInput) (*struct{}, error) {
+		DefaultStatus: http.StatusNoContent,
+		Middlewares: huma.Middlewares{doesNewsletterExistMiddleware},
+	}, func (ctx context.Context, input *struct {
+		ID string `path:"id"`
+		Body submittableNewsletterFields
+	}) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, unauthorizedError
-		}
-		
-		exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
-			ID: input.ID,
-			UserID: claims.Subject,
-		})
-
-		if err != nil {
-			return nil, internalServerError
-		}
-
-		if !exists {
-			return nil, huma.Error400BadRequest("Newsletter does not exist.")
 		}
 
 		var sendDay int
@@ -221,26 +210,15 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Method: "DELETE",
 		Path: "/newsletters/{id}",
 		Summary: "Delete a newsletter and all of its feeds",
+		DefaultStatus: http.StatusNoContent,
+		Middlewares: huma.Middlewares{doesNewsletterExistMiddleware},
 	}, func(ctx context.Context, input *baseNewsletterInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, unauthorizedError
 		}
 
-		exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
-			ID: input.ID,
-			UserID: claims.Subject,
-		})
-
-		if err != nil {
-			return nil, internalServerError
-		}
-
-		if !exists {
-			return nil, huma.Error400BadRequest("Newsletter does not exist.")
-		}
-
-		err = h.nlService.DeleteNewsletter(ctx, input.ID)
+		err := h.nlService.DeleteNewsletter(ctx, input.ID)
 		if err != nil {
 			return nil, internalServerError
 		}
@@ -254,25 +232,14 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Path: "/newsletter/{id}/send",
 		Summary: "Updates the newsletter's next send time to the current time",
 		DefaultStatus: http.StatusNoContent,
+		Middlewares: huma.Middlewares{doesNewsletterExistMiddleware},
 	}, func(ctx context.Context, i *baseNewsletterInput) (*struct {}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, unauthorizedError
 		}
 
-		exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
-			ID: i.ID,
-			UserID: claims.Subject,
-		})
-		if err != nil {
-			return nil, internalServerError
-		}
-
-		if !exists {
-			return nil, huma.Error404NotFound("Newsletter does not exist")
-		}
-
-		err = h.queries.UpdateNewsletterSendTime(ctx, db.UpdateNewsletterSendTimeParams{
+		err := h.queries.UpdateNewsletterSendTime(ctx, db.UpdateNewsletterSendTimeParams{
 			NextSendTime: time.Now(),
 			ID: i.ID,
 			UserID: claims.Subject,
@@ -284,4 +251,68 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 
 		return nil, nil
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID: "update-newsletter-status",
+		Path: "/newsletter/{id}/status",
+		Method: http.MethodPatch,
+		Description: "Change the status of a newsletter to active or inactive",
+		DefaultStatus: http.StatusNoContent,
+		Middlewares: huma.Middlewares{doesNewsletterExistMiddleware},
+	}, func(ctx context.Context, i *struct {
+		ID string `path:"id"`
+		Body struct {
+			Status string `json:"status" enum:"active,inactive"`
+		}
+	}) (*struct{}, error) {
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, unauthorizedError
+		}
+
+		err := h.queries.UpdateNewsletterStatus(ctx, db.UpdateNewsletterStatusParams{
+			Status: db.NewsletterStatus(i.Body.Status),
+			ID: i.ID,
+			UserID: claims.Subject,
+		})
+		if err != nil {
+			return nil, internalServerError
+		}
+
+		return nil, nil
+	})
+}
+
+func newDoesNewsletterExistMiddleware(api huma.API, queries *db.Queries) func (ctx huma.Context, next func(huma.Context)) {
+	return func(ctx huma.Context, next func(huma.Context)) {
+		claims, ok := auth.ClaimsFromContext(ctx.Context())
+		if !ok || claims == nil {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, unauthorizedError.Error())
+			return
+		}
+
+		newsletterId := ctx.Param("id");
+
+		if newsletterId == "" {
+			huma.WriteErr(api, ctx, http.StatusBadRequest, "Request does not have all required information")
+			return
+		}
+
+		exists, err := queries.DoesNewsletterExist(ctx.Context(), db.DoesNewsletterExistParams{
+			ID: newsletterId,
+			UserID: claims.Subject,
+		})
+
+		if err != nil {
+			huma.WriteErr(api, ctx, http.StatusInternalServerError, internalServerError.Error(), err)
+			return
+		}
+
+		if !exists {
+			huma.WriteErr(api, ctx, http.StatusNotFound, "This feed does not exist")
+			return
+		}
+		
+		next(ctx)
+	}
 }

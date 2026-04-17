@@ -55,6 +55,7 @@ CREATE TABLE feed_item (
 
 
 CREATE TYPE frequency AS ENUM ('monthly', 'weekly', 'daily');
+CREATE TYPE newsletter_status AS ENUM('active', 'inactive');
 
 CREATE TABLE newsletter (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -67,6 +68,7 @@ CREATE TABLE newsletter (
     last_sent_at TIMESTAMPTZ,
     next_send_time TIMESTAMPTZ NOT NULL,
     user_id UUID NOT NULL REFERENCES app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    status newsletter_status NOT NULL DEFAULT 'active',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -121,5 +123,6 @@ DROP TABLE feed_url;
 DROP TABLE feed;
 DROP TABLE app_user;
 DROP TYPE frequency;
+DROP TYPE newsletter_status;
 DROP TYPE item_state;
 DROP TYPE feed_url_source;

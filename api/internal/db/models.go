@@ -225,6 +225,48 @@ func (ns NullItemState) Value() (driver.Value, error) {
 	return string(ns.ItemState), nil
 }
 
+type NewsletterStatus string
+
+const (
+	NewsletterStatusActive   NewsletterStatus = "active"
+	NewsletterStatusInactive NewsletterStatus = "inactive"
+)
+
+func (e *NewsletterStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = NewsletterStatus(s)
+	case string:
+		*e = NewsletterStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for NewsletterStatus: %T", src)
+	}
+	return nil
+}
+
+type NullNewsletterStatus struct {
+	NewsletterStatus NewsletterStatus
+	Valid            bool // Valid is true if NewsletterStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullNewsletterStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.NewsletterStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.NewsletterStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullNewsletterStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.NewsletterStatus), nil
+}
+
 type AppUser struct {
 	ID        string
 	Email     string
@@ -274,6 +316,7 @@ type Newsletter struct {
 	LastSentAt   pgtype.Timestamptz
 	NextSendTime time.Time
 	UserID       string
+	Status       NewsletterStatus
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }

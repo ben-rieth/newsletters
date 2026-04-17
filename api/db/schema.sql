@@ -1,4 +1,4 @@
-\restrict BjBUKYlZ8mWlpIGIGioo7tG0h6qReRe3n7oYdaqSuix9nadAJKQNbr1x9SLJHdZ
+\restrict W2BsydmAK2O7tS4ffHOZCx7S35ID5PTxFXVrtfapIHA6jEN8YrIumKecJJWMqZ6
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -64,6 +64,16 @@ CREATE TYPE public.frequency AS ENUM (
 CREATE TYPE public.item_state AS ENUM (
     'read',
     'unread'
+);
+
+
+--
+-- Name: newsletter_status; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.newsletter_status AS ENUM (
+    'active',
+    'inactive'
 );
 
 
@@ -144,6 +154,7 @@ CREATE TABLE public.newsletter (
     last_sent_at timestamp with time zone,
     next_send_time timestamp with time zone NOT NULL,
     user_id uuid NOT NULL,
+    status public.newsletter_status DEFAULT 'active'::public.newsletter_status NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -457,7 +468,7 @@ ALTER TABLE ONLY public.refresh_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict BjBUKYlZ8mWlpIGIGioo7tG0h6qReRe3n7oYdaqSuix9nadAJKQNbr1x9SLJHdZ
+\unrestrict W2BsydmAK2O7tS4ffHOZCx7S35ID5PTxFXVrtfapIHA6jEN8YrIumKecJJWMqZ6
 
 
 --

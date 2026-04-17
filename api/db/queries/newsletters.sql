@@ -32,7 +32,7 @@ SELECT EXISTS(SELECT 1 FROM newsletter WHERE id = $1 AND user_id = $2);
 -- name: GetDueNewsletters :many
 SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at FROM newsletter AS nl
 INNER JOIN app_user AS u ON nl.user_id = u.id
-WHERE nl.next_send_time <= NOW();
+WHERE nl.next_send_time <= NOW() AND nl.status = 'active';
 
 -- name: UpdateNewsletterSendTime :exec
 UPDATE newsletter SET next_send_time = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3;
@@ -43,3 +43,5 @@ UPDATE newsletter SET next_send_time = $1, last_sent_at = $2, updated_at = NOW()
 -- name: DeleteAllNewslettersForUser :exec
 DELETE FROM newsletter WHERE user_id = $1;
 
+-- name: UpdateNewsletterStatus :exec
+UPDATE newsletter SET status = $1 WHERE id = $2 AND user_id = $3;

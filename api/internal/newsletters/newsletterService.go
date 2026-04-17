@@ -21,6 +21,7 @@ type Newsletter struct {
 	SendMinute int `json:"sendMinute"`
 	SendTimezone string `json:"sendTimezone"`
 	LastSentAt *time.Time `json:"lastSentAt,omitempty"`
+	Status string `json:"status"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
