@@ -46,7 +46,7 @@ func (q *Queries) DoesUserWithEmailExist(ctx context.Context, email string) (boo
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password, created_at, updated_at FROM app_user WHERE email = $1
+SELECT id, email, password, email_verified_at, created_at, updated_at FROM app_user WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, error) {
@@ -56,6 +56,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, er
 		&i.ID,
 		&i.Email,
 		&i.Password,
+		&i.EmailVerifiedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -63,7 +64,7 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, er
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, email, password, created_at, updated_at FROM app_user WHERE id = $1
+SELECT id, email, password, email_verified_at, created_at, updated_at FROM app_user WHERE id = $1
 `
 
 func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
@@ -73,10 +74,20 @@ func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
 		&i.ID,
 		&i.Email,
 		&i.Password,
+		&i.EmailVerifiedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const markUserEmailAsVerified = `-- name: MarkUserEmailAsVerified :exec
+UPDATE app_user SET email_verified_at = NOW() WHERE id = $1
+`
+
+func (q *Queries) MarkUserEmailAsVerified(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, markUserEmailAsVerified, id)
+	return err
 }
 
 const updateUserEmail = `-- name: UpdateUserEmail :exec

@@ -36,6 +36,52 @@ func (q *Queries) DeleteAllRefreshTokensForUser(ctx context.Context, userID stri
 	return err
 }
 
+const deleteExistingTokensWithPurpose = `-- name: DeleteExistingTokensWithPurpose :exec
+DELETE FROM verification_token WHERE user_id = $1 AND purpose = $2
+`
+
+type DeleteExistingTokensWithPurposeParams struct {
+	UserID  string
+	Purpose TokenPurpose
+}
+
+func (q *Queries) DeleteExistingTokensWithPurpose(ctx context.Context, arg DeleteExistingTokensWithPurposeParams) error {
+	_, err := q.db.Exec(ctx, deleteExistingTokensWithPurpose, arg.UserID, arg.Purpose)
+	return err
+}
+
+const findValidToken = `-- name: FindValidToken :one
+SELECT id, user_id, code, purpose, created_at, expires_at FROM verification_token 
+WHERE user_id = $1 AND purpose = $2 AND code = $3 
+AND expires_at > $4
+`
+
+type FindValidTokenParams struct {
+	UserID               string
+	Purpose              TokenPurpose
+	Code                 string
+	ExpiresAtGreaterThan time.Time
+}
+
+func (q *Queries) FindValidToken(ctx context.Context, arg FindValidTokenParams) (VerificationToken, error) {
+	row := q.db.QueryRow(ctx, findValidToken,
+		arg.UserID,
+		arg.Purpose,
+		arg.Code,
+		arg.ExpiresAtGreaterThan,
+	)
+	var i VerificationToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Code,
+		&i.Purpose,
+		&i.CreatedAt,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const getRefreshToken = `-- name: GetRefreshToken :one
 SELECT token, revoked_at, expires_at, user_id FROM refresh_token WHERE token = $1
 `
@@ -65,5 +111,27 @@ UPDATE refresh_token SET revoked_at = NOW(), updated_at = NOW() WHERE token = $1
 
 func (q *Queries) RevokeToken(ctx context.Context, token string) error {
 	_, err := q.db.Exec(ctx, revokeToken, token)
+	return err
+}
+
+const saveVerificationToken = `-- name: SaveVerificationToken :exec
+INSERT INTO verification_token (user_id, code, purpose, expires_at)
+VALUES ($1, $2, $3, $4)
+`
+
+type SaveVerificationTokenParams struct {
+	UserID    string
+	Code      string
+	Purpose   TokenPurpose
+	ExpiresAt time.Time
+}
+
+func (q *Queries) SaveVerificationToken(ctx context.Context, arg SaveVerificationTokenParams) error {
+	_, err := q.db.Exec(ctx, saveVerificationToken,
+		arg.UserID,
+		arg.Code,
+		arg.Purpose,
+		arg.ExpiresAt,
+	)
 	return err
 }

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
+	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/google/uuid"
@@ -18,7 +19,7 @@ import (
 type Scheduler struct {
 	newsletterService *NewsletterService
 	feedService *feeds.FeedService
-	emailService EmailService
+	emailService email.EmailService
 	cfg *config.Config
 	schedulerConfig *SchedulerConfig
 }
@@ -30,7 +31,7 @@ type SchedulerConfig struct {
 func NewScheduler(
 	newsletterService *NewsletterService,
 	feedService *feeds.FeedService,
-	emailService EmailService,
+	emailService email.EmailService,
 	cfg *config.Config,
 	schedulerConfig *SchedulerConfig,
 ) *Scheduler {

@@ -267,12 +267,54 @@ func (ns NullNewsletterStatus) Value() (driver.Value, error) {
 	return string(ns.NewsletterStatus), nil
 }
 
+type TokenPurpose string
+
+const (
+	TokenPurposeEmailVerify TokenPurpose = "email_verify"
+)
+
+func (e *TokenPurpose) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = TokenPurpose(s)
+	case string:
+		*e = TokenPurpose(s)
+	default:
+		return fmt.Errorf("unsupported scan type for TokenPurpose: %T", src)
+	}
+	return nil
+}
+
+type NullTokenPurpose struct {
+	TokenPurpose TokenPurpose
+	Valid        bool // Valid is true if TokenPurpose is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullTokenPurpose) Scan(value interface{}) error {
+	if value == nil {
+		ns.TokenPurpose, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.TokenPurpose.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullTokenPurpose) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.TokenPurpose), nil
+}
+
 type AppUser struct {
-	ID        string
-	Email     string
-	Password  string
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID              string
+	Email           string
+	Password        string
+	EmailVerifiedAt pgtype.Timestamptz
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 type Feed struct {
@@ -361,4 +403,13 @@ type RefreshToken struct {
 	UserID    string
 	ExpiresAt time.Time
 	RevokedAt pgtype.Timestamptz
+}
+
+type VerificationToken struct {
+	ID        string
+	UserID    string
+	Code      string
+	Purpose   TokenPurpose
+	CreatedAt time.Time
+	ExpiresAt time.Time
 }

@@ -1,4 +1,4 @@
-package newsletters
+package email
 
 import (
 	"bytes"

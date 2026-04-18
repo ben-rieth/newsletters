@@ -9,6 +9,7 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/ben-rieth/newsletter-api/internal/db"
+	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/handler"
 	"github.com/ben-rieth/newsletter-api/internal/newsletters"
@@ -41,7 +42,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Could not get email templates: %v", err)
 	}
-	emailService := newsletters.NewResendEmailService(&cfg, tmpl)
+	emailService := email.NewResendEmailService(&cfg, tmpl)
 
 	newsletterService := newsletters.NewNewsletterService(queries, pool)
 	
@@ -68,7 +69,7 @@ func main() {
 	api := humago.New(mux, humaConfig)
 	api.UseMiddleware(wideLog.WideLogMiddleware)
 
-	authHandler := handler.NewAuthHandler(*queries, cfg)
+	authHandler := handler.NewAuthHandler(queries, emailService, &cfg)
 	authHandler.RegisterRoutes(api)
 
 	if cfg.Environment == "dev" {

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify your email</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+    <tr>
+      <td align="center" style="padding: 20px 0;">
+
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #1a1a2e; padding: 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Your Daily Digest</h1>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px 30px 30px;">
+              <p style="margin: 0 0 16px; font-size: 16px; color: #333333;">Hi there,</p>
+              <p style="margin: 0 0 24px; font-size: 16px; color: #333333; line-height: 1.6;">
+                Thanks for signing up! To creating newsletters, please verify your email address by entering the code below.
+              </p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td align="center" style="padding: 24px 0;">
+                    <div style="display: inline-block; background-color: #f4f4f4; border-radius: 8px; padding: 20px 40px;">
+                      <p style="margin: 0 0 6px; font-size: 12px; color: #888888; text-align: center; letter-spacing: 1px; text-transform: uppercase;">Your verification code</p>
+                      <p style="margin: 0; font-size: 36px; font-weight: bold; letter-spacing: 10px; color: #1a1a2e; text-align: center; font-family: 'Courier New', monospace;">{{ .Code }}</p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 0 0 8px; font-size: 14px; color: #888888; text-align: center;">
+                This code expires in <strong style="color: #555555;">10 minutes</strong>.
+              </p>
+              <p style="margin: 16px 0 0; font-size: 14px; color: #aaaaaa; text-align: center;">
+                If you didn't create an account, you can safely ignore this email.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f4f4f4; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+              <p style="margin: 0; font-size: 12px; color: #888888;">
+                You're receiving this because someone signed up with this email address.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

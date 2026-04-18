@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -64,4 +65,14 @@ func MakeRefreshToken() string {
 	
 	rand.Read(token)
 	return hex.EncodeToString(token)
+}
+
+func MakeVerificationToken() (string, error) {
+	max := big.NewInt(100000000)
+	n, err := rand.Int(rand.Reader, max)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%08d", n.Int64()), nil
 }

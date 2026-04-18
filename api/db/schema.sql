@@ -1,4 +1,4 @@
-\restrict ByT8bOnJXiZdXm7Elh9GEDLNW5Xe5bPp5TtZLsC4TEOeMB8SP0u2baP59akd05n
+\restrict 5Ab1yKr0NAxTI83sL8UnX5u72saAu1R0l10FqaJuSq529K2wf0VHs4jKlGiXcoj
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -77,6 +77,15 @@ CREATE TYPE public.newsletter_status AS ENUM (
 );
 
 
+--
+-- Name: token_purpose; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.token_purpose AS ENUM (
+    'email_verify'
+);
+
+
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -89,6 +98,7 @@ CREATE TABLE public.app_user (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     email text NOT NULL,
     password text NOT NULL,
+    email_verified_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -251,6 +261,20 @@ CREATE TABLE public.schema_migrations (
 
 
 --
+-- Name: verification_token; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.verification_token (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    code text NOT NULL,
+    purpose public.token_purpose NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    expires_at timestamp with time zone NOT NULL
+);
+
+
+--
 -- Name: refresh_token id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -378,6 +402,14 @@ ALTER TABLE ONLY public.schema_migrations
 
 
 --
+-- Name: verification_token verification_token_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.verification_token
+    ADD CONSTRAINT verification_token_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: feed_item feed_item_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -474,10 +506,18 @@ ALTER TABLE ONLY public.refresh_token
 
 
 --
+-- Name: verification_token verification_token_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.verification_token
+    ADD CONSTRAINT verification_token_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ByT8bOnJXiZdXm7Elh9GEDLNW5Xe5bPp5TtZLsC4TEOeMB8SP0u2baP59akd05n
+\unrestrict 5Ab1yKr0NAxTI83sL8UnX5u72saAu1R0l10FqaJuSq529K2wf0VHs4jKlGiXcoj
 
 
 --

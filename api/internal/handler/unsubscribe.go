@@ -8,7 +8,7 @@ import (
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/ben-rieth/newsletter-api/internal/db"
-	"github.com/ben-rieth/newsletter-api/internal/newsletters"
+	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
@@ -17,10 +17,14 @@ import (
 type UnsubscribeHandler struct {
 	queries *db.Queries
 	cfg *config.Config
-	emailService newsletters.EmailService
+	emailService email.EmailService
 }
 
-func NewUnsubscribeHandler (queries *db.Queries, cfg *config.Config, emailService newsletters.EmailService) *UnsubscribeHandler {
+func NewUnsubscribeHandler (
+	queries *db.Queries, 
+	cfg *config.Config, 
+	emailService email.EmailService,
+) *UnsubscribeHandler {
 	return &UnsubscribeHandler{queries, cfg, emailService}
 }
 

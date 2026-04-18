@@ -18,3 +18,6 @@ UPDATE app_user SET password = $1, updated_at = NOW() WHERE id = $2;
 
 -- name: DeleteUser :exec
 DELETE FROM app_user WHERE id = $1;
+
+-- name: MarkUserEmailAsVerified :exec
+UPDATE app_user SET email_verified_at = NOW() WHERE id = $1;

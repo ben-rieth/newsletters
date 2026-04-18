@@ -5,8 +5,20 @@ CREATE TABLE app_user (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
+    email_verified_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TYPE token_purpose AS ENUM ('email_verify');
+
+CREATE TABLE verification_token (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
+    code TEXT NOT NULL,
+    purpose token_purpose NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE refresh_token (
@@ -122,6 +134,8 @@ DROP TABLE newsletter;
 DROP TABLE feed_item;
 DROP TABLE feed_url;
 DROP TABLE feed;
+DROP TABLE verification_token;
+DROP TYPE token_purpose;
 DROP TABLE app_user;
 DROP TYPE frequency;
 DROP TYPE newsletter_status;
