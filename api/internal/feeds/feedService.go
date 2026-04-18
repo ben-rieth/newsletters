@@ -8,6 +8,7 @@ import (
 
 	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/utils"
+	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mmcdole/gofeed"
@@ -84,16 +85,27 @@ func (s *FeedService) GetFeedDataSince(
 	since time.Time,
 	userId string,
 ) (*FeedView, error) {
+	wideLog.AddLogField(ctx, "globalFeedId", feed.GlobalFeedId)
+	wideLog.AddLogField(ctx, "newsletterFeedId", feed.GlobalFeedId)
+
 	oneHourAgo := time.Now().Add(time.Hour * -1)
 
 	var finalItems []FeedItemView
 
-	if feed.LastRetrievedAt.Before(oneHourAgo) {
+	needToFetchLiveFeed := feed.LastRetrievedAt.Before(oneHourAgo)
+	wideLog.AddLogField(ctx, "mustFetchLiveFeed", needToFetchLiveFeed)
+
+	if needToFetchLiveFeed {
+		wideLog.AddLogField(ctx, "feedUrl", feed.URL)
 		feedResult, err := s.rssService.FetchFeed(ctx, feed.URL)
 		if err != nil {
 			return nil, err
 		}
+
+		wideLog.AddLogField(ctx, "fetchedItems", feedResult.Feed.Items)
 		feedResult.Feed = pruneFeedItemsBeforeTime(feedResult.Feed, feed.LastRetrievedAt)
+		wideLog.AddLogField(ctx, "prunedItem", feedResult.Feed.Items)
+
 		feedItemDetails := buildFeedItemParamsFromGoFeed(feedResult.Feed, feed.GlobalFeedId, feedResult.RetrievedAt)
 		if err = s.updateFeedCache(
 			ctx, 
@@ -115,6 +127,8 @@ func (s *FeedService) GetFeedDataSince(
 	if err != nil {
 		return nil, err
 	}
+
+	wideLog.AddLogField(ctx, "itemsForNewsletter", len(items))
 
 	finalItems = make([]FeedItemView, 0, len(items))
 	for _, item := range items {

@@ -5,10 +5,14 @@ import (
 	"context"
 	"html/template"
 	"log"
+	"log/slog"
+	"math/rand"
 	"sync"
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
+	"github.com/ben-rieth/newsletter-api/internal/wideLog"
+	"github.com/google/uuid"
 )
 
 type emailService interface {
@@ -50,12 +54,12 @@ func (sch *Scheduler) KickOff(ctx context.Context) {
 
 		log.Println("Newsletter scheduler started")
 
-		sch.pollNewsletters(ctx)
+		sch.pollNewslettersWithContext()
 
 		for {
 			select {
 			case <-ticker.C:
-				sch.pollNewsletters(ctx)
+				sch.pollNewslettersWithContext()
 			case <- ctx.Done():
 				log.Println("Shutting down newsletter scheduler")
 				return
@@ -68,21 +72,44 @@ func (sch *Scheduler) ForcePoll(ctx context.Context) {
 	sch.pollNewsletters(ctx)
 }
 
-func (sch *Scheduler) pollNewsletters(ctx context.Context) {
-	dueNewsletters, err := sch.newsletterService.GetDueNewsletters(ctx)
+func (sch *Scheduler) pollNewslettersWithContext() {
+	tickCtx := context.Background()
+	wl := wideLog.NewWideLog()
+	tickCtx = context.WithValue(tickCtx, "log", wl)
+
+	tickId := uuid.New()
+	wl.AddLogField("tickId", tickId)
+
+	startTime := time.Now()
+
+	err := sch.pollNewsletters(tickCtx)
 	if err != nil {
-		log.Printf("Error fetching due newsletters: %v", err)
-		return
+		wl.AddErrorField(err);
 	}
 
-	if len(*dueNewsletters) == 0 {
-		log.Printf("No newsletters to send")
-		return
+	endTime := time.Now()
+	wl.AddLogField("duration", endTime.Sub(startTime))
+
+	shouldKeep, level := shouldKeepSchedulerLog(wl)
+
+	if shouldKeep {
+		wl.Slog(tickCtx, level)
+	}
+}
+
+func (sch *Scheduler) pollNewsletters(ctx context.Context) error {
+	dueNewsletters, err := sch.newsletterService.GetDueNewsletters(ctx)
+	if err != nil {
+		return err
+	}
+
+	count := len(*dueNewsletters)
+	wideLog.AddLogField(ctx, "nlCount", count)
+	if count == 0 {
+		return nil
 	}
 
 	sem := make(chan struct{}, sch.schedulerConfig.MaxWorkers)
-
-	nlErrors := make([]error, len(*dueNewsletters))
 
 	var nlWaitGroup sync.WaitGroup
 
@@ -90,41 +117,65 @@ func (sch *Scheduler) pollNewsletters(ctx context.Context) {
 		nlWaitGroup.Add(1)
 		go func (ctx context.Context, index int, nl SendableNewsletter, sem chan struct{}) {
 			defer nlWaitGroup.Done()
-			feedResults, err := sch.fetchFeedsForNewsletter(ctx, &nl, sem)
+
+			nlLog := wideLog.NewWideLog()
+			nlCtx := context.WithValue(ctx, "log", nlLog)
+
+			startTime := time.Now()
+			err := sch.buildAndSendNewsletter(nlCtx, nl, sem)
+			endTime := time.Now()
+			nlLog.AddLogField("duration", endTime.Sub(startTime))
+
 			if err != nil {
-				nlErrors[index] = err
-				return
+				nlLog.AddErrorField(err)
 			}
 
-			newsletterHtml, err := sch.assembleNewsletter(&nl, feedResults)
-			if err != nil {
-				nlErrors[index] = err
-				return
-			}
-
-			result, err := sch.emailService.Send(
-				ctx,
-				nl.Name,
-				"",
-				nl.Email,
-				newsletterHtml,
-			)
-
-			if err != nil {
-				nlErrors[index] = err
-				return
-			}
-
-			sentAt := result.Time
-
-			err = sch.newsletterService.UpdateSendTimes(ctx, &nl, sentAt)
-			if err != nil {
-				nlErrors[index] = err
+			shouldKeep, level := shouldKeepSchedulerLog(nlLog)
+			if shouldKeep {
+				nlLog.Slog(ctx, level)
 			}
 		}(ctx, i, nl, sem)
 	}
 
 	nlWaitGroup.Wait()
+	return nil
+}
+
+func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNewsletter, sem chan struct{}) error {
+	wideLog.AddLogField(ctx, "newsletterId", nl.ID)
+	wideLog.AddLogField(ctx, "feedCount", len(nl.Feeds))
+	
+	feedResults, err := sch.fetchFeedsForNewsletter(ctx, &nl, sem)
+	if err != nil {
+		return err
+	}
+
+	newsletterHtml, err := sch.assembleNewsletter(&nl, feedResults)
+	if err != nil {
+		return err
+	}
+
+	result, err := sch.emailService.Send(
+		ctx,
+		nl.Name,
+		"",
+		nl.Email,
+		newsletterHtml,
+	)
+
+	if err != nil {
+		return err
+	}
+	wideLog.AddLogField(ctx, "emailSendId", result.ID)
+	wideLog.AddLogField(ctx, "emailSentAt", result.Time)
+
+	sentAt := result.Time
+
+	err = sch.newsletterService.UpdateSendTimes(ctx, &nl, sentAt)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 type newsletterFetchFeedResult struct {
@@ -168,10 +219,11 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 	var failed []feeds.BaseFeed
 	for i, err := range feedErrors {
 		if err != nil {
-			log.Printf("Failed to fetch feed with id %s and url %s: %v", nl.Feeds[i].NewsletterFeedId, nl.Feeds[i].URL, err)
 			failed = append(failed, nl.Feeds[i])
 		}
 	}
+
+	wideLog.AddErrorField(ctx, feedErrors...)
 
 	var notNilResults []feeds.FeedView
 	for _, result := range results {
@@ -204,4 +256,12 @@ func (sch *Scheduler) assembleNewsletter(
 
 	htmlString := buffer.String()
 	return htmlString, nil
+}
+
+func shouldKeepSchedulerLog(wl *wideLog.WideLog) (bool, slog.Level) {
+	if wl.HasError() {
+		return true, slog.LevelError
+	}
+	
+	return rand.Float64() < 0.05, slog.LevelInfo
 }
