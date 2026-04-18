@@ -32,7 +32,7 @@ type createNewsletterInput struct {
 }
 
 type baseNewsletterInput struct {
-	ID string `path:"id"`
+	NewsletterID string `path:"newsletterId"`
 }
 
 type getNewsletterOutput struct {
@@ -126,7 +126,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "get-newsletter",
 		Method: "GET",
-		Path: "/newsletters/{id}",
+		Path: "/newsletters/{newsletterId}",
 		Summary: "Get a single newsletter",
 	}, func (ctx context.Context, input *baseNewsletterInput) (*getNewsletterOutput, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
@@ -135,7 +135,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		}
 		
 		newsletter, err := h.queries.GetNewsletter(ctx, db.GetNewsletterParams{
-			ID: input.ID,
+			ID: input.NewsletterID,
 			UserID: claims.Subject,
 		})
 
@@ -156,12 +156,12 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "update-newsletter",
 		Method: "PUT",
-		Path: "/newsletters/{id}",
+		Path: "/newsletters/{newsletterId}",
 		Summary: "Update a single newsletter",
 		DefaultStatus: http.StatusNoContent,
 		Middlewares: huma.Middlewares{doesNewsletterExistMiddleware},
 	}, func (ctx context.Context, input *struct {
-		ID string `path:"id"`
+		NewsletterID string `path:"newsletterId"`
 		Body submittableNewsletterFields
 	}) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
@@ -194,7 +194,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			SendMinute: int32(input.Body.SendMinute),
 			SendTimezone: input.Body.SendTimezone,
 			NextSendTime: nextSendTime,
-			ID: input.ID,
+			ID: input.NewsletterID,
 			UserID: claims.Subject,
 		})
 
@@ -208,7 +208,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "delete-newsletter",
 		Method: "DELETE",
-		Path: "/newsletters/{id}",
+		Path: "/newsletters/{newsletterId}",
 		Summary: "Delete a newsletter and all of its feeds",
 		DefaultStatus: http.StatusNoContent,
 		Middlewares: huma.Middlewares{doesNewsletterExistMiddleware},
@@ -218,7 +218,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			return nil, unauthorizedError()
 		}
 
-		err := h.nlService.DeleteNewsletter(ctx, input.ID)
+		err := h.nlService.DeleteNewsletter(ctx, input.NewsletterID)
 		if err != nil {
 			return nil, internalServerError(ctx, err)
 		}
@@ -229,7 +229,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "force-send-newsletter",
 		Method: "PATCH",
-		Path: "/newsletter/{id}/send",
+		Path: "/newsletter/{newsletterId}/send",
 		Summary: "Updates the newsletter's next send time to the current time",
 		DefaultStatus: http.StatusNoContent,
 		Middlewares: huma.Middlewares{doesNewsletterExistMiddleware},
@@ -241,7 +241,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 
 		err := h.queries.UpdateNewsletterSendTime(ctx, db.UpdateNewsletterSendTimeParams{
 			NextSendTime: time.Now(),
-			ID: i.ID,
+			ID: i.NewsletterID,
 			UserID: claims.Subject,
 		})
 
@@ -254,13 +254,13 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "update-newsletter-status",
-		Path: "/newsletter/{id}/status",
+		Path: "/newsletter/{newsletterId}/status",
 		Method: http.MethodPatch,
 		Description: "Change the status of a newsletter to active or inactive",
 		DefaultStatus: http.StatusNoContent,
 		Middlewares: huma.Middlewares{doesNewsletterExistMiddleware},
 	}, func(ctx context.Context, i *struct {
-		ID string `path:"id"`
+		NewsletterID string `path:"newsletterId"`
 		Body struct {
 			Status string `json:"status" enum:"active,inactive"`
 		}
@@ -272,7 +272,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 
 		err := h.queries.UpdateNewsletterStatus(ctx, db.UpdateNewsletterStatusParams{
 			Status: db.NewsletterStatus(i.Body.Status),
-			ID: i.ID,
+			ID: i.NewsletterID,
 			UserID: claims.Subject,
 		})
 		if err != nil {
@@ -291,7 +291,7 @@ func newDoesNewsletterExistMiddleware(api huma.API, queries *db.Queries) func (c
 			return
 		}
 
-		newsletterId := ctx.Param("id");
+		newsletterId := ctx.Param("newsletterId");
 
 		if newsletterId == "" {
 			huma.WriteErr(api, ctx, http.StatusBadRequest, "Request does not have all required information")

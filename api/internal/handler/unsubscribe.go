@@ -59,7 +59,7 @@ func (h *UnsubscribeHandler) RegisterRoutes(api huma.API) {
 
 		htmlString, err := h.emailService.AssembleEmail("unsubscribe-receipt.html", map[string]any{
 			"NewsletterName": nl.Name,
-			"DasboardURL": fmt.Sprintf("%s/newsletters", h.cfg.WebURL),
+			"DashboardURL": fmt.Sprintf("%s/newsletters", h.cfg.WebURL),
 		})
 
 		if err != nil {
