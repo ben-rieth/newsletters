@@ -1,4 +1,4 @@
-\restrict W2BsydmAK2O7tS4ffHOZCx7S35ID5PTxFXVrtfapIHA6jEN8YrIumKecJJWMqZ6
+\restrict ByT8bOnJXiZdXm7Elh9GEDLNW5Xe5bPp5TtZLsC4TEOeMB8SP0u2baP59akd05n
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -155,6 +155,7 @@ CREATE TABLE public.newsletter (
     next_send_time timestamp with time zone NOT NULL,
     user_id uuid NOT NULL,
     status public.newsletter_status DEFAULT 'active'::public.newsletter_status NOT NULL,
+    unsubscribe_token uuid DEFAULT gen_random_uuid() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
@@ -345,6 +346,14 @@ ALTER TABLE ONLY public.newsletter
 
 
 --
+-- Name: newsletter newsletter_unsubscribe_token_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter
+    ADD CONSTRAINT newsletter_unsubscribe_token_key UNIQUE (unsubscribe_token);
+
+
+--
 -- Name: refresh_token refresh_token_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -468,7 +477,7 @@ ALTER TABLE ONLY public.refresh_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict W2BsydmAK2O7tS4ffHOZCx7S35ID5PTxFXVrtfapIHA6jEN8YrIumKecJJWMqZ6
+\unrestrict ByT8bOnJXiZdXm7Elh9GEDLNW5Xe5bPp5TtZLsC4TEOeMB8SP0u2baP59akd05n
 
 
 --

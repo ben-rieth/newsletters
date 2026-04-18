@@ -36,7 +36,12 @@ func main() {
 	queries := db.New(pool)
 
 	rssService := feeds.NewRssService()
-	emailService := newsletters.NewResendEmailService(&cfg)
+
+	tmpl, err := templates.ParseEmailTemplates()
+	if err != nil {
+		log.Fatalf("Could not get email templates: %v", err)
+	}
+	emailService := newsletters.NewResendEmailService(&cfg, tmpl)
 
 	newsletterService := newsletters.NewNewsletterService(queries, pool)
 	
@@ -44,20 +49,15 @@ func main() {
 	feedsService := feeds.NewFeedService(rssService, queries, pool)
 
 	userService := users.NewUserService(queries, pool)
-	
-	tmpl, err := templates.ParseEmailTemplates()
-	if err != nil {
-		log.Fatalf("Could not get email templates: %v", err)
-	}
 
 	scheduler := newsletters.NewScheduler(
 		newsletterService, 
 		feedsService, 
 		emailService,
+		&cfg,
 		&newsletters.SchedulerConfig{
 			MaxWorkers: 5,
 		},
-		tmpl,
 	)
 	if cfg.Environment != "dev" {
 		go scheduler.KickOff(ctx)
@@ -75,6 +75,9 @@ func main() {
 		scheudlerHandler := handler.NewSchedulerHandler(scheduler)
 		scheudlerHandler.RegisterRoutes(api)
 	}
+	
+	unsubscribeHandler := handler.NewUnsubscribeHandler(queries, &cfg, emailService)
+	unsubscribeHandler.RegisterRoutes(api)
 
 	protectedApi := huma.NewGroup(api)
 	protectedApi.UseMiddleware(auth.AuthMiddleware(api))

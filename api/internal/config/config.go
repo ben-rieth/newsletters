@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"net/mail"
 	"os"
 )
 
@@ -13,6 +14,7 @@ type Config struct {
 	JWTSecret string
 	ResendAPIKey string
 	Environment string
+	NewsletterSenderEmail mail.Address
 }
 
 func Load() Config {
@@ -46,8 +48,19 @@ func Load() Config {
 		log.Fatalf("Invalid value for environment: %s", cfg.Environment)
 	}
 
+	nlSenderEmail := os.Getenv("NEWSLETTER_SENDER_EMAIL")
+	if nlSenderEmail == "" {
+		log.Fatalf("NEWSLETTER_SENDER_EMAIL is required")
+	}
+
+	addr, err := mail.ParseAddress(nlSenderEmail)
+	if err != nil {
+		log.Fatalf("NEWSLETTER_SENDER_EMAIL is invalid: %v", err)
+	}
+	cfg.NewsletterSenderEmail = *addr
+
 	if cfg.Port == "" {
-		cfg.Port = ":8080"
+		cfg.Port = "8080"
 	}
 
 	if cfg.Host == "" {

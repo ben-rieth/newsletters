@@ -59,6 +59,10 @@ func shouldLog(ctx huma.Context, logMap *WideLog) (bool, slog.Level) {
 		return true, slog.LevelError
 	}
 
+	if logMap.HasError() {
+		return true, slog.LevelError
+	}
+
 	d, ok := GetField[time.Duration](logMap, "duration")
 	if !ok {
 		return true, slog.LevelError

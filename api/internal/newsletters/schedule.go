@@ -19,6 +19,7 @@ type SendableNewsletter struct {
 	LastSendTime time.Time
 	Email string
 	UserID string
+	UnsubscribeToken string
 	Feeds []feeds.BaseFeed
 }
 

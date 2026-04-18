@@ -69,6 +69,7 @@ CREATE TABLE newsletter (
     next_send_time TIMESTAMPTZ NOT NULL,
     user_id UUID NOT NULL REFERENCES app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT,
     status newsletter_status NOT NULL DEFAULT 'active',
+    unsubscribe_token UUID UNIQUE NOT NULL DEFAULT gen_random_uuid(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

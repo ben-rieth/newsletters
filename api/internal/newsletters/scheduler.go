@@ -1,30 +1,26 @@
 package newsletters
 
 import (
-	"bytes"
 	"context"
-	"html/template"
+	"fmt"
 	"log"
 	"log/slog"
 	"math/rand"
 	"sync"
 	"time"
 
+	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/google/uuid"
 )
 
-type emailService interface {
-	Send (ctx context.Context, subject, sender, recipient, body string) (*SendResult, error)
-}
-
 type Scheduler struct {
 	newsletterService *NewsletterService
 	feedService *feeds.FeedService
-	emailService emailService
+	emailService EmailService
+	cfg *config.Config
 	schedulerConfig *SchedulerConfig
-	tmpl *template.Template
 }
 
 type SchedulerConfig struct {
@@ -34,16 +30,16 @@ type SchedulerConfig struct {
 func NewScheduler(
 	newsletterService *NewsletterService,
 	feedService *feeds.FeedService,
-	emailService emailService,
+	emailService EmailService,
+	cfg *config.Config,
 	schedulerConfig *SchedulerConfig,
-	tmpl *template.Template,
 ) *Scheduler {
 	return &Scheduler{
 		newsletterService, 
 		feedService, 
 		emailService,
+		cfg,
 		schedulerConfig,
-		tmpl,
 	}
 }
 
@@ -158,7 +154,7 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 	result, err := sch.emailService.Send(
 		ctx,
 		nl.Name,
-		"",
+		sch.cfg.NewsletterSenderEmail.Address,
 		nl.Email,
 		newsletterHtml,
 	)
@@ -239,23 +235,15 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 }
 
 func (sch *Scheduler) assembleNewsletter(
-	newsletter *SendableNewsletter,
+	nl *SendableNewsletter,
 	fetchResults newsletterFetchFeedResult,
 ) (string, error) {
-	buffer := new(bytes.Buffer)
-	err := sch.tmpl.ExecuteTemplate(buffer, "newsletter.html", map[string]any{
-		"NewsletterName": newsletter.Name,
+	return sch.emailService.AssembleEmail("newsletter.html", map[string]any{
+		"NewsletterName": nl.Name,
 		"Feeds": fetchResults.Succeeded,
 		"FailedFeeds": fetchResults.Failed,
-		"UnsubscribeURL": "www.example.com",
+		"UnsubscribeURL": fmt.Sprintf("%s/unsubscribe?unsubscribeToken=%s", sch.cfg.WebURL, nl.UnsubscribeToken),
 	})
-
-	if err != nil {
-		return "", err
-	}
-
-	htmlString := buffer.String()
-	return htmlString, nil
 }
 
 func shouldKeepSchedulerLog(wl *wideLog.WideLog) (bool, slog.Level) {

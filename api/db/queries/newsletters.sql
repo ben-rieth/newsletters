@@ -30,7 +30,8 @@ WHERE id = $8 AND user_id = $9;
 SELECT EXISTS(SELECT 1 FROM newsletter WHERE id = $1 AND user_id = $2);
 
 -- name: GetDueNewsletters :many
-SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at FROM newsletter AS nl
+SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at, nl.unsubscribe_token
+FROM newsletter AS nl
 INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE nl.next_send_time <= NOW() AND nl.status = 'active';
 
@@ -45,3 +46,11 @@ DELETE FROM newsletter WHERE user_id = $1;
 
 -- name: UpdateNewsletterStatus :exec
 UPDATE newsletter SET status = $1 WHERE id = $2 AND user_id = $3;
+
+-- name: GetNewsletterByUnsubscribeToken :one
+SELECT nl.id AS newsletter_id, nl.name, u.email, u.id AS user_id FROM newsletter AS nl
+INNER JOIN app_user AS u ON nl.user_id = u.id
+WHERE unsubscribe_token = $1;
+
+-- name: DeactivateNewsletterByUnsubscribeToken :exec
+UPDATE newsletter SET status = 'inactive' WHERE unsubscribe_token = $1;

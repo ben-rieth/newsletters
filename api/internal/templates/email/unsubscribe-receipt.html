@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Unsubscribe Confirmation</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f4f4; font-family: Arial, sans-serif;">
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+    <tr>
+      <td align="center" style="padding: 20px 0;">
+
+        <!-- Outer container -->
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 8px;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background-color: #1a1a2e; padding: 30px; text-align: center;">
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Unsubscription Confirmation</h1>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding: 40px 30px; text-align: center;">
+              <p style="margin: 0 0 8px; font-size: 13px; font-weight: bold; color: #888888; text-transform: uppercase; letter-spacing: 1px;">Unsubscribe Confirmation</p>
+              <h2 style="margin: 0 0 16px; font-size: 22px; color: #1a1a2e;">You've been unsubscribed</h2>
+              <p style="margin: 0; font-size: 15px; color: #444444; line-height: 1.6;">
+                You have been successfully unsubscribed from <strong>{{ .NewsletterName }}</strong>. You will no longer receive emails for this digest.
+              </p>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding: 0 30px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                <tr>
+                  <td style="border-top: 1px solid #e0e0e0;"></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Resubscribe nudge -->
+          <tr>
+            <td style="padding: 30px; text-align: center;">
+              <p style="margin: 0 0 16px; font-size: 13px; color: #888888; line-height: 1.6;">
+                Changed your mind? You can reactivate this newsletter at any time from your dashboard.
+              </p>
+              <a href="{{ .DashboardURL }}" style="display: inline-block; background-color: #1a1a2e; color: #ffffff; text-decoration: none; font-size: 13px; font-weight: bold; padding: 12px 24px; border-radius: 4px;">Go to Dashboard</a>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f4f4f4; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
+              <p style="margin: 0; font-size: 12px; color: #888888;">
+                You're receiving this because you requested to unsubscribe from a digest email.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

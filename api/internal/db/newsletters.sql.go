@@ -44,6 +44,15 @@ func (q *Queries) CreateNewsletter(ctx context.Context, arg CreateNewsletterPara
 	return err
 }
 
+const deactivateNewsletterByUnsubscribeToken = `-- name: DeactivateNewsletterByUnsubscribeToken :exec
+UPDATE newsletter SET status = 'inactive' WHERE unsubscribe_token = $1
+`
+
+func (q *Queries) DeactivateNewsletterByUnsubscribeToken(ctx context.Context, unsubscribeToken string) error {
+	_, err := q.db.Exec(ctx, deactivateNewsletterByUnsubscribeToken, unsubscribeToken)
+	return err
+}
+
 const deleteAllNewslettersForUser = `-- name: DeleteAllNewslettersForUser :exec
 DELETE FROM newsletter WHERE user_id = $1
 `
@@ -79,22 +88,24 @@ func (q *Queries) DoesNewsletterExist(ctx context.Context, arg DoesNewsletterExi
 }
 
 const getDueNewsletters = `-- name: GetDueNewsletters :many
-SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at FROM newsletter AS nl
+SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at, nl.unsubscribe_token
+FROM newsletter AS nl
 INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE nl.next_send_time <= NOW() AND nl.status = 'active'
 `
 
 type GetDueNewslettersRow struct {
-	ID           string
-	Name         string
-	SendDay      int32
-	SendMinute   int32
-	SendHour     int32
-	SendTimezone string
-	Frequency    Frequency
-	Email        string
-	UserID       string
-	LastSentAt   pgtype.Timestamptz
+	ID               string
+	Name             string
+	SendDay          int32
+	SendMinute       int32
+	SendHour         int32
+	SendTimezone     string
+	Frequency        Frequency
+	Email            string
+	UserID           string
+	LastSentAt       pgtype.Timestamptz
+	UnsubscribeToken string
 }
 
 func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow, error) {
@@ -117,6 +128,7 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 			&i.Email,
 			&i.UserID,
 			&i.LastSentAt,
+			&i.UnsubscribeToken,
 		); err != nil {
 			return nil, err
 		}
@@ -129,7 +141,7 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 }
 
 const getNewsletter = `-- name: GetNewsletter :one
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, created_at, updated_at FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at FROM newsletter
 WHERE id = $1 AND user_id = $2
 `
 
@@ -153,14 +165,40 @@ func (q *Queries) GetNewsletter(ctx context.Context, arg GetNewsletterParams) (N
 		&i.NextSendTime,
 		&i.UserID,
 		&i.Status,
+		&i.UnsubscribeToken,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
+const getNewsletterByUnsubscribeToken = `-- name: GetNewsletterByUnsubscribeToken :one
+SELECT nl.id AS newsletter_id, nl.name, u.email, u.id AS user_id FROM newsletter AS nl
+INNER JOIN app_user AS u ON nl.user_id = u.id
+WHERE unsubscribe_token = $1
+`
+
+type GetNewsletterByUnsubscribeTokenRow struct {
+	NewsletterID string
+	Name         string
+	Email        string
+	UserID       string
+}
+
+func (q *Queries) GetNewsletterByUnsubscribeToken(ctx context.Context, unsubscribeToken string) (GetNewsletterByUnsubscribeTokenRow, error) {
+	row := q.db.QueryRow(ctx, getNewsletterByUnsubscribeToken, unsubscribeToken)
+	var i GetNewsletterByUnsubscribeTokenRow
+	err := row.Scan(
+		&i.NewsletterID,
+		&i.Name,
+		&i.Email,
+		&i.UserID,
+	)
+	return i, err
+}
+
 const listNewsletters = `-- name: ListNewsletters :many
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, created_at, updated_at FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at FROM newsletter
 WHERE user_id = $1
 ORDER BY created_at DESC
 `
@@ -186,6 +224,7 @@ func (q *Queries) ListNewsletters(ctx context.Context, userID string) ([]Newslet
 			&i.NextSendTime,
 			&i.UserID,
 			&i.Status,
+			&i.UnsubscribeToken,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

@@ -106,6 +106,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 			Email: row.Email,
 			UserID: row.UserID,
 			LastSendTime: lastSentAt,
+			UnsubscribeToken: row.UnsubscribeToken,
 			Feeds: feedsByNewsletter[row.ID],
 		})
 	}
