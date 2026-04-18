@@ -50,7 +50,7 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 		
 		hash, err := bcrypt.GenerateFromPassword([]byte(i.Body.Password), bcrypt.DefaultCost)
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		var id string
@@ -64,12 +64,12 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 				return nil, huma.Error409Conflict("Email already in use")
 			}
 
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		token, err := auth.GenerateToken(id, h.config.JWTSecret)
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return &authOutput{
@@ -85,7 +85,6 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 		Path: "/auth/sign-in",
 		Summary: "Sign in",
 	}, func(ctx context.Context, i *authInput) (*authOutput, error) {
-		serverError := huma.Error500InternalServerError("Sign in failed")
 		
 		user, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
 		if err != nil {
@@ -98,7 +97,7 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 
 		token, err := auth.GenerateToken(user.ID, h.config.JWTSecret)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError(ctx, err)
 		}
 
 		refreshToken := auth.MakeRefreshToken()
@@ -109,7 +108,7 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 		})
 
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return &authOutput{
@@ -126,8 +125,6 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 		Path: "/auth/refresh",
 		Summary: "Refresh auth token",
 	}, func(ctx context.Context, i *refreshInput) (*authOutput, error) {
-		serverError := huma.Error500InternalServerError("Server failed to refresh token")
-		
 		token, err := auth.GetTokenFromAuthorizationHeader(i.RefreshToken)
 		if err != nil {
 			return nil, huma.Error401Unauthorized("Invalid authorization header provided")
@@ -135,7 +132,7 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 
 		tokenData, err := h.queries.GetRefreshToken(ctx, token)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError(ctx, err)
 		}
 
 		if tokenData.ExpiresAt.Before(time.Now()) || tokenData.RevokedAt.Valid {
@@ -144,12 +141,12 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 
 		err = h.queries.RevokeToken(ctx, tokenData.Token)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError(ctx, err)
 		}
 
 		jwt, err := auth.GenerateToken(tokenData.UserID, h.config.JWTSecret)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError(ctx, err)
 		}
 
 		refreshToken := auth.MakeRefreshToken()
@@ -159,7 +156,7 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 			ExpiresAt: time.Now().Add(time.Hour * 24 * 30),
 		})
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return &authOutput{
@@ -177,7 +174,6 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 		Summary: "Revoke a refresh token",
 		DefaultStatus: 204,
 	}, func(ctx context.Context, i *refreshInput) (*struct {}, error) {
-		serverError := huma.Error500InternalServerError("Server failed to revoke token")
 		
 		token, err := auth.GetTokenFromAuthorizationHeader(i.RefreshToken)
 		if err != nil {
@@ -186,7 +182,7 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 
 		err = h.queries.RevokeToken(ctx, token)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return nil, nil

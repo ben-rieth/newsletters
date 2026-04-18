@@ -31,12 +31,12 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 	}, func(ctx context.Context, i *struct{}) (*huma.StreamResponse, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, unauthorizedError
+			return nil, unauthorizedError()
 		}
 
 		nls, err := h.queries.ListNewsletters(ctx, claims.Subject)
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		nlIds := make([]string, 0, len(nls))
@@ -46,7 +46,7 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 
 		feedsByNl, err := h.getFeedsByNl(ctx, claims.Subject, nlIds)
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		exportableNls := make([]newsletters.ExportableNewsletter, 0, len(nls))
@@ -96,7 +96,7 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 	}, func(ctx context.Context, i *exportNewsletterInput) (*huma.StreamResponse, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, unauthorizedError
+			return nil, unauthorizedError()
 		}
 
 		nl, err := h.queries.GetNewsletter(ctx, db.GetNewsletterParams{
@@ -104,13 +104,13 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 			ID: i.NewsletterID,
 		})
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		nlIds := []string{nl.ID}
 		feedsByNl, err := h.getFeedsByNl(ctx, claims.Subject, nlIds)
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		export := newsletters.NewslettersExport{

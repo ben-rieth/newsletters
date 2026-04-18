@@ -6,6 +6,7 @@ import (
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/db"
+	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
 )
 
@@ -31,33 +32,23 @@ func (h *FeedFilterHandler) RegisterRoutes(api huma.API) {
 		Body submittableFeedFilterFields
 	}
 
+	doesFeedExistMiddleware := newDoesFeedExistMiddleware(api, h.queries)
+	doesFilterExistMiddleware := newDoesFilterExistMiddleware(api, h.queries)
+
 	huma.Register(api, huma.Operation{
 		OperationID: "add-feed-filter",
 		Method: "POST",
 		Path: "/newsletter/{newsletterId}/feed/{feedId}/filter",
 		Summary: "Add a filter to a newsletter feed",
 		DefaultStatus: http.StatusNoContent,
+		Middlewares: huma.Middlewares{doesFeedExistMiddleware},
 	}, func(ctx context.Context, i *addFilterInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, unauthorizedError
+			return nil, unauthorizedError()
 		}
 
-		exists, err := h.queries.DoesFeedExist(ctx, db.DoesFeedExistParams{
-			UserID: claims.Subject,
-			NewsletterID: i.NewsletterID,
-			ID: i.FeedID,
-		})
-
-		if err != nil {
-			return nil, internalServerError
-		}
-
-		if !exists {
-			return nil, huma.Error404NotFound("This feed does not exist.")
-		}
-
-		err = h.queries.AddFeedFilter(ctx, db.AddFeedFilterParams{
+		err := h.queries.AddFeedFilter(ctx, db.AddFeedFilterParams{
 			NewsletterFeedID: i.FeedID,
 			UserID: claims.Subject,
 			Field: db.FilterField(i.Body.Field),
@@ -66,7 +57,7 @@ func (h *FeedFilterHandler) RegisterRoutes(api huma.API) {
 		})
 
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return nil, nil
@@ -85,28 +76,14 @@ func (h *FeedFilterHandler) RegisterRoutes(api huma.API) {
 		Path: "/newsletter/{newsletterId}/feed/{feedId}/filter/{filterId}",
 		Summary: "Update a filter to a newsletter feed",
 		DefaultStatus: http.StatusNoContent,
+		Middlewares: huma.Middlewares{doesFilterExistMiddleware},
 	}, func(ctx context.Context, i *updateFilterInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, unauthorizedError
+			return nil, unauthorizedError()
 		}
 
-		exists, err := h.queries.DoesFilterExist(ctx, db.DoesFilterExistParams{
-			UserID: claims.Subject,
-			NewsletterID: i.NewsletterID,
-			FilterID: i.FilterID,
-			NewsletterFeedID: i.FeedID,
-		})
-
-		if err != nil {
-			return nil, internalServerError
-		}
-
-		if !exists {
-			return nil, huma.Error404NotFound("This filter does not exist.")
-		}
-
-		err = h.queries.UpdateFeedFilter(ctx, db.UpdateFeedFilterParams{
+		err := h.queries.UpdateFeedFilter(ctx, db.UpdateFeedFilterParams{
 			ID: i.FilterID,
 			Field: db.FilterField(i.Body.Field),
 			Operator: db.FilterOperator(i.Body.Operator),
@@ -114,7 +91,7 @@ func (h *FeedFilterHandler) RegisterRoutes(api huma.API) {
 		})
 
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return nil, nil
@@ -132,36 +109,60 @@ func (h *FeedFilterHandler) RegisterRoutes(api huma.API) {
 		Path: "/newsletter/{newsletterId}/feed/{feedId}/filter/{filterId}",
 		Summary: "Delete a filter on a newsletter feed",
 		DefaultStatus: http.StatusNoContent,
+		Middlewares: huma.Middlewares{doesFilterExistMiddleware},
 	}, func(ctx context.Context, i *deleteFilterInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, unauthorizedError
+			return nil, unauthorizedError()
 		}
 
-		exists, err := h.queries.DoesFilterExist(ctx, db.DoesFilterExistParams{
-			UserID: claims.Subject,
-			NewsletterID: i.NewsletterID,
-			FilterID: i.FilterID,
-			NewsletterFeedID: i.FeedID,
-		})
-
-		if err != nil {
-			return nil, internalServerError
-		}
-
-		if !exists {
-			return nil, huma.Error404NotFound("This filter does not exist.")
-		}
-
-		err = h.queries.DeleteFeedFilter(ctx, db.DeleteFeedFilterParams{
+		err := h.queries.DeleteFeedFilter(ctx, db.DeleteFeedFilterParams{
 			ID: i.FilterID,
 			UserID: claims.Subject,
 		})
 
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return nil, nil
 	})
+}
+
+func newDoesFilterExistMiddleware(api huma.API, queries *db.Queries) func (ctx huma.Context, next func(huma.Context)) {
+	return func(ctx huma.Context, next func(huma.Context)) {
+		claims, ok := auth.ClaimsFromContext(ctx.Context())
+		if !ok || claims == nil {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, unauthorizedErrorText)
+			return
+		}
+
+		newsletterId := ctx.Param("newsletterId");
+		feedId := ctx.Param("feedId");
+		filterId := ctx.Param("filterId")
+
+		if feedId == "" || newsletterId == "" || filterId == "" {
+			huma.WriteErr(api, ctx, http.StatusBadRequest, "Request does not have all required information")
+			return
+		}
+
+		exists, err := queries.DoesFeedExist(ctx.Context(), db.DoesFeedExistParams{
+			NewsletterID: newsletterId,
+			ID: feedId,
+			UserID: claims.Subject,
+		})
+
+		if err != nil {
+			wideLog.AddErrorField(ctx.Context(), err)
+			huma.WriteErr(api, ctx, http.StatusInternalServerError, internalServerErrorText)
+			return
+		}
+
+		if !exists {
+			huma.WriteErr(api, ctx, http.StatusNotFound, notFoundErrorText("Filter"))
+			return
+		}
+		
+		next(ctx)
+	}
 }

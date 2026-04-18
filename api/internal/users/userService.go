@@ -31,6 +31,11 @@ func (s *UserService) DeleteUser(ctx context.Context, userId string) error {
 		return err
 	}
 
+	err = qtx.DeleteFeedFiltersForUser(ctx, userId)
+	if err != nil {
+		return err
+	}
+
 	err = qtx.DeleteAllNewsletterFeedsForUser(ctx, userId)
 	if err != nil {
 		return err

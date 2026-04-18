@@ -47,6 +47,15 @@ func (q *Queries) DeleteFeedFilter(ctx context.Context, arg DeleteFeedFilterPara
 	return err
 }
 
+const deleteFeedFiltersForUser = `-- name: DeleteFeedFiltersForUser :exec
+DELETE FROM newsletter_feed_filter WHERE user_id = $1
+`
+
+func (q *Queries) DeleteFeedFiltersForUser(ctx context.Context, userID string) error {
+	_, err := q.db.Exec(ctx, deleteFeedFiltersForUser, userID)
+	return err
+}
+
 const doesFilterExist = `-- name: DoesFilterExist :one
 SELECT EXISTS(
     SELECT 1 FROM newsletter_feed_filter AS fil

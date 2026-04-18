@@ -94,10 +94,6 @@ func (s *FeedService) GetFeedDataSince(
 			return nil, err
 		}
 		feedResult.Feed = pruneFeedItemsBeforeTime(feedResult.Feed, feed.LastRetrievedAt)
-		if err != nil {
-			return nil, err
-		}
-
 		feedItemDetails := buildFeedItemParamsFromGoFeed(feedResult.Feed, feed.GlobalFeedId, feedResult.RetrievedAt)
 		if err = s.updateFeedCache(
 			ctx, 

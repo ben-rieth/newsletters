@@ -42,7 +42,7 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 
 		user, err := h.queries.GetUserById(ctx, claims.Subject)
 		if err != nil {
-			return nil, huma.Error500InternalServerError("Server failed to get user data")
+			return nil, internalServerError(ctx, err)
 		}
 
 		return &getUserOutput{
@@ -76,7 +76,7 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 		})
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError("Could not update email")
+			return nil, internalServerError(ctx, err)
 		}
 
 		return nil, nil
@@ -96,7 +96,6 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 		Summary: "Update user's password",
 		DefaultStatus: http.StatusNoContent,
 	}, func(ctx context.Context, i *updatePasswordInput) (*struct {}, error) {
-		serverError := huma.Error500InternalServerError("Could not update password")
 		
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
@@ -105,7 +104,7 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 
 		user, err := h.queries.GetUserById(ctx, claims.Subject)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError(ctx, err)
 		}
 
 		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(i.Body.CurrentPassword)); err != nil {
@@ -114,7 +113,7 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 
 		hash, err := bcrypt.GenerateFromPassword([]byte(i.Body.NewPassword), bcrypt.DefaultCost)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError(ctx, err)
 		}
 
 		err = h.queries.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
@@ -122,7 +121,7 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 			Password: string(hash),
 		})
 		if err != nil {
-			return nil,  serverError
+			return nil,  internalServerError(ctx, err)
 		}
 
 		return nil, nil
@@ -141,7 +140,6 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 		Summary: "Delete this user and all of their data",
 		DefaultStatus: http.StatusNoContent,
 	}, func(ctx context.Context, i *deleteUserRequest) (*struct {}, error) {
-		serverError := huma.Error500InternalServerError("Something went wrong on our end. Please try again.")
 		
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
@@ -150,7 +148,7 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 
 		user, err := h.queries.GetUserById(ctx, claims.Subject)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError(ctx, err)
 		}
 
 		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(i.Body.Password)); err != nil {
@@ -159,7 +157,7 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 
 		err = h.userService.DeleteUser(ctx, user.ID)
 		if err != nil {
-			return nil, serverError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return nil, nil

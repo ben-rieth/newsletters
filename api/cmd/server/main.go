@@ -14,6 +14,7 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/newsletters"
 	"github.com/ben-rieth/newsletter-api/internal/templates"
 	"github.com/ben-rieth/newsletter-api/internal/users"
+	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -65,6 +66,7 @@ func main() {
 	mux := http.NewServeMux()
 	humaConfig := huma.DefaultConfig("Newsletter API", "1.0.0")
 	api := humago.New(mux, humaConfig)
+	api.UseMiddleware(wideLog.WideLogMiddleware)
 
 	authHandler := handler.NewAuthHandler(*queries, cfg)
 	authHandler.RegisterRoutes(api)

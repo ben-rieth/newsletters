@@ -24,3 +24,6 @@ WHERE id = $4;
 
 -- name: DeleteFeedFilter :exec
 DELETE FROM newsletter_feed_filter WHERE id = $1 AND user_id = $2;
+
+-- name: DeleteFeedFiltersForUser :exec
+DELETE FROM newsletter_feed_filter WHERE user_id = $1;

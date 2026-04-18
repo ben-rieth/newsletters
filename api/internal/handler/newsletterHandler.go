@@ -65,7 +65,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		nls, err := h.queries.ListNewsletters(ctx, claims.Subject)
 		
 		if err != nil {
-			return nil, huma.Error500InternalServerError("Failed to fetch newsletters")
+			return nil, internalServerError(ctx, err)
 		}
 
 		out := &listNewslettersOutput{}
@@ -131,7 +131,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	}, func (ctx context.Context, input *baseNewsletterInput) (*getNewsletterOutput, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, unauthorizedError
+			return nil, unauthorizedError()
 		}
 		
 		newsletter, err := h.queries.GetNewsletter(ctx, db.GetNewsletterParams{
@@ -141,11 +141,11 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 
 		if err != nil {
 			if errors.Is(err, pgx.ErrNoRows) {
-				return nil, huma.Error404NotFound("Newsletter does not exist")
+				return nil, notFoundError("Newsletter")
 			}
 
 			log.Printf("error: %v", err)
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return &getNewsletterOutput{
@@ -166,7 +166,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	}) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, unauthorizedError
+			return nil, unauthorizedError()
 		}
 
 		var sendDay int
@@ -183,7 +183,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		)
 
 		if err != nil {
-			return nil, huma.Error400BadRequest("Cannot update newsletter")
+			return nil, badRequestError("Cannot update newsletter")
 		}
 
 		err = h.queries.UpdateNewsletter(ctx, db.UpdateNewsletterParams{
@@ -199,7 +199,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		})
 
 		if err != nil {
-			return nil, huma.Error500InternalServerError("Failed to update newsletter")
+			return nil, internalServerError(ctx, err)
 		}
 
 		return nil, nil
@@ -215,12 +215,12 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	}, func(ctx context.Context, input *baseNewsletterInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, unauthorizedError
+			return nil, unauthorizedError()
 		}
 
 		err := h.nlService.DeleteNewsletter(ctx, input.ID)
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return nil, nil
@@ -236,7 +236,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	}, func(ctx context.Context, i *baseNewsletterInput) (*struct {}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, unauthorizedError
+			return nil, unauthorizedError()
 		}
 
 		err := h.queries.UpdateNewsletterSendTime(ctx, db.UpdateNewsletterSendTimeParams{
@@ -246,7 +246,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		})
 
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return nil, nil
@@ -267,7 +267,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	}) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
-			return nil, unauthorizedError
+			return nil, unauthorizedError()
 		}
 
 		err := h.queries.UpdateNewsletterStatus(ctx, db.UpdateNewsletterStatusParams{
@@ -276,7 +276,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 			UserID: claims.Subject,
 		})
 		if err != nil {
-			return nil, internalServerError
+			return nil, internalServerError(ctx, err)
 		}
 
 		return nil, nil
@@ -287,7 +287,7 @@ func newDoesNewsletterExistMiddleware(api huma.API, queries *db.Queries) func (c
 	return func(ctx huma.Context, next func(huma.Context)) {
 		claims, ok := auth.ClaimsFromContext(ctx.Context())
 		if !ok || claims == nil {
-			huma.WriteErr(api, ctx, http.StatusUnauthorized, unauthorizedError.Error())
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, unauthorizedErrorText)
 			return
 		}
 
@@ -304,12 +304,12 @@ func newDoesNewsletterExistMiddleware(api huma.API, queries *db.Queries) func (c
 		})
 
 		if err != nil {
-			huma.WriteErr(api, ctx, http.StatusInternalServerError, internalServerError.Error(), err)
+			huma.WriteErr(api, ctx, http.StatusInternalServerError, internalServerErrorText)
 			return
 		}
 
 		if !exists {
-			huma.WriteErr(api, ctx, http.StatusNotFound, "This feed does not exist")
+			huma.WriteErr(api, ctx, http.StatusNotFound, notFoundErrorText("feed"))
 			return
 		}
 		
