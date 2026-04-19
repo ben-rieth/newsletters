@@ -15,7 +15,7 @@ import (
 )
 
 type FeedHandler struct {
-	queries *db.Queries
+	queries     *db.Queries
 	feedService *feeds.FeedService
 }
 
@@ -29,31 +29,31 @@ type newsletterIdPath struct {
 
 type feedIdPath struct {
 	NewsletterID string `path:"newsletterId"`
-	FeedID string `path:"feedId"`
+	FeedID       string `path:"feedId"`
 }
 
 func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	type submittableFeedFields struct {
 		Alias string `json:"alias"`
-		Url string `json:"url"`
+		Url   string `json:"url"`
 	}
 
 	type addFeedInput struct {
 		NewsletterID string `path:"newsletterId"`
-		Body submittableFeedFields
+		Body         submittableFeedFields
 	}
 
 	doesFeedExistMiddleware := newDoesFeedExistMiddleware(api, h.queries)
 	doesNewsletterExistMiddleware := newDoesNewsletterExistMiddleware(api, h.queries)
-	
+
 	huma.Register(api, huma.Operation{
-		OperationID: "add-feed",
-		Method: "POST",
-		Path: "/newsletter/{newsletterId}/feed",
-		Summary: "Add a feed to a newsletter",
+		OperationID:   "add-feed",
+		Method:        "POST",
+		Path:          "/newsletter/{newsletterId}/feed",
+		Summary:       "Add a feed to a newsletter",
 		DefaultStatus: http.StatusNoContent,
-		Middlewares: huma.Middlewares{doesNewsletterExistMiddleware},
-	}, func (ctx context.Context, input *addFeedInput) (*struct{}, error) {
+		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
+	}, func(ctx context.Context, input *addFeedInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, unauthorizedError()
@@ -63,15 +63,15 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		if err != nil {
 			if errors.Is(err, utils.UserError) {
 				return nil, badRequestError("URL is invalid")
-			} 
+			}
 			return nil, internalServerError(ctx, err)
 		}
-		
+
 		err = h.queries.AddNewsletterFeed(ctx, db.AddNewsletterFeedParams{
 			NewsletterID: input.NewsletterID,
-			UserID: claims.Subject,
-			Alias: input.Body.Alias,
-			FeedID: feed.Id,
+			UserID:       claims.Subject,
+			Alias:        input.Body.Alias,
+			FeedID:       feed.Id,
 		})
 
 		if err != nil {
@@ -82,7 +82,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	})
 
 	type uiFeed struct {
-		Id string `json:"id"`
+		Id          string `json:"id"`
 		Title       string `json:"title"`
 		Description string `json:"description"`
 		Url         string `json:"url"`
@@ -95,9 +95,9 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "list-feeds",
-		Method: "GET",
-		Path: "/newsletter/{newsletterId}/feed",
-		Summary: "Get all feeds included in a newsletter",
+		Method:      "GET",
+		Path:        "/newsletter/{newsletterId}/feed",
+		Summary:     "Get all feeds included in a newsletter",
 		Middlewares: huma.Middlewares{doesNewsletterExistMiddleware},
 	}, func(ctx context.Context, input *newsletterIdPath) (*listFeedsOutput, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
@@ -113,11 +113,11 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		uiFeeds := make([]uiFeed, 0, len(nlFeeds))
 		for _, nlFeed := range nlFeeds {
 			uiFeeds = append(uiFeeds, uiFeed{
-				Id: nlFeed.ID,
-				Title: nlFeed.Title,
+				Id:          nlFeed.ID,
+				Title:       nlFeed.Title,
 				Description: nlFeed.Description,
-				Url: nlFeed.Url,
-				Alias: nlFeed.Alias,
+				Url:         nlFeed.Url,
+				Alias:       nlFeed.Alias,
 			})
 		}
 
@@ -134,21 +134,20 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 	type updateFeedInput struct {
 		NewsletterID string `path:"newsletterId"`
-		FeedID string `path:"feedId"`
-		Body updatableFeedFields
+		FeedID       string `path:"feedId"`
+		Body         updatableFeedFields
 	}
 
-
 	huma.Register(api, huma.Operation{
-		OperationID: "update-feed",
-		Method: "PUT",
-		Path: "/newsletter/{newsletterId}/feed/{feedId}",
-		Summary: "Update the name and URL of a feed",
+		OperationID:   "update-feed",
+		Method:        "PUT",
+		Path:          "/newsletter/{newsletterId}/feed/{feedId}",
+		Summary:       "Update the name and URL of a feed",
 		DefaultStatus: http.StatusNoContent,
-		Middlewares: huma.Middlewares{doesFeedExistMiddleware},
+		Middlewares:   huma.Middlewares{doesFeedExistMiddleware},
 	}, func(ctx context.Context, input *updateFeedInput) (*struct{}, error) {
 		serverError := huma.Error500InternalServerError("Failed to get feeds")
-		
+
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, unauthorizedError()
@@ -156,8 +155,8 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 		err := h.queries.UpdateNewsletterFeed(ctx, db.UpdateNewsletterFeedParams{
 			NewsletterID: input.NewsletterID,
-			ID: input.FeedID,
-			Alias: input.Body.Alias,
+			ID:           input.FeedID,
+			Alias:        input.Body.Alias,
 		})
 
 		if err != nil {
@@ -168,12 +167,12 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	})
 
 	huma.Register(api, huma.Operation{
-		OperationID: "delete-feed",
-		Method: "DELETE",
-		Path: "/newsletter/{newsletterId}/feed/{feedId}",
-		Summary: "Deletes a feed from a newsletter",
+		OperationID:   "delete-feed",
+		Method:        "DELETE",
+		Path:          "/newsletter/{newsletterId}/feed/{feedId}",
+		Summary:       "Deletes a feed from a newsletter",
 		DefaultStatus: http.StatusNoContent,
-		Middlewares: huma.Middlewares{doesFeedExistMiddleware},
+		Middlewares:   huma.Middlewares{doesFeedExistMiddleware},
 	}, func(ctx context.Context, input *feedIdPath) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
@@ -182,7 +181,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 		err := h.queries.DeleteNewsletterFeed(ctx, db.DeleteNewsletterFeedParams{
 			NewsletterID: input.NewsletterID,
-			ID: input.FeedID,
+			ID:           input.FeedID,
 		})
 
 		if err != nil {
@@ -191,14 +190,14 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 		return nil, nil
 	})
-	
+
 	type uiDetailedFeed struct {
-		Id string `json:"id"`
-		Alias string `json:"alias"`
-		Title string `json:"title"`
-		Url string `json:"url"`
-		Description string `json:"description"`
-		Filters []feeds.FeedFilter `json:"filters"`
+		Id          string             `json:"id"`
+		Alias       string             `json:"alias"`
+		Title       string             `json:"title"`
+		Url         string             `json:"url"`
+		Description string             `json:"description"`
+		Filters     []feeds.FeedFilter `json:"filters"`
 	}
 
 	type getFeedOutput struct {
@@ -207,9 +206,9 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "get-feed",
-		Method: "GET",
-		Path: "/newsletter/{newsletterId}/feed/{feedId}",
-		Summary: "Get data associated with a feed",
+		Method:      "GET",
+		Path:        "/newsletter/{newsletterId}/feed/{feedId}",
+		Summary:     "Get data associated with a feed",
 		Middlewares: huma.Middlewares{doesFeedExistMiddleware},
 	}, func(ctx context.Context, i *feedIdPath) (*getFeedOutput, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
@@ -218,7 +217,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		}
 
 		filters, err := h.queries.GetFiltersForFeed(ctx, db.GetFiltersForFeedParams{
-			UserID: claims.Subject,
+			UserID:           claims.Subject,
 			NewsletterFeedID: i.FeedID,
 		})
 
@@ -229,15 +228,15 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		feedFilters := make([]feeds.FeedFilter, 0, len(filters))
 		for _, filter := range filters {
 			feedFilters = append(feedFilters, feeds.FeedFilter{
-				Id: filter.ID,
-				Pattern: filter.Pattern,
+				Id:       filter.ID,
+				Pattern:  filter.Pattern,
 				Operator: filter.Operator,
-				Field: filter.Field,
+				Field:    filter.Field,
 			})
 		}
 
 		feed, err := h.queries.GetFeedById(ctx, db.GetFeedByIdParams{
-			ID: i.FeedID,
+			ID:     i.FeedID,
 			UserID: claims.Subject,
 		})
 		if err != nil {
@@ -246,12 +245,12 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 		return &getFeedOutput{
 			Body: uiDetailedFeed{
-				Id: i.FeedID,
-				Alias: feed.Alias,
-				Title: feed.Title,
-				Url: feed.Url,
+				Id:          i.FeedID,
+				Alias:       feed.Alias,
+				Title:       feed.Title,
+				Url:         feed.Url,
 				Description: feed.Description,
-				Filters: feedFilters,
+				Filters:     feedFilters,
 			},
 		}, nil
 	})
@@ -268,15 +267,15 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "get-feed-metadata",
-		Method: "POST",
-		Path: "/feed",
-		Summary: "Gets data about an RSS feed URL",
+		Method:      "POST",
+		Path:        "/feed",
+		Summary:     "Gets data about an RSS feed URL",
 	}, func(ctx context.Context, i *getFeedMetaDataInput) (*getFeedMetaDataOutput, error) {
 		err := feeds.IsSafeFeedUrl(i.Body.URL)
 		if err != nil {
 			return nil, badRequestError("Invalid Url")
 		}
-		
+
 		metadata, err := h.feedService.GetFeedMetaData(ctx, i.Body.URL, false)
 		if err != nil || metadata == nil {
 			return nil, internalServerError(ctx, err)
@@ -288,9 +287,9 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	})
 
 	type itemPreview struct {
-		Id string `json:"id"`
-		Title string `json:"title"`
-		Url string `json:"url"`
+		Id            string            `json:"id"`
+		Title         string            `json:"title"`
+		Url           string            `json:"url"`
 		MatchedFilter *feeds.FeedFilter `json:"matchedFilter,omitempty"`
 	}
 
@@ -300,9 +299,9 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "preview-feed",
-		Method: "GET",
-		Path: "/newsletter/{newsletterId}/feed/{feedId}/preview",
-		Summary: "Preview how filters impact the items in the feed",
+		Method:      "GET",
+		Path:        "/newsletter/{newsletterId}/feed/{feedId}/preview",
+		Summary:     "Preview how filters impact the items in the feed",
 		Middlewares: huma.Middlewares{doesFeedExistMiddleware},
 	}, func(ctx context.Context, i *feedIdPath) (*previewFeedOutput, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
@@ -310,13 +309,10 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 			return nil, unauthorizedError()
 		}
 
-		logMap, ok := ctx.Value("log").(*map[string]any)
-		(*logMap)["detail"] = "something"
-
 		thirtyDaysAgo := time.Now().AddDate(0, 0, -30)
 		preview, err := h.queries.PreviewFeed(ctx, db.PreviewFeedParams{
-			UserID: claims.Subject,
-			NewsletterFeedID: i.FeedID,
+			UserID:                 claims.Subject,
+			NewsletterFeedID:       i.FeedID,
 			PublishDateGreaterThan: thirtyDaysAgo,
 		})
 
@@ -328,17 +324,17 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 		for _, item := range preview {
 			itemPreview := itemPreview{
-				Id: item.ItemID,
+				Id:    item.ItemID,
 				Title: item.Title,
-				Url: item.Url,
+				Url:   item.Url,
 			}
 
 			if item.FilterID.Valid {
 				matchedFilter := feeds.FeedFilter{
-					Id: item.FilterID.String(),
-					Field: item.Field.FilterField,
+					Id:       item.FilterID.String(),
+					Field:    item.Field.FilterField,
 					Operator: item.Operator.FilterOperator,
-					Pattern: item.Pattern.String,
+					Pattern:  item.Pattern.String,
 				}
 
 				itemPreview.MatchedFilter = &matchedFilter
@@ -353,7 +349,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	})
 }
 
-func newDoesFeedExistMiddleware(api huma.API, queries *db.Queries) func (ctx huma.Context, next func(huma.Context)) {
+func newDoesFeedExistMiddleware(api huma.API, queries *db.Queries) func(ctx huma.Context, next func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
 		claims, ok := auth.ClaimsFromContext(ctx.Context())
 		if !ok || claims == nil {
@@ -361,8 +357,8 @@ func newDoesFeedExistMiddleware(api huma.API, queries *db.Queries) func (ctx hum
 			return
 		}
 
-		newsletterId := ctx.Param("newsletterId");
-		feedId := ctx.Param("feedId");
+		newsletterId := ctx.Param("newsletterId")
+		feedId := ctx.Param("feedId")
 
 		if feedId == "" || newsletterId == "" {
 			huma.WriteErr(api, ctx, http.StatusBadRequest, "Request does not have all required information")
@@ -371,8 +367,8 @@ func newDoesFeedExistMiddleware(api huma.API, queries *db.Queries) func (ctx hum
 
 		exists, err := queries.DoesFeedExist(ctx.Context(), db.DoesFeedExistParams{
 			NewsletterID: newsletterId,
-			ID: feedId,
-			UserID: claims.Subject,
+			ID:           feedId,
+			UserID:       claims.Subject,
 		})
 
 		if err != nil {
@@ -385,7 +381,7 @@ func newDoesFeedExistMiddleware(api huma.API, queries *db.Queries) func (ctx hum
 			huma.WriteErr(api, ctx, http.StatusNotFound, "This feed does not exist")
 			return
 		}
-		
+
 		next(ctx)
 	}
 }

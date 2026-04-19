@@ -7,25 +7,25 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string
-	Port string
-	Host string
-	WebURL string
-	JWTSecret string
-	ResendAPIKey string
-	Environment string
+	DatabaseURL           string
+	Port                  string
+	Host                  string
+	WebURL                string
+	JWTSecret             string
+	ResendAPIKey          string
+	Environment           string
 	NewsletterSenderEmail mail.Address
 }
 
 func Load() Config {
-	cfg := Config {
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		Port: os.Getenv("PORT"),
-		Host: os.Getenv("HOST"),
-		WebURL: os.Getenv("WEB_URL"),
-		JWTSecret: os.Getenv("JWT_SECRET"),
+	cfg := Config{
+		DatabaseURL:  os.Getenv("DATABASE_URL"),
+		Port:         os.Getenv("PORT"),
+		Host:         os.Getenv("HOST"),
+		WebURL:       os.Getenv("WEB_URL"),
+		JWTSecret:    os.Getenv("JWT_SECRET"),
 		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
-		Environment: os.Getenv("ENVIRONMENT"),
+		Environment:  os.Getenv("ENVIRONMENT"),
 	}
 
 	if cfg.DatabaseURL == "" {

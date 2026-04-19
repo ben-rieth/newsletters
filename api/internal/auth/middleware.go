@@ -12,7 +12,6 @@ import (
 
 var invalidBearerError = errors.New("Invalid Authorization Header")
 
-
 func GetTokenFromAuthorizationHeader(header string) (string, error) {
 	if header == "" || !strings.HasPrefix(header, "Bearer ") {
 		return "", invalidBearerError
@@ -25,7 +24,7 @@ func GetTokenFromAuthorizationHeader(header string) (string, error) {
 func AuthMiddleware(api huma.API) func(ctx huma.Context, next func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
 		cfg := config.Load()
-		
+
 		authHeader := ctx.Header("Authorization")
 		tokenStr, err := GetTokenFromAuthorizationHeader(authHeader)
 		if err != nil {

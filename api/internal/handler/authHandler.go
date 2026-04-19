@@ -20,19 +20,19 @@ import (
 
 type authInput struct {
 	Body struct {
-		Email string `json:"email" doc:"Must be a valid email" pattern:"^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$"`
+		Email    string `json:"email" doc:"Must be a valid email" pattern:"^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$"`
 		Password string `json:"password" minLength:"8" maxLength:"80"`
 	}
 }
 
 type Tokens struct {
-	Token string `json:"token"`
+	Token        string `json:"token"`
 	RefreshToken string `json:"refreshToken"`
 }
 
 type authOutputBody struct {
-	Verified bool `json:"verified"`
-	Tokens *Tokens `json:"tokens"`
+	Verified bool    `json:"verified"`
+	Tokens   *Tokens `json:"tokens"`
 }
 
 type authOutput struct {
@@ -44,58 +44,58 @@ type refreshInput struct {
 }
 
 type AuthHandler struct {
-	queries *db.Queries
+	queries      *db.Queries
 	emailService email.EmailService
-	config *config.Config
+	config       *config.Config
 }
 
-func NewAuthHandler (queries *db.Queries, emailService email.EmailService, config *config.Config) *AuthHandler {
+func NewAuthHandler(queries *db.Queries, emailService email.EmailService, config *config.Config) *AuthHandler {
 	return &AuthHandler{queries, emailService, config}
 }
 
 func (h *AuthHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
-		OperationID: "sign-up",
-		Method: "POST",
-		Path: "/auth/sign-up",
-		Summary: "Sign up",
+		OperationID:   "sign-up",
+		Method:        "POST",
+		Path:          "/auth/sign-up",
+		Summary:       "Sign up",
 		DefaultStatus: http.StatusNoContent,
 	}, h.handleSignUp)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "sign-in",
-		Method: "POST",
-		Path: "/auth/sign-in",
-		Summary: "Sign in",
+		Method:      "POST",
+		Path:        "/auth/sign-in",
+		Summary:     "Sign in",
 	}, h.handleSignIn)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "verify-email",
-		Method: "POST",
-		Path: "/auth/verify",
-		Summary: "Verify user email to finish creating account",
+		Method:      "POST",
+		Path:        "/auth/verify",
+		Summary:     "Verify user email to finish creating account",
 	}, h.handleVerifyEmail)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "refresh-token",
-		Method: "POST",
-		Path: "/auth/refresh",
-		Summary: "Refresh auth token",
+		Method:      "POST",
+		Path:        "/auth/refresh",
+		Summary:     "Refresh auth token",
 	}, h.handleTokenRefresh)
 
 	huma.Register(api, huma.Operation{
-		OperationID: "revoke-token",
-		Method: "POST",
-		Path: "/auth/revoke",
-		Summary: "Revoke a refresh token",
+		OperationID:   "revoke-token",
+		Method:        "POST",
+		Path:          "/auth/revoke",
+		Summary:       "Revoke a refresh token",
 		DefaultStatus: 204,
 	}, h.handleRevokeToken)
 
 	huma.Register(api, huma.Operation{
-		OperationID: "resend-eamil-verification",
-		Method: http.MethodPost,
-		Path: "/auth/verify/resend",
-		Summary: "Resend email verification email",
+		OperationID:   "resend-eamil-verification",
+		Method:        http.MethodPost,
+		Path:          "/auth/verify/resend",
+		Summary:       "Resend email verification email",
 		DefaultStatus: http.StatusNoContent,
 	}, h.handleResendVerificationEmail)
 }
@@ -109,7 +109,7 @@ func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutp
 
 	var id string
 	id, err = h.queries.CreateUser(ctx, db.CreateUserParams{
-		Email: i.Body.Email,
+		Email:    i.Body.Email,
 		Password: string(hash),
 	})
 
@@ -130,12 +130,12 @@ func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutp
 	return &authOutput{
 		Body: authOutputBody{
 			Verified: false,
-			Tokens: nil,
+			Tokens:   nil,
 		},
 	}, nil
 }
 
-func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutput, error) {	
+func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutput, error) {
 	user, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
 	if err != nil {
 		return nil, huma.Error401Unauthorized("Email or password is incorrect")
@@ -154,7 +154,7 @@ func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutp
 		return &authOutput{
 			Body: authOutputBody{
 				Verified: false,
-				Tokens: nil,
+				Tokens:   nil,
 			},
 		}, nil
 	}
@@ -165,19 +165,19 @@ func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutp
 	}
 
 	return &authOutput{
-		Body: authOutputBody {
+		Body: authOutputBody{
 			Verified: true,
-			Tokens: tokenResult,
+			Tokens:   tokenResult,
 		},
 	}, nil
 }
 
 func (h *AuthHandler) handleVerifyEmail(ctx context.Context, i *struct {
 	Body struct {
-		Code string `json:"code"`
+		Code  string `json:"code"`
 		Email string `json:"email"`
 	}
-}) (*authOutput, error) {	
+}) (*authOutput, error) {
 	user, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
 	if err != nil {
 		return nil, huma.Error401Unauthorized("Token or email is invalid")
@@ -185,9 +185,9 @@ func (h *AuthHandler) handleVerifyEmail(ctx context.Context, i *struct {
 
 	hashedToken := hashVerificationToken(i.Body.Code)
 	_, err = h.queries.FindValidToken(ctx, db.FindValidTokenParams{
-		UserID: user.ID,
-		Code: hashedToken,
-		Purpose: db.TokenPurposeEmailVerify,
+		UserID:               user.ID,
+		Code:                 hashedToken,
+		Purpose:              db.TokenPurposeEmailVerify,
 		ExpiresAtGreaterThan: time.Now(),
 	})
 	if err != nil {
@@ -199,13 +199,12 @@ func (h *AuthHandler) handleVerifyEmail(ctx context.Context, i *struct {
 	}
 
 	if err = h.queries.DeleteExistingTokensWithPurpose(ctx, db.DeleteExistingTokensWithPurposeParams{
-		UserID: user.ID,
+		UserID:  user.ID,
 		Purpose: db.TokenPurposeEmailVerify,
 	}); err != nil {
 		return nil, internalServerError(ctx, err)
 	}
 
-	
 	if err = h.queries.MarkUserEmailAsVerified(ctx, user.ID); err != nil {
 		return nil, internalServerError(ctx, err)
 	}
@@ -218,7 +217,7 @@ func (h *AuthHandler) handleVerifyEmail(ctx context.Context, i *struct {
 	return &authOutput{
 		Body: authOutputBody{
 			Verified: true,
-			Tokens: tokenResult,
+			Tokens:   tokenResult,
 		},
 	}, nil
 }
@@ -251,12 +250,12 @@ func (h *AuthHandler) handleTokenRefresh(ctx context.Context, i *refreshInput) (
 	return &authOutput{
 		Body: authOutputBody{
 			Verified: true,
-			Tokens: tokenResult,
+			Tokens:   tokenResult,
 		},
 	}, nil
 }
 
-func (h *AuthHandler) handleRevokeToken(ctx context.Context, i *refreshInput) (*struct {}, error) {
+func (h *AuthHandler) handleRevokeToken(ctx context.Context, i *refreshInput) (*struct{}, error) {
 	token, err := auth.GetTokenFromAuthorizationHeader(i.RefreshToken)
 	if err != nil {
 		return nil, huma.Error401Unauthorized("Invalid authorization header provided")
@@ -270,13 +269,16 @@ func (h *AuthHandler) handleRevokeToken(ctx context.Context, i *refreshInput) (*
 	return nil, nil
 }
 
-func (h *AuthHandler) handleResendVerificationEmail(ctx context.Context, i *struct{
+func (h *AuthHandler) handleResendVerificationEmail(ctx context.Context, i *struct {
 	Body struct {
 		Email string `json:"email"`
 	}
 }) (*struct{}, error) {
 	user, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
 	if err != nil {
+		if errors.Is(pgx.ErrNoRows, err) {
+
+		}
 		return nil, huma.Error500InternalServerError(internalServerErrorText)
 	}
 
@@ -288,18 +290,18 @@ func (h *AuthHandler) handleResendVerificationEmail(ctx context.Context, i *stru
 }
 
 func (h *AuthHandler) sendVerificationEmail(
-	ctx context.Context, 
+	ctx context.Context,
 	userID string,
 	userEmail string,
 ) error {
 	err := h.queries.DeleteExistingTokensWithPurpose(ctx, db.DeleteExistingTokensWithPurposeParams{
-		UserID: userID,
+		UserID:  userID,
 		Purpose: db.TokenPurposeEmailVerify,
 	})
 	if err != nil {
 		return err
 	}
-	
+
 	verificationToken, err := auth.MakeVerificationToken()
 	if err != nil {
 		return err
@@ -309,9 +311,9 @@ func (h *AuthHandler) sendVerificationEmail(
 	hashedToken := hashVerificationToken(verificationToken)
 
 	err = h.queries.SaveVerificationToken(ctx, db.SaveVerificationTokenParams{
-		UserID: userID,
-		Code: hashedToken,
-		Purpose: db.TokenPurposeEmailVerify,
+		UserID:    userID,
+		Code:      hashedToken,
+		Purpose:   db.TokenPurposeEmailVerify,
 		ExpiresAt: time.Now().Add(time.Minute * 10),
 	})
 	if err != nil {
@@ -326,9 +328,9 @@ func (h *AuthHandler) sendVerificationEmail(
 	}
 
 	result, err := h.emailService.Send(
-		ctx, 
+		ctx,
 		"Verify your email",
-		h.config.NewsletterSenderEmail.Address, 
+		h.config.NewsletterSenderEmail.Address,
 		userEmail,
 		emailHtml,
 	)
@@ -348,8 +350,8 @@ func (h *AuthHandler) buildTokenResult(ctx context.Context, userID string) (*Tok
 
 	refreshToken := auth.MakeRefreshToken()
 	err = h.queries.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
-		Token: refreshToken,
-		UserID: userID,
+		Token:     refreshToken,
+		UserID:    userID,
 		ExpiresAt: time.Now().Add(time.Hour * 24 * 30),
 	})
 
@@ -358,7 +360,7 @@ func (h *AuthHandler) buildTokenResult(ctx context.Context, userID string) (*Tok
 	}
 
 	return &Tokens{
-		Token: token,
+		Token:        token,
 		RefreshToken: refreshToken,
 	}, nil
 }

@@ -45,15 +45,15 @@ func main() {
 	emailService := email.NewResendEmailService(&cfg, tmpl)
 
 	newsletterService := newsletters.NewNewsletterService(queries, pool)
-	
+
 	feeds.InitBlockedIPs()
 	feedsService := feeds.NewFeedService(rssService, queries, pool)
 
 	userService := users.NewUserService(queries, pool)
 
 	scheduler := newsletters.NewScheduler(
-		newsletterService, 
-		feedsService, 
+		newsletterService,
+		feedsService,
 		emailService,
 		&cfg,
 		&newsletters.SchedulerConfig{
@@ -69,18 +69,29 @@ func main() {
 	api := humago.New(mux, humaConfig)
 	api.UseMiddleware(wideLog.WideLogMiddleware)
 
+	authApi := huma.NewGroup(api)
+	authApiRateLimiting := auth.NewRateLimitMiddleware(api, 1, 5)
+	authApi.UseMiddleware(authApiRateLimiting)
+
 	authHandler := handler.NewAuthHandler(queries, emailService, &cfg)
-	authHandler.RegisterRoutes(api)
+	authHandler.RegisterRoutes(authApi)
 
 	if cfg.Environment == "dev" {
+		debugApi := huma.NewGroup(api)
 		scheudlerHandler := handler.NewSchedulerHandler(scheduler)
-		scheudlerHandler.RegisterRoutes(api)
+		scheudlerHandler.RegisterRoutes(debugApi)
 	}
-	
+
+	rateLimiting := auth.NewRateLimitMiddleware(api, 10, 30)
+
+	publicApi := huma.NewGroup(api)
+	publicApi.UseMiddleware(rateLimiting)
+
 	unsubscribeHandler := handler.NewUnsubscribeHandler(queries, &cfg, emailService)
-	unsubscribeHandler.RegisterRoutes(api)
+	unsubscribeHandler.RegisterRoutes(publicApi)
 
 	protectedApi := huma.NewGroup(api)
+	protectedApi.UseMiddleware(rateLimiting)
 	protectedApi.UseMiddleware(auth.AuthMiddleware(api))
 
 	newsletterHandler := handler.NewNewsletterHandler(queries, newsletterService)
