@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"net/mail"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/db"
@@ -12,7 +13,7 @@ import (
 )
 
 type UserHandler struct {
-	queries *db.Queries
+	queries     *db.Queries
 	userService *users.UserService
 }
 
@@ -31,9 +32,9 @@ type getUserOutput struct {
 func (h *UserHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "get-user",
-		Method: "GET",
-		Path: "/user",
-		Summary: "Get's the user's account data",
+		Method:      "GET",
+		Path:        "/user",
+		Summary:     "Get's the user's account data",
 	}, func(ctx context.Context, i *struct{}) (*getUserOutput, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
@@ -59,10 +60,10 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 	}
 
 	huma.Register(api, huma.Operation{
-		OperationID: "update-email",
-		Method: "PATCH",
-		Path: "/user/email",
-		Summary: "Update user's email",
+		OperationID:   "update-email",
+		Method:        "PATCH",
+		Path:          "/user/email",
+		Summary:       "Update user's email",
 		DefaultStatus: http.StatusNoContent,
 	}, func(ctx context.Context, i *updateEmailInput) (*struct{}, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
@@ -70,9 +71,13 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 			return nil, huma.Error401Unauthorized("Not authorized")
 		}
 
+		if _, err := mail.ParseAddress(i.Body.Email); err != nil {
+			return nil, badRequestError("Invalid email")
+		}
+
 		err := h.queries.UpdateUserEmail(ctx, db.UpdateUserEmailParams{
 			Email: i.Body.Email,
-			ID: claims.Subject,
+			ID:    claims.Subject,
 		})
 
 		if err != nil {
@@ -85,18 +90,18 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 	type updatePasswordInput struct {
 		Body struct {
 			CurrentPassword string `json:"currentPassword"`
-			NewPassword string `json:"newPassword"`
+			NewPassword     string `json:"newPassword"`
 		}
 	}
 
 	huma.Register(api, huma.Operation{
-		OperationID: "update-password",
-		Method: "PATCH",
-		Path: "/user/password",
-		Summary: "Update user's password",
+		OperationID:   "update-password",
+		Method:        "PATCH",
+		Path:          "/user/password",
+		Summary:       "Update user's password",
 		DefaultStatus: http.StatusNoContent,
-	}, func(ctx context.Context, i *updatePasswordInput) (*struct {}, error) {
-		
+	}, func(ctx context.Context, i *updatePasswordInput) (*struct{}, error) {
+
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, huma.Error401Unauthorized("Not authorized")
@@ -117,11 +122,11 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 		}
 
 		err = h.queries.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
-			ID: claims.Subject,
+			ID:       claims.Subject,
 			Password: string(hash),
 		})
 		if err != nil {
-			return nil,  internalServerError(ctx, err)
+			return nil, internalServerError(ctx, err)
 		}
 
 		return nil, nil
@@ -134,13 +139,13 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 	}
 
 	huma.Register(api, huma.Operation{
-		OperationID: "delete-user",
-		Method: "DELETE",
-		Path: "/user",
-		Summary: "Delete this user and all of their data",
+		OperationID:   "delete-user",
+		Method:        "DELETE",
+		Path:          "/user",
+		Summary:       "Delete this user and all of their data",
 		DefaultStatus: http.StatusNoContent,
-	}, func(ctx context.Context, i *deleteUserRequest) (*struct {}, error) {
-		
+	}, func(ctx context.Context, i *deleteUserRequest) (*struct{}, error) {
+
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, huma.Error401Unauthorized("Not authorized")

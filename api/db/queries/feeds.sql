@@ -31,10 +31,12 @@ SELECT EXISTS(
 );
 
 -- name: UpdateNewsletterFeed :exec
-UPDATE newsletter_feed SET alias = $1, updated_at = NOW() WHERE newsletter_id = $2 AND id = $3;
+UPDATE newsletter_feed 
+SET alias = $1, updated_at = NOW() 
+WHERE newsletter_id = $2 AND id = $3 AND user_id = $4;
 
 -- name: DeleteNewsletterFeed :exec
-DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2;
+DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2 AND user_id = $3;
 
 -- name: GetFeedsForManyNewsletters :many
 SELECT f.id AS global_feed_id, nlf.id AS newsletter_feed_id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id, nlf.alias

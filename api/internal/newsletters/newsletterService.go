@@ -12,26 +12,26 @@ import (
 )
 
 type Newsletter struct {
-	ID string `json:"id"`
-	Name string `json:"name"`
-	Frequency string `json:"frequency"`
-	NextSendTime time.Time `json:"nextSendTime"`
-	SendDay int `json:"sendDay"`
-	SendHour int `json:"sendHour"`
-	SendMinute int `json:"sendMinute"`
-	SendTimezone string `json:"sendTimezone"`
-	LastSentAt *time.Time `json:"lastSentAt,omitempty"`
-	Status string `json:"status"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	ID           string     `json:"id"`
+	Name         string     `json:"name"`
+	Frequency    string     `json:"frequency"`
+	NextSendTime time.Time  `json:"nextSendTime"`
+	SendDay      int        `json:"sendDay"`
+	SendHour     int        `json:"sendHour"`
+	SendMinute   int        `json:"sendMinute"`
+	SendTimezone string     `json:"sendTimezone"`
+	LastSentAt   *time.Time `json:"lastSentAt,omitempty"`
+	Status       string     `json:"status"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    time.Time  `json:"updatedAt"`
 }
 
 type NewsletterService struct {
 	queries *db.Queries
-	db *pgxpool.Pool
+	db      *pgxpool.Pool
 }
 
-func NewNewsletterService (queries *db.Queries, db *pgxpool.Pool) *NewsletterService {
+func NewNewsletterService(queries *db.Queries, db *pgxpool.Pool) *NewsletterService {
 	return &NewsletterService{queries, db}
 }
 
@@ -72,17 +72,16 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 		return nil, errors.New("Database Failure")
 	}
 
-	
 	feedsByNewsletter := make(map[string][]feeds.BaseFeed)
 	for _, row := range feedsResult {
 		feedsByNewsletter[row.NewsletterID] = append(
-			feedsByNewsletter[row.NewsletterID], 
+			feedsByNewsletter[row.NewsletterID],
 			feeds.BaseFeed{
-				GlobalFeedId: row.GlobalFeedID,
+				GlobalFeedId:     row.GlobalFeedID,
 				NewsletterFeedId: row.NewsletterFeedID,
-				Name: row.Title,
-				URL: row.Url,
-				LastRetrievedAt: row.LastRetrievedAt,
+				Name:             row.Title,
+				URL:              row.Url,
+				LastRetrievedAt:  row.LastRetrievedAt,
 			},
 		)
 	}
@@ -94,20 +93,20 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 		if !ok {
 			continue
 		}
-		
+
 		dueNewsletters = append(dueNewsletters, SendableNewsletter{
-			ID: row.ID,
-			Name: row.Name,
-			Frequency: string(row.Frequency),
-			SendDay: int(row.SendDay),
-			SendHour: int(row.SendHour),
-			SendMinute: int(row.SendMinute),
-			SendTimezone: row.SendTimezone,
-			Email: row.Email,
-			UserID: row.UserID,
-			LastSendTime: lastSentAt,
+			ID:               row.ID,
+			Name:             row.Name,
+			Frequency:        string(row.Frequency),
+			SendDay:          int(row.SendDay),
+			SendHour:         int(row.SendHour),
+			SendMinute:       int(row.SendMinute),
+			SendTimezone:     row.SendTimezone,
+			Email:            row.Email,
+			UserID:           row.UserID,
+			LastSendTime:     lastSentAt,
 			UnsubscribeToken: row.UnsubscribeToken,
-			Feeds: feedsByNewsletter[row.ID],
+			Feeds:            feedsByNewsletter[row.ID],
 		})
 	}
 
@@ -126,37 +125,40 @@ func (s *NewsletterService) UpdateSendTimes(
 	if err != nil {
 		return err
 	}
-	
+
 	return s.queries.UpdateNewsletterSendTimes(ctx, db.UpdateNewsletterSendTimesParams{
-		ID: nl.ID,
-		UserID: nl.UserID,
+		ID:           nl.ID,
+		UserID:       nl.UserID,
 		NextSendTime: nextSendTime,
-		LastSentAt: db.ToTimestamp(&sentAt),
+		LastSentAt:   db.ToTimestamp(&sentAt),
 	})
 }
 
 func (s *NewsletterService) DeleteNewsletter(
 	ctx context.Context,
-	id string,
+	id, userId string,
 ) error {
-		tx, err := s.db.Begin(ctx)
-		if err != nil {
-			return err
-		}
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
 
-		defer tx.Rollback(ctx)
+	defer tx.Rollback(ctx)
 
-		qtx := s.queries.WithTx(tx)
+	qtx := s.queries.WithTx(tx)
 
-		err = qtx.DeleteAllFeedsInNewsletter(ctx, id)
-		if err != nil {
-			return err
-		}
+	err = qtx.DeleteAllFeedsInNewsletter(ctx, id)
+	if err != nil {
+		return err
+	}
 
-		err = qtx.DeleteNewsletter(ctx, id)
-		if err != nil {
-			return err
-		}
+	err = qtx.DeleteNewsletter(ctx, db.DeleteNewsletterParams{
+		ID:     id,
+		UserID: userId,
+	})
+	if err != nil {
+		return err
+	}
 
-		return tx.Commit(ctx)
+	return tx.Commit(ctx)
 }

@@ -157,6 +157,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 			NewsletterID: input.NewsletterID,
 			ID:           input.FeedID,
 			Alias:        input.Body.Alias,
+			UserID:       claims.Subject,
 		})
 
 		if err != nil {
@@ -182,6 +183,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		err := h.queries.DeleteNewsletterFeed(ctx, db.DeleteNewsletterFeedParams{
 			NewsletterID: input.NewsletterID,
 			ID:           input.FeedID,
+			UserID:       claims.Subject,
 		})
 
 		if err != nil {

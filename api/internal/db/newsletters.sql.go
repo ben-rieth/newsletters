@@ -63,11 +63,16 @@ func (q *Queries) DeleteAllNewslettersForUser(ctx context.Context, userID string
 }
 
 const deleteNewsletter = `-- name: DeleteNewsletter :exec
-DELETE FROM newsletter WHERE id = $1
+DELETE FROM newsletter WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) DeleteNewsletter(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, deleteNewsletter, id)
+type DeleteNewsletterParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) DeleteNewsletter(ctx context.Context, arg DeleteNewsletterParams) error {
+	_, err := q.db.Exec(ctx, deleteNewsletter, arg.ID, arg.UserID)
 	return err
 }
 

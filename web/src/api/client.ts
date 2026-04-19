@@ -2,10 +2,8 @@ import createClient from 'openapi-fetch';
 import type { paths } from './schema';
 import { clearSession } from '#/features/auth/lib/session';
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
-
 const client = createClient<paths>({
-  baseUrl: BASE_URL,
+  baseUrl: import.meta.env.VITE_API_URL,
 });
 
 // Save a clone of each request before the body is consumed so we can retry
@@ -33,17 +31,23 @@ client.use({
       return response;
     }
 
-    const refreshResponse = await fetch(`${BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${refreshToken}` },
-    });
+    const refreshResponse = await fetch(
+      `${import.meta.env.VITE_API_URL}/auth/refresh`,
+      {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${refreshToken}` },
+      },
+    );
 
     if (!refreshResponse.ok) {
       clearSession();
       return response;
     }
 
-    const data = await refreshResponse.json() as { token: string; refreshToken: string };
+    const data = (await refreshResponse.json()) as {
+      token: string;
+      refreshToken: string;
+    };
     localStorage.setItem('token', data.token);
     localStorage.setItem('refreshToken', data.refreshToken);
 

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"net/http"
+	"net/mail"
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
@@ -101,6 +102,10 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 }
 
 func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutput, error) {
+	if _, err := mail.ParseAddress(i.Body.Email); err != nil {
+		return nil, badRequestError("Invalid email")
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(i.Body.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, internalServerError(ctx, err)

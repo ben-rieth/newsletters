@@ -12,7 +12,7 @@ INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 
 -- name: DeleteNewsletter :exec
-DELETE FROM newsletter WHERE id = $1;
+DELETE FROM newsletter WHERE id = $1 AND user_id = $2;
 
 -- name: UpdateNewsletter :exec
 UPDATE newsletter SET 

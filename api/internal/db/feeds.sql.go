@@ -52,16 +52,17 @@ func (q *Queries) DeleteAllNewsletterFeedsForUser(ctx context.Context, userID st
 }
 
 const deleteNewsletterFeed = `-- name: DeleteNewsletterFeed :exec
-DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2
+DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2 AND user_id = $3
 `
 
 type DeleteNewsletterFeedParams struct {
 	NewsletterID string
 	ID           string
+	UserID       string
 }
 
 func (q *Queries) DeleteNewsletterFeed(ctx context.Context, arg DeleteNewsletterFeedParams) error {
-	_, err := q.db.Exec(ctx, deleteNewsletterFeed, arg.NewsletterID, arg.ID)
+	_, err := q.db.Exec(ctx, deleteNewsletterFeed, arg.NewsletterID, arg.ID, arg.UserID)
 	return err
 }
 
@@ -418,16 +419,24 @@ func (q *Queries) UpdateFeedLastRetrievedTime(ctx context.Context, arg UpdateFee
 }
 
 const updateNewsletterFeed = `-- name: UpdateNewsletterFeed :exec
-UPDATE newsletter_feed SET alias = $1, updated_at = NOW() WHERE newsletter_id = $2 AND id = $3
+UPDATE newsletter_feed 
+SET alias = $1, updated_at = NOW() 
+WHERE newsletter_id = $2 AND id = $3 AND user_id = $4
 `
 
 type UpdateNewsletterFeedParams struct {
 	Alias        string
 	NewsletterID string
 	ID           string
+	UserID       string
 }
 
 func (q *Queries) UpdateNewsletterFeed(ctx context.Context, arg UpdateNewsletterFeedParams) error {
-	_, err := q.db.Exec(ctx, updateNewsletterFeed, arg.Alias, arg.NewsletterID, arg.ID)
+	_, err := q.db.Exec(ctx, updateNewsletterFeed,
+		arg.Alias,
+		arg.NewsletterID,
+		arg.ID,
+		arg.UserID,
+	)
 	return err
 }
