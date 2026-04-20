@@ -3,11 +3,11 @@ package newsletters
 import (
 	"context"
 	"errors"
-	"log"
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
+	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -55,7 +55,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 			)
 
 			if lastErr != nil {
-				log.Printf("Failed to compute last send time: %v", err)
+				wideLog.AddErrorField(ctx, lastErr)
 				continue
 			}
 

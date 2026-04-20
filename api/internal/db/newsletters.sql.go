@@ -45,7 +45,7 @@ func (q *Queries) CreateNewsletter(ctx context.Context, arg CreateNewsletterPara
 }
 
 const deactivateNewsletterByUnsubscribeToken = `-- name: DeactivateNewsletterByUnsubscribeToken :exec
-UPDATE newsletter SET status = 'inactive' WHERE unsubscribe_token = $1
+UPDATE newsletter SET status = 'inactive', unsubscribe_token = gen_random_uuid() WHERE unsubscribe_token = $1
 `
 
 func (q *Queries) DeactivateNewsletterByUnsubscribeToken(ctx context.Context, unsubscribeToken string) error {

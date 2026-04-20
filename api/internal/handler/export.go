@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/newsletters"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/jackc/pgx/v5"
 )
 
 type ExportHander struct {
@@ -25,9 +27,9 @@ func NewExportHandler(queries *db.Queries) *ExportHander {
 func (h *ExportHander) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
 		OperationID: "export-newsletters",
-		Method: http.MethodGet,
-		Path: "/export",
-		Summary: "Downloads all newsletters in json format",
+		Method:      http.MethodGet,
+		Path:        "/export",
+		Summary:     "Downloads all newsletters in json format",
 	}, func(ctx context.Context, i *struct{}) (*huma.StreamResponse, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
@@ -52,23 +54,23 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 		exportableNls := make([]newsletters.ExportableNewsletter, 0, len(nls))
 		for _, nl := range nls {
 			exportableNls = append(
-				exportableNls, 
+				exportableNls,
 				newsletters.ExportableNewsletter{
-					ID: nl.ID,
-					Name: nl.Name,
-					Frequency: string(nl.Frequency),
-					SendDay: int(nl.SendDay),
-					SendHour: int(nl.SendHour),
-					SendMinute: int(nl.SendMinute),
+					ID:           nl.ID,
+					Name:         nl.Name,
+					Frequency:    string(nl.Frequency),
+					SendDay:      int(nl.SendDay),
+					SendHour:     int(nl.SendHour),
+					SendMinute:   int(nl.SendMinute),
 					SendTimezone: nl.SendTimezone,
-					Feeds: feedsByNl[nl.ID],
+					Feeds:        feedsByNl[nl.ID],
 				},
 			)
 		}
 
 		export := newsletters.NewslettersExport{
-			Version: 1,
-			ExportedAt: time.Now(),
+			Version:     1,
+			ExportedAt:  time.Now(),
 			Newsletters: exportableNls,
 		}
 
@@ -90,9 +92,9 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 
 	huma.Register(api, huma.Operation{
 		OperationID: "export-newsletter",
-		Method: http.MethodGet,
-		Path: "/export/{newsletterId}",
-		Summary: "Downloads a single newsletter in JSON format",
+		Method:      http.MethodGet,
+		Path:        "/export/{newsletterId}",
+		Summary:     "Downloads a single newsletter in JSON format",
 	}, func(ctx context.Context, i *exportNewsletterInput) (*huma.StreamResponse, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
@@ -101,9 +103,12 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 
 		nl, err := h.queries.GetNewsletter(ctx, db.GetNewsletterParams{
 			UserID: claims.Subject,
-			ID: i.NewsletterID,
+			ID:     i.NewsletterID,
 		})
 		if err != nil {
+			if errors.Is(pgx.ErrNoRows, err) {
+				return nil, notFoundError("newsletter")
+			}
 			return nil, internalServerError(ctx, err)
 		}
 
@@ -114,17 +119,17 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 		}
 
 		export := newsletters.NewslettersExport{
-			Version: 1,
+			Version:    1,
 			ExportedAt: time.Now(),
 			Newsletters: []newsletters.ExportableNewsletter{{
-				ID: nl.ID,
-				Name: nl.Name,
-				Frequency: string(nl.Frequency),
-				SendDay: int(nl.SendDay),
-				SendHour: int(nl.SendHour),
-				SendMinute: int(nl.SendMinute),
+				ID:           nl.ID,
+				Name:         nl.Name,
+				Frequency:    string(nl.Frequency),
+				SendDay:      int(nl.SendDay),
+				SendHour:     int(nl.SendHour),
+				SendMinute:   int(nl.SendMinute),
 				SendTimezone: nl.SendTimezone,
-				Feeds: feedsByNl[nl.ID],
+				Feeds:        feedsByNl[nl.ID],
 			}},
 		}
 
@@ -142,8 +147,8 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 }
 
 func (h *ExportHander) getFeedsByNl(
-	ctx context.Context, 
-	userId string, 
+	ctx context.Context,
+	userId string,
 	nlIds []string,
 ) (map[string][]feeds.ExportableFeed, error) {
 	fds, err := h.queries.GetFeedsForManyNewsletters(ctx, nlIds)
@@ -156,9 +161,8 @@ func (h *ExportHander) getFeedsByNl(
 		feedIds = append(feedIds, feed.NewsletterFeedID)
 	}
 
-
 	filters, err := h.queries.GetFiltersForManyFeeds(ctx, db.GetFiltersForManyFeedsParams{
-		UserID: userId,
+		UserID:  userId,
 		FeedIds: feedIds,
 	})
 	if err != nil {
@@ -168,12 +172,12 @@ func (h *ExportHander) getFeedsByNl(
 	filtersByFeed := make(map[string][]feeds.FeedFilter)
 	for _, filter := range filters {
 		filtersByFeed[filter.NewsletterFeedID] = append(
-			filtersByFeed[filter.NewsletterFeedID], 
+			filtersByFeed[filter.NewsletterFeedID],
 			feeds.FeedFilter{
-				Id: filter.ID,
-				Field: filter.Field,
+				Id:       filter.ID,
+				Field:    filter.Field,
 				Operator: filter.Operator,
-				Pattern: filter.Pattern,
+				Pattern:  filter.Pattern,
 			},
 		)
 	}
@@ -181,14 +185,14 @@ func (h *ExportHander) getFeedsByNl(
 	feedsByNl := make(map[string][]feeds.ExportableFeed)
 	for _, feed := range fds {
 		feedsByNl[feed.NewsletterID] = append(
-			feedsByNl[feed.NewsletterID], 
+			feedsByNl[feed.NewsletterID],
 			feeds.ExportableFeed{
-				ID: feed.NewsletterFeedID,
+				ID:       feed.NewsletterFeedID,
 				GlobalID: feed.GlobalFeedID,
-				Name: feed.Title,
-				Alias: feed.Alias,
-				URL: feed.Url,
-				Filters: filtersByFeed[feed.NewsletterFeedID],
+				Name:     feed.Title,
+				Alias:    feed.Alias,
+				URL:      feed.Url,
+				Filters:  filtersByFeed[feed.NewsletterFeedID],
 			},
 		)
 	}

@@ -7,17 +7,21 @@ import (
 	"time"
 )
 
+type contextKey string
+
+const logKey contextKey = "log"
+
 type logEntry struct {
-	Key string
+	Key   string
 	Value logValue
 }
 
 type logValue struct {
-	value any
+	value     any
 	timestamp time.Time
 }
 
-type WideLog map[string]logValue 
+type WideLog map[string]logValue
 
 func NewWideLog() *WideLog {
 	return &WideLog{}
@@ -25,7 +29,7 @@ func NewWideLog() *WideLog {
 
 func (wl *WideLog) AddLogField(key string, value any) {
 	(*wl)[key] = logValue{
-		value: value,
+		value:     value,
 		timestamp: time.Now(),
 	}
 }
@@ -36,17 +40,17 @@ func (wl *WideLog) AddErrorField(errs ...error) {
 
 	if !ok {
 		(*wl)["error"] = logValue{
-			value: errs,
+			value:     errs,
 			timestamp: time.Now(),
 		}
 		return
 	}
-	
+
 	newErrs := append(typedErrs, errs...)
 	(*wl)["error"] = logValue{
-			value: newErrs,
-			timestamp: time.Now(),
-		}
+		value:     newErrs,
+		timestamp: time.Now(),
+	}
 }
 
 func (wl *WideLog) Slog(ctx context.Context, level slog.Level) {
@@ -63,7 +67,7 @@ func (wl *WideLog) Slog(ctx context.Context, level slog.Level) {
 	for _, entry := range entries {
 		args = append(args, entry.Key, entry.Value.value)
 	}
-	
+
 	slog.Log(ctx, level, "Request", args...)
 }
 
@@ -80,4 +84,9 @@ func GetField[T any](wl *WideLog, key string) (T, bool) {
 	}
 	typed, ok := val.value.(T)
 	return typed, ok
+}
+
+func CreateWideLogAndAddToContext(baseCtx context.Context) (context.Context, *WideLog) {
+	wl := NewWideLog()
+	return context.WithValue(baseCtx, logKey, wl), wl
 }

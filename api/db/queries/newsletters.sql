@@ -53,4 +53,4 @@ INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE unsubscribe_token = $1;
 
 -- name: DeactivateNewsletterByUnsubscribeToken :exec
-UPDATE newsletter SET status = 'inactive' WHERE unsubscribe_token = $1;
+UPDATE newsletter SET status = 'inactive', unsubscribe_token = gen_random_uuid() WHERE unsubscribe_token = $1;

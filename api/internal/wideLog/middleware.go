@@ -11,13 +11,10 @@ import (
 	"github.com/google/uuid"
 )
 
-type contextKey string
-const logKey contextKey = "log"
-
 func WideLogMiddleware(ctx huma.Context, next func(huma.Context)) {
 	logMap := NewWideLog()
 	ctx = huma.WithValue(ctx, logKey, &logMap)
-	
+
 	requestId := uuid.New()
 
 	logMap.AddLogField("requestId", requestId.String())

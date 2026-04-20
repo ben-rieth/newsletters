@@ -18,10 +18,10 @@ import (
 
 type Scheduler struct {
 	newsletterService *NewsletterService
-	feedService *feeds.FeedService
-	emailService email.EmailService
-	cfg *config.Config
-	schedulerConfig *SchedulerConfig
+	feedService       *feeds.FeedService
+	emailService      email.EmailService
+	cfg               *config.Config
+	schedulerConfig   *SchedulerConfig
 }
 
 type SchedulerConfig struct {
@@ -36,8 +36,8 @@ func NewScheduler(
 	schedulerConfig *SchedulerConfig,
 ) *Scheduler {
 	return &Scheduler{
-		newsletterService, 
-		feedService, 
+		newsletterService,
+		feedService,
 		emailService,
 		cfg,
 		schedulerConfig,
@@ -57,12 +57,12 @@ func (sch *Scheduler) KickOff(ctx context.Context) {
 			select {
 			case <-ticker.C:
 				sch.pollNewslettersWithContext()
-			case <- ctx.Done():
+			case <-ctx.Done():
 				log.Println("Shutting down newsletter scheduler")
 				return
 			}
 		}
-	}();
+	}()
 }
 
 func (sch *Scheduler) ForcePoll(ctx context.Context) {
@@ -71,8 +71,7 @@ func (sch *Scheduler) ForcePoll(ctx context.Context) {
 
 func (sch *Scheduler) pollNewslettersWithContext() {
 	tickCtx := context.Background()
-	wl := wideLog.NewWideLog()
-	tickCtx = context.WithValue(tickCtx, "log", wl)
+	tickCtx, wl := wideLog.CreateWideLogAndAddToContext(tickCtx)
 
 	tickId := uuid.New()
 	wl.AddLogField("tickId", tickId)
@@ -81,7 +80,7 @@ func (sch *Scheduler) pollNewslettersWithContext() {
 
 	err := sch.pollNewsletters(tickCtx)
 	if err != nil {
-		wl.AddErrorField(err);
+		wl.AddErrorField(err)
 	}
 
 	endTime := time.Now()
@@ -112,11 +111,10 @@ func (sch *Scheduler) pollNewsletters(ctx context.Context) error {
 
 	for i, nl := range *dueNewsletters {
 		nlWaitGroup.Add(1)
-		go func (ctx context.Context, index int, nl SendableNewsletter, sem chan struct{}) {
+		go func(ctx context.Context, index int, nl SendableNewsletter, sem chan struct{}) {
 			defer nlWaitGroup.Done()
 
-			nlLog := wideLog.NewWideLog()
-			nlCtx := context.WithValue(ctx, "log", nlLog)
+			nlCtx, nlLog := wideLog.CreateWideLogAndAddToContext(ctx)
 
 			startTime := time.Now()
 			err := sch.buildAndSendNewsletter(nlCtx, nl, sem)
@@ -141,7 +139,7 @@ func (sch *Scheduler) pollNewsletters(ctx context.Context) error {
 func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNewsletter, sem chan struct{}) error {
 	wideLog.AddLogField(ctx, "newsletterId", nl.ID)
 	wideLog.AddLogField(ctx, "feedCount", len(nl.Feeds))
-	
+
 	feedResults, err := sch.fetchFeedsForNewsletter(ctx, &nl, sem)
 	if err != nil {
 		return err
@@ -177,12 +175,12 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 
 type newsletterFetchFeedResult struct {
 	Succeeded []feeds.FeedView
-	Failed []feeds.BaseFeed
+	Failed    []feeds.BaseFeed
 }
-  
+
 func (sch *Scheduler) fetchFeedsForNewsletter(
 	ctx context.Context,
-	nl *SendableNewsletter, 
+	nl *SendableNewsletter,
 	sem chan struct{},
 ) (newsletterFetchFeedResult, error) {
 	var wg sync.WaitGroup
@@ -196,7 +194,7 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 
 		go func(index int, feed feeds.BaseFeed) {
 			defer wg.Done()
-			defer func() { <- sem }()
+			defer func() { <-sem }()
 
 			feedResult, err := sch.feedService.GetFeedDataSince(ctx, feed, nl.LastSendTime, nl.UserID)
 			if err != nil {
@@ -231,7 +229,7 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 
 	return newsletterFetchFeedResult{
 		Succeeded: notNilResults,
-		Failed: failed,
+		Failed:    failed,
 	}, nil
 }
 
@@ -241,8 +239,8 @@ func (sch *Scheduler) assembleNewsletter(
 ) (string, error) {
 	return sch.emailService.AssembleEmail("newsletter.html", map[string]any{
 		"NewsletterName": nl.Name,
-		"Feeds": fetchResults.Succeeded,
-		"FailedFeeds": fetchResults.Failed,
+		"Feeds":          fetchResults.Succeeded,
+		"FailedFeeds":    fetchResults.Failed,
 		"UnsubscribeURL": fmt.Sprintf("%s/unsubscribe?unsubscribeToken=%s", sch.cfg.WebURL, nl.UnsubscribeToken),
 	})
 }
@@ -251,6 +249,6 @@ func shouldKeepSchedulerLog(wl *wideLog.WideLog) (bool, slog.Level) {
 	if wl.HasError() {
 		return true, slog.LevelError
 	}
-	
+
 	return rand.Float64() < 0.05, slog.LevelInfo
 }
