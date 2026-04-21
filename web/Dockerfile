@@ -10,11 +10,9 @@ ENV HUSKY=0
 FROM base AS prod
 WORKDIR /app
 COPY pnpm-lock.yaml ./
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm fetch
+RUN pnpm fetch
 COPY package.json ./
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --offline
+RUN pnpm install --offline
 
 COPY . .
 RUN pnpm build
