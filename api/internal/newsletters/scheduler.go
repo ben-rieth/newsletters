@@ -46,7 +46,7 @@ func NewScheduler(
 
 func (sch *Scheduler) KickOff(ctx context.Context) {
 	go func() {
-		ticker := time.NewTicker(1 * time.Minute)
+		ticker := time.NewTicker(30 * time.Minute)
 		defer ticker.Stop()
 
 		log.Println("Newsletter scheduler started")
