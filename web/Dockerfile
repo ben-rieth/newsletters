@@ -14,6 +14,11 @@ RUN pnpm fetch
 COPY package.json ./
 RUN pnpm install --offline
 
+ARG VITE_API_URL
+ARG WEB_URL
+ENV VITE_API_URL=$VITE_API_URL
+ENV WEB_URL=$WEB_URL
+
 COPY . .
 RUN pnpm build
 
