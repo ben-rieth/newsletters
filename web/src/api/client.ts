@@ -2,8 +2,12 @@ import createClient from 'openapi-fetch';
 import type { paths } from './schema';
 import { clearSession } from '#/features/auth/lib/session';
 
+const FALLBACK_API_URL = 'https://backend-api-production-d781.up.railway.app';
+
+const apiUrl = import.meta.env.VITE_API_URL || FALLBACK_API_URL;
+
 const client = createClient<paths>({
-  baseUrl: import.meta.env.VITE_API_URL,
+  baseUrl: apiUrl,
 });
 
 // Save a clone of each request before the body is consumed so we can retry
@@ -32,7 +36,7 @@ client.use({
     }
 
     const refreshResponse = await fetch(
-      `${import.meta.env.VITE_API_URL}/auth/refresh`,
+      `${apiUrl}/auth/refresh`,
       {
         method: 'POST',
         headers: { Authorization: `Bearer ${refreshToken}` },

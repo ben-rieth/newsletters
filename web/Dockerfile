@@ -15,6 +15,7 @@ COPY package.json ./
 RUN pnpm install --offline
 
 COPY . .
+ARG VITE_API_URL
 RUN pnpm build
 
 FROM caddy:2-alpine
