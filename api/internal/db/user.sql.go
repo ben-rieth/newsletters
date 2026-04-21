@@ -81,6 +81,17 @@ func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
 	return i, err
 }
 
+const isWhiteListedEmail = `-- name: IsWhiteListedEmail :one
+SELECT EXISTS(SELECT 1 FROM white_listed_email WHERE email = $1)
+`
+
+func (q *Queries) IsWhiteListedEmail(ctx context.Context, email string) (bool, error) {
+	row := q.db.QueryRow(ctx, isWhiteListedEmail, email)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const markUserEmailAsVerified = `-- name: MarkUserEmailAsVerified :exec
 UPDATE app_user SET email_verified_at = NOW() WHERE id = $1
 `

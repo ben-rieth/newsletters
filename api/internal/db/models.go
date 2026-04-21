@@ -413,3 +413,8 @@ type VerificationToken struct {
 	CreatedAt time.Time
 	ExpiresAt time.Time
 }
+
+type WhiteListedEmail struct {
+	Email     string
+	CreatedAt time.Time
+}

@@ -21,3 +21,6 @@ DELETE FROM app_user WHERE id = $1;
 
 -- name: MarkUserEmailAsVerified :exec
 UPDATE app_user SET email_verified_at = NOW() WHERE id = $1;
+
+-- name: IsWhiteListedEmail :one
+SELECT EXISTS(SELECT 1 FROM white_listed_email WHERE email = $1);

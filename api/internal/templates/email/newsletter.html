@@ -17,14 +17,13 @@
           <!-- Header -->
           <tr>
             <td style="background-color: #1a1a2e; padding: 30px; text-align: center;">
-              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Your Daily Digest</h1>
+              <h1 style="color: #ffffff; margin: 0; font-size: 24px;">{{ .NewsletterName }}</h1>
             </td>
           </tr>
 
           <!-- Body -->
           <tr>
             <td style="padding: 30px;">
-              <h1>{{ .NewsletterName }}</h1>
               {{range .Feeds}}
                 <h2>{{ .Title }}</h2>
                 {{ range .Items }}

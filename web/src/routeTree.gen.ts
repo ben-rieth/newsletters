@@ -14,6 +14,7 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NewslettersRouteImport } from './routes/newsletters'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UnsubscribeIndexRouteImport } from './routes/unsubscribe/index'
 import { Route as NewslettersIndexRouteImport } from './routes/newsletters.index'
@@ -44,6 +45,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const NewslettersRoute = NewslettersRouteImport.update({
   id: '/newsletters',
   path: '/newsletters',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -81,6 +87,7 @@ const NewslettersNewsletterIdFeedsFeedIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/newsletters': typeof NewslettersRouteWithChildren
   '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
@@ -106,6 +114,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/newsletters': typeof NewslettersRouteWithChildren
   '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/newsletters'
     | '/profile'
     | '/sign-in'
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
     | '/profile'
     | '/sign-in'
     | '/sign-up'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/newsletters'
     | '/profile'
     | '/sign-in'
@@ -159,6 +171,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   NewslettersRoute: typeof NewslettersRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   SignInRoute: typeof SignInRoute
@@ -202,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/newsletters'
       fullPath: '/newsletters'
       preLoaderRoute: typeof NewslettersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -282,6 +302,7 @@ const NewslettersRouteWithChildren = NewslettersRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   NewslettersRoute: NewslettersRouteWithChildren,
   ProfileRoute: ProfileRoute,
   SignInRoute: SignInRoute,

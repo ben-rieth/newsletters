@@ -1,4 +1,4 @@
-\restrict 5Ab1yKr0NAxTI83sL8UnX5u72saAu1R0l10FqaJuSq529K2wf0VHs4jKlGiXcoj
+\restrict NA6BdTPfzXLfmBFj7AAizH8BR3sxBsgGQDhrGGAhLsA7n8PMqEBXWRKkxhVsdmu
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -275,6 +275,16 @@ CREATE TABLE public.verification_token (
 
 
 --
+-- Name: white_listed_email; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.white_listed_email (
+    email text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: refresh_token id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -410,6 +420,14 @@ ALTER TABLE ONLY public.verification_token
 
 
 --
+-- Name: white_listed_email white_listed_email_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.white_listed_email
+    ADD CONSTRAINT white_listed_email_pkey PRIMARY KEY (email);
+
+
+--
 -- Name: feed_item feed_item_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -517,7 +535,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 5Ab1yKr0NAxTI83sL8UnX5u72saAu1R0l10FqaJuSq529K2wf0VHs4jKlGiXcoj
+\unrestrict NA6BdTPfzXLfmBFj7AAizH8BR3sxBsgGQDhrGGAhLsA7n8PMqEBXWRKkxhVsdmu
 
 
 --
@@ -525,4 +543,5 @@ ALTER TABLE ONLY public.verification_token
 --
 
 INSERT INTO public.schema_migrations (version) VALUES
-    ('20260329010424');
+    ('20260329010424'),
+    ('20260421220214');

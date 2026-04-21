@@ -106,6 +106,15 @@ func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutp
 		return nil, badRequestError("Invalid email")
 	}
 
+	exists, err := h.queries.IsWhiteListedEmail(ctx, i.Body.Email)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	if !exists {
+		return nil, huma.Error403Forbidden("Email not on whitelist")
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(i.Body.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, internalServerError(ctx, err)

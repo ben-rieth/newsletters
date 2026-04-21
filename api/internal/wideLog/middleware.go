@@ -53,21 +53,26 @@ func AddErrorField(ctx context.Context, err ...error) {
 
 func shouldLog(ctx huma.Context, logMap *WideLog) (bool, slog.Level) {
 	if ctx.Status() >= http.StatusInternalServerError {
+		logMap.AddLogField("reason", "500")
 		return true, slog.LevelError
 	}
 
 	if logMap.HasError() {
+		logMap.AddLogField("reason", "has-error")
 		return true, slog.LevelError
 	}
 
 	d, ok := GetField[time.Duration](logMap, "duration")
 	if !ok {
+		logMap.AddLogField("reason", "missing-duration")
 		return true, slog.LevelError
 	}
 
 	if d.Seconds() > 2 {
+		logMap.AddLogField("reason", "perf")
 		return true, slog.LevelWarn
 	}
 
+	logMap.AddLogField("reason", "chance")
 	return rand.Float64() < 0.05, slog.LevelInfo
 }

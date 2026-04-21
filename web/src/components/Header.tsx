@@ -2,6 +2,9 @@ import { Link } from '@tanstack/react-router';
 import useIsSignedIn from '#/features/auth/queries/hooks/useIsSignedIn';
 import { H1 } from './ui/typography';
 
+const navLinkClass =
+  'text-muted-foreground hover:text-foreground transition-colors';
+
 const Header = () => {
   const isSignedIn = useIsSignedIn();
 
@@ -10,16 +13,21 @@ const Header = () => {
       <H1 className="text-2xl">
         <Link to={isSignedIn ? '/newsletters' : '/'}>Custom Newsletters</Link>
       </H1>
-      {isSignedIn && (
-        <nav className="flex items-center gap-4 text-sm">
-          <Link to="/newsletters" className="text-muted-foreground hover:text-foreground transition-colors">
-            Newsletters
-          </Link>
-          <Link to="/profile" className="text-muted-foreground hover:text-foreground transition-colors">
-            Profile
-          </Link>
-        </nav>
-      )}
+      <nav className="flex items-center gap-4 text-sm">
+        {isSignedIn && (
+          <>
+            <Link to="/newsletters" className={navLinkClass}>
+              Newsletters
+            </Link>
+            <Link to="/profile" className={navLinkClass}>
+              Profile
+            </Link>
+          </>
+        )}
+        <Link to="/about" className={navLinkClass}>
+          About
+        </Link>
+      </nav>
     </header>
   );
 };
