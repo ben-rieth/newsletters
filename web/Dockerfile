@@ -1,24 +1,31 @@
-FROM node:lts-alpine AS build
+FROM node:lts-alpine AS base
 
-ENV NPM_CONFIG_UPDATE_NOTIFIER=false
-ENV NPM_CONFIG_FUND=false
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 
+ENV CI=true
+ENV HUSKY=0
+
+FROM base AS prod
 WORKDIR /app
-
-COPY package.json ./
 COPY pnpm-lock.yaml ./
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm fetch
+COPY package.json ./
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm install --offline
 
-RUN pnpm ci
-
+COPY . .
 RUN pnpm build
 
-FROM caddy
+FROM caddy:2-alpine
 
 WORKDIR /app
 
 COPY Caddyfile ./
 
 RUN caddy fmt Caddyfile --overwrite
-COPY --from=build /app/dist ./dist
+COPY --from=prod /app/dist /app/dist
 
 CMD ["caddy", "run", "--config", "Caddyfile", "--adapter", "caddyfile"]
