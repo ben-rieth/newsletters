@@ -9,7 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func waitForDB(ctx context.Context, db *pgxpool.Pool) error {
+func WaitForDB(ctx context.Context, db *pgxpool.Pool) error {
 	maxAttempts := 3
 	delay := 1 * time.Second
 

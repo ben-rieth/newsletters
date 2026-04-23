@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
+	"github.com/ben-rieth/newsletter-api/internal/db"
 	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
@@ -48,8 +49,6 @@ func (sch *Scheduler) KickOff(ctx context.Context) {
 	go func() {
 		ticker := time.NewTicker(30 * time.Minute)
 		defer ticker.Stop()
-
-		log.Println("Newsletter scheduler started")
 
 		sch.pollNewslettersWithContext()
 
@@ -94,6 +93,10 @@ func (sch *Scheduler) pollNewslettersWithContext() {
 }
 
 func (sch *Scheduler) pollNewsletters(ctx context.Context) error {
+	if err := db.WaitForDB(ctx, sch.newsletterService.db); err != nil {
+		return err
+	}
+
 	dueNewsletters, err := sch.newsletterService.GetDueNewsletters(ctx)
 	if err != nil {
 		return err
