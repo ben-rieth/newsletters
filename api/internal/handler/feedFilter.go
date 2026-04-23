@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
-	"github.com/ben-rieth/newsletter-api/internal/db"
+	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
 )

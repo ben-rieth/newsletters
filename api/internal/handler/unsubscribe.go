@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
-	"github.com/ben-rieth/newsletter-api/internal/db"
+	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
@@ -15,25 +15,25 @@ import (
 )
 
 type UnsubscribeHandler struct {
-	queries *db.Queries
-	cfg *config.Config
+	queries      *db.Queries
+	cfg          *config.Config
 	emailService email.EmailService
 }
 
-func NewUnsubscribeHandler (
-	queries *db.Queries, 
-	cfg *config.Config, 
+func NewUnsubscribeHandler(
+	queries *db.Queries,
+	cfg *config.Config,
 	emailService email.EmailService,
 ) *UnsubscribeHandler {
 	return &UnsubscribeHandler{queries, cfg, emailService}
 }
 
 func (h *UnsubscribeHandler) RegisterRoutes(api huma.API) {
-	
+
 	huma.Register(api, huma.Operation{
-		OperationID: "unsubscribe",
-		Method: http.MethodPost,
-		Path: "/unsubscribe",
+		OperationID:   "unsubscribe",
+		Method:        http.MethodPost,
+		Path:          "/unsubscribe",
 		DefaultStatus: http.StatusNoContent,
 	}, func(ctx context.Context, i *struct {
 		UnsubscribeToken string `query:"unsubscribeToken"`
@@ -52,7 +52,7 @@ func (h *UnsubscribeHandler) RegisterRoutes(api huma.API) {
 
 			return nil, internalServerError(ctx, err)
 		}
-		
+
 		wideLog.AddLogField(ctx, "newsletterId", nl.NewsletterID)
 		wideLog.AddLogField(ctx, "userId", nl.UserID)
 
@@ -63,7 +63,7 @@ func (h *UnsubscribeHandler) RegisterRoutes(api huma.API) {
 
 		htmlString, err := h.emailService.AssembleEmail("unsubscribe-receipt.html", map[string]any{
 			"NewsletterName": nl.Name,
-			"DashboardURL": fmt.Sprintf("%s/newsletters", h.cfg.WebURL),
+			"DashboardURL":   fmt.Sprintf("%s/newsletters", h.cfg.WebURL),
 		})
 
 		if err != nil {
@@ -72,7 +72,7 @@ func (h *UnsubscribeHandler) RegisterRoutes(api huma.API) {
 		}
 
 		result, err := h.emailService.Send(
-			ctx, 
+			ctx,
 			fmt.Sprintf("Unsubscribed from %s", nl.Name),
 			h.cfg.NewsletterSenderEmail.Address,
 			nl.Email,

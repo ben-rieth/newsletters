@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
-	"github.com/ben-rieth/newsletter-api/internal/db"
+	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/newsletters"
 	"github.com/danielgtaylor/huma/v2"

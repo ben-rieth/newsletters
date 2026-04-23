@@ -11,7 +11,8 @@ import (
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/config"
-	"github.com/ben-rieth/newsletter-api/internal/db"
+	dbutil "github.com/ben-rieth/newsletter-api/internal/db"
+	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
@@ -128,7 +129,7 @@ func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutp
 	})
 
 	if err != nil {
-		if db.IsUniqueViolation(err) {
+		if dbutil.IsUniqueViolation(err) {
 			return nil, huma.Error409Conflict("Email already in use")
 		}
 

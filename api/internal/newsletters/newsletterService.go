@@ -5,7 +5,8 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ben-rieth/newsletter-api/internal/db"
+	db "github.com/ben-rieth/newsletter-api/internal/db"
+	dbgen "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -27,11 +28,11 @@ type Newsletter struct {
 }
 
 type NewsletterService struct {
-	queries *db.Queries
+	queries *dbgen.Queries
 	db      *pgxpool.Pool
 }
 
-func NewNewsletterService(queries *db.Queries, db *pgxpool.Pool) *NewsletterService {
+func NewNewsletterService(queries *dbgen.Queries, db *pgxpool.Pool) *NewsletterService {
 	return &NewsletterService{queries, db}
 }
 
@@ -119,14 +120,14 @@ func (s *NewsletterService) UpdateSendTimes(
 	sentAt time.Time,
 ) error {
 	nextSendTime, err := ComputeNextSendTime(
-		db.Frequency(nl.Frequency), int(nl.SendDay), int(nl.SendHour), int(nl.SendMinute), nl.SendTimezone,
+		dbgen.Frequency(nl.Frequency), int(nl.SendDay), int(nl.SendHour), int(nl.SendMinute), nl.SendTimezone,
 		time.Now(),
 	)
 	if err != nil {
 		return err
 	}
 
-	return s.queries.UpdateNewsletterSendTimes(ctx, db.UpdateNewsletterSendTimesParams{
+	return s.queries.UpdateNewsletterSendTimes(ctx, dbgen.UpdateNewsletterSendTimesParams{
 		ID:           nl.ID,
 		UserID:       nl.UserID,
 		NextSendTime: nextSendTime,
@@ -152,7 +153,7 @@ func (s *NewsletterService) DeleteNewsletter(
 		return err
 	}
 
-	err = qtx.DeleteNewsletter(ctx, db.DeleteNewsletterParams{
+	err = qtx.DeleteNewsletter(ctx, dbgen.DeleteNewsletterParams{
 		ID:     id,
 		UserID: userId,
 	})

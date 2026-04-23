@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
-	"github.com/ben-rieth/newsletter-api/internal/db"
+	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/utils"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"

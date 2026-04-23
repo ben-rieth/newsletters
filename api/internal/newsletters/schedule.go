@@ -4,29 +4,29 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ben-rieth/newsletter-api/internal/db"
+	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 )
 
 type SendableNewsletter struct {
-	ID string
-	Name string
-	Frequency string
-	SendDay int
-	SendHour int
-	SendMinute int
-	SendTimezone string
-	LastSendTime time.Time
-	Email string
-	UserID string
+	ID               string
+	Name             string
+	Frequency        string
+	SendDay          int
+	SendHour         int
+	SendMinute       int
+	SendTimezone     string
+	LastSendTime     time.Time
+	Email            string
+	UserID           string
 	UnsubscribeToken string
-	Feeds []feeds.BaseFeed
+	Feeds            []feeds.BaseFeed
 }
 
 func ComputeNextSendTime(
-	frequency db.Frequency, 
-	sendDay, sendHour, sendMinute int, 
-	sendTimezone string, 
+	frequency db.Frequency,
+	sendDay, sendHour, sendMinute int,
+	sendTimezone string,
 	base time.Time,
 ) (time.Time, error) {
 	location, err := time.LoadLocation(sendTimezone)
@@ -79,9 +79,9 @@ func ComputeNextSendTime(
 }
 
 func ComputeLastSendTime(
-	frequency db.Frequency, 
-	sendDay, sendHour, sendMinute int, 
-	sendTimezone string, 
+	frequency db.Frequency,
+	sendDay, sendHour, sendMinute int,
+	sendTimezone string,
 	base time.Time,
 ) (time.Time, error) {
 	location, err := time.LoadLocation(sendTimezone)

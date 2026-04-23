@@ -8,7 +8,7 @@ import (
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/config"
-	"github.com/ben-rieth/newsletter-api/internal/db"
+	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/handler"

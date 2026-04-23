@@ -3,13 +3,13 @@ package users
 import (
 	"context"
 
-	"github.com/ben-rieth/newsletter-api/internal/db"
+	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type UserService struct {
 	queries *db.Queries
-	db *pgxpool.Pool
+	db      *pgxpool.Pool
 }
 
 func NewUserService(queries *db.Queries, db *pgxpool.Pool) *UserService {
@@ -55,6 +55,6 @@ func (s *UserService) DeleteUser(ctx context.Context, userId string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return tx.Commit(ctx)
 }

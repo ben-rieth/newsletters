@@ -6,7 +6,7 @@ import (
 	"net/mail"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
-	"github.com/ben-rieth/newsletter-api/internal/db"
+	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/users"
 	"github.com/danielgtaylor/huma/v2"
 	"golang.org/x/crypto/bcrypt"
