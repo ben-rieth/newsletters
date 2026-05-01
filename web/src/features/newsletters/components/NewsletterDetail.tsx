@@ -1,15 +1,16 @@
-import { useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
-import { toast } from 'sonner'
-import { type Newsletter } from '../queries/newsletters'
-import { NewsletterForm, type NewsletterFormValues } from './NewsletterForm'
-import useUpdateNewsletter from '../queries/hooks/useUpdateNewsletter'
-import useDeleteNewsletter from '../queries/hooks/useDeleteNewsletter'
-import useForceSendNewsletter from '../queries/hooks/useForceSendNewsletter'
-import useExportNewsletter from '../queries/hooks/useExportNewsletter'
-import useUpdateNewsletterStatus from '../queries/hooks/useUpdateNewsletterStatus'
-import { FeedsList } from './FeedsList'
-import { Button } from '#/components/ui/button'
+import { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { toast } from 'sonner';
+import type {Newsletter} from '../queries/newsletters';
+import { NewsletterForm  } from './NewsletterForm';
+import type {NewsletterFormValues} from './NewsletterForm';
+import useUpdateNewsletter from '../queries/hooks/useUpdateNewsletter';
+import useDeleteNewsletter from '../queries/hooks/useDeleteNewsletter';
+import useForceSendNewsletter from '../queries/hooks/useForceSendNewsletter';
+import useExportNewsletter from '../queries/hooks/useExportNewsletter';
+import useUpdateNewsletterStatus from '../queries/hooks/useUpdateNewsletterStatus';
+import { FeedsList } from './FeedsList';
+import { Button } from '#/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,15 +20,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '#/components/ui/alert-dialog'
+} from '#/components/ui/alert-dialog';
 
 type Props = {
-  newsletter: Newsletter
-}
+  newsletter: Newsletter;
+};
 
 export const NewsletterDetail = ({ newsletter }: Props) => {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const navigate = useNavigate()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   const defaultValues: NewsletterFormValues = {
     name: newsletter.name,
@@ -36,30 +37,30 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
     sendMinute: newsletter.sendMinute,
     sendDay: newsletter.sendDay,
     sendTimezone: newsletter.sendTimezone,
-  }
+  };
 
   const newsletterUpdate = useUpdateNewsletter(newsletter.id, () => {
-    toast.success('Newsletter updated!')
-  })
+    toast.success('Newsletter updated!');
+  });
 
   const newsletterDelete = useDeleteNewsletter(() => {
-    toast.success('Newsletter deleted!')
-    navigate({ to: '/' })
-  })
+    toast.success('Newsletter deleted!');
+    navigate({ to: '/newsletters' });
+  });
 
   const forceSend = useForceSendNewsletter(() => {
-    toast.success('Newsletter queued to send!')
-  })
+    toast.success('Newsletter queued to send!');
+  });
 
-  const exportNewsletter = useExportNewsletter()
+  const exportNewsletter = useExportNewsletter();
 
   const updateStatus = useUpdateNewsletterStatus(() => {
     toast.success(
       newsletter.status === 'active'
         ? 'Newsletter deactivated.'
         : 'Newsletter activated!',
-    )
-  })
+    );
+  });
 
   return (
     <div className="space-y-8">
@@ -112,7 +113,9 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
       </section>
       <section className="rounded-md border border-destructive/30 bg-destructive/5 p-4 space-y-3">
         <div>
-          <h3 className="text-sm font-semibold text-destructive">Danger Zone</h3>
+          <h3 className="text-sm font-semibold text-destructive">
+            Danger Zone
+          </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             Permanently deletes this newsletter and all of its feeds.
           </p>
@@ -142,5 +145,5 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
-  )
-}
+  );
+};
