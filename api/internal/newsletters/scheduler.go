@@ -177,8 +177,9 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 }
 
 type newsletterFetchFeedResult struct {
-	Succeeded []feeds.FeedView
-	Failed    []feeds.BaseFeed
+	Succeeded        []feeds.FeedView
+	SucceededNoItems []feeds.FeedView
+	Failed           []feeds.BaseFeed
 }
 
 func (sch *Scheduler) fetchFeedsForNewsletter(
@@ -223,15 +224,21 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 	}
 
 	var notNilResults []feeds.FeedView
+	var notNilNoFeeds []feeds.FeedView
 	for _, result := range results {
 		if result != nil {
-			notNilResults = append(notNilResults, *result)
+			if len(result.Items) == 0 {
+				notNilNoFeeds = append(notNilNoFeeds, *result)
+			} else {
+				notNilResults = append(notNilResults, *result)
+			}
 		}
 	}
 
 	return newsletterFetchFeedResult{
-		Succeeded: notNilResults,
-		Failed:    failed,
+		Succeeded:        notNilResults,
+		SucceededNoItems: notNilNoFeeds,
+		Failed:           failed,
 	}, nil
 }
 
@@ -242,6 +249,7 @@ func (sch *Scheduler) assembleNewsletter(
 	return sch.emailService.AssembleEmail("newsletter.html", map[string]any{
 		"NewsletterName": nl.Name,
 		"Feeds":          fetchResults.Succeeded,
+		"EmptyFeeds":     fetchResults.SucceededNoItems,
 		"FailedFeeds":    fetchResults.Failed,
 		"UnsubscribeURL": fmt.Sprintf("%s/unsubscribe?unsubscribeToken=%s", sch.cfg.WebURL, nl.UnsubscribeToken),
 	})

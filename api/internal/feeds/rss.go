@@ -11,25 +11,26 @@ import (
 
 type FeedView struct {
 	Title string
+	URL   string
 	Items []FeedItemView
 }
 
 type FeedItemView struct {
-	Title string
-	URL string
+	Title       string
+	URL         string
 	PublishDate time.Time
 }
 
 type FeedMetaData struct {
-	Id string
-	Title string
-	URL string
+	Id          string
+	Title       string
+	URL         string
 	Description string
 }
 
 type FetchFeedResult struct {
-	Feed *gofeed.Feed
-	FinalUrl string
+	Feed        *gofeed.Feed
+	FinalUrl    string
 	OriginalUrl string
 	RetrievedAt time.Time
 }
@@ -68,7 +69,7 @@ func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResul
 	}
 
 	finalUrl := res.Request.URL.String()
-	
+
 	fp := gofeed.NewParser()
 	feed, err := fp.Parse(res.Body)
 	if err != nil {
@@ -78,8 +79,8 @@ func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResul
 	retrievedAt := time.Now()
 
 	return &FetchFeedResult{
-		Feed: feed,
-		FinalUrl: finalUrl,
+		Feed:        feed,
+		FinalUrl:    finalUrl,
 		OriginalUrl: url,
 		RetrievedAt: retrievedAt,
 	}, nil

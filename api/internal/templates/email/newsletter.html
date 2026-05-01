@@ -38,6 +38,26 @@
             </td>
           </tr>
 
+          <!-- Empty Feeds -->
+          {{if .EmptyFeeds}}
+          <tr>
+            <td style="padding: 0 30px 20px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top: 1px solid #e0e0e0; padding-top: 20px;">
+                <tr>
+                  <td>
+                    <p style="margin: 0 0 8px; font-size: 13px; font-weight: bold; color: #888888;">No new items:</p>
+                    {{range .EmptyFeeds}}
+                      <p style="margin: 4px 0; font-size: 12px; color: #aaaaaa;">
+                        {{ .Title }}
+                      </p>
+                    {{end}}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          {{end}}
+
           <!-- Failed Feeds -->
           {{if .FailedFeeds}}
           <tr>
