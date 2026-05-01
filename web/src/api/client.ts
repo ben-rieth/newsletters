@@ -12,6 +12,10 @@ const requestClones = new WeakMap<Request, Request>();
 
 client.use({
   onRequest({ request }) {
+    if (request.url.includes('/auth/refresh')) {
+      return request;
+    }
+
     requestClones.set(request, request.clone());
 
     const token = localStorage.getItem('token');
@@ -44,12 +48,11 @@ client.use({
       return response;
     }
 
-    const data = (await refreshResponse.json()) as {
-      token: string;
-      refreshToken: string;
+    const { tokens } = (await refreshResponse.json()) as {
+      tokens: { token: string; refreshToken: string };
     };
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('refreshToken', data.refreshToken);
+    localStorage.setItem('token', tokens.token);
+    localStorage.setItem('refreshToken', tokens.refreshToken);
 
     const saved = requestClones.get(request);
     if (!saved) {
@@ -58,7 +61,7 @@ client.use({
     }
 
     const headers = new Headers(saved.headers);
-    headers.set('Authorization', `Bearer ${data.token}`);
+    headers.set('Authorization', `Bearer ${tokens.token}`);
     return fetch(new Request(saved, { headers }));
   },
 });

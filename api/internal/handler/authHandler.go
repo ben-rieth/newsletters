@@ -245,6 +245,9 @@ func (h *AuthHandler) handleTokenRefresh(ctx context.Context, i *refreshInput) (
 
 	tokenData, err := h.queries.GetRefreshToken(ctx, token)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, huma.Error401Unauthorized("Invalid token. Please sign in again.")
+		}
 		return nil, internalServerError(ctx, err)
 	}
 

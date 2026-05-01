@@ -1,27 +1,26 @@
 import { useEffect } from 'react';
+import client from '#/api/client';
 import { clearSession, dispatchAuthChange } from '#/features/auth/lib/session';
-
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
 
 export const useRefreshOnLoad = () => {
   useEffect(() => {
     const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) { return; }
+    if (!refreshToken) {
+      return;
+    }
 
     const refresh = async () => {
-      const response = await fetch(`${BASE_URL}/auth/refresh`, {
-        method: 'POST',
+      const { data, error } = await client.POST('/auth/refresh', {
         headers: { Authorization: `Bearer ${refreshToken}` },
       });
 
-      if (!response.ok) {
+      if (error) {
         clearSession();
         return;
       }
 
-      const data = await response.json() as { token: string; refreshToken: string };
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('refreshToken', data.refreshToken);
+      localStorage.setItem('token', data.tokens.token);
+      localStorage.setItem('refreshToken', data.tokens.refreshToken);
       dispatchAuthChange();
     };
 
