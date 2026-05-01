@@ -15,7 +15,6 @@ const useExportNewsletter = () => {
         throw error;
       }
     },
-    onError: () => {},
   });
 };
 

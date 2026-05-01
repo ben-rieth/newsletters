@@ -1,22 +1,22 @@
-import { useForm } from '@tanstack/react-form'
-import { z } from 'zod'
-import { Button } from '#/components/ui/button'
-import { Field, FieldError, FieldLabel } from '#/components/ui/field'
-import { FormField } from '#/components/ui/form-field'
-import { Input } from '#/components/ui/input'
-import { NumberField } from '#/components/ui/number-field'
+import { useForm } from '@tanstack/react-form';
+import { z } from 'zod';
+import { Button } from '#/components/ui/button';
+import { Field, FieldError, FieldLabel } from '#/components/ui/field';
+import { FormField } from '#/components/ui/form-field';
+import { Input } from '#/components/ui/input';
+import { NumberField } from '#/components/ui/number-field';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '#/components/ui/select'
-import { DAY_NAMES } from '../lib/format'
-import type { Frequency } from '../queries/newsletters'
-import { TimezoneSelect } from './TimezoneSelect'
+} from '#/components/ui/select';
+import { DAY_NAMES } from '../lib/format';
+import type { Frequency } from '../queries/newsletters';
+import { TimezoneSelect } from './TimezoneSelect';
 
-const VALID_TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'))
+const VALID_TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'));
 
 export const newsletterFormSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -27,24 +27,23 @@ export const newsletterFormSchema = z.object({
   sendTimezone: z.string().refine((tz) => VALID_TIMEZONES.has(tz), {
     message: 'Invalid timezone',
   }),
-})
+});
 
-export type NewsletterFormValues = z.infer<typeof newsletterFormSchema>
+export type NewsletterFormValues = z.infer<typeof newsletterFormSchema>;
 
 const FREQUENCY_OPTIONS = [
   { label: 'Daily', value: 'daily' },
   { label: 'Weekly', value: 'weekly' },
   { label: 'Monthly', value: 'monthly' },
-]
+];
 
 type Props = {
-  defaultValues: NewsletterFormValues
-  onSubmit: (values: NewsletterFormValues) => Promise<void>
-  isPending?: boolean
-  submitLabel?: string
-  error?: string
-  renderActions?: (isPending: boolean) => React.ReactNode
-}
+  defaultValues: NewsletterFormValues;
+  onSubmit: (values: NewsletterFormValues) => Promise<void>;
+  isPending?: boolean;
+  submitLabel?: string;
+  error?: string;
+};
 
 export const NewsletterForm = ({
   defaultValues,
@@ -57,14 +56,14 @@ export const NewsletterForm = ({
     defaultValues,
     validators: { onChange: newsletterFormSchema },
     onSubmit: async ({ value }) => onSubmit(value),
-  })
+  });
 
   return (
     <form
       className="space-y-3"
       onSubmit={(e) => {
-        e.preventDefault()
-        form.handleSubmit()
+        e.preventDefault();
+        form.handleSubmit();
       }}
     >
       {/* Name */}
@@ -77,7 +76,9 @@ export const NewsletterForm = ({
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
               placeholder="My Newsletter"
-              aria-invalid={field.state.meta.isBlurred && field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isBlurred && field.state.meta.errors.length > 0
+              }
             />
           </FormField>
         )}
@@ -90,8 +91,8 @@ export const NewsletterForm = ({
             <Select
               value={field.state.value}
               onValueChange={(value) => {
-                field.handleChange(value as Frequency)
-                form.setFieldValue('sendDay', undefined)
+                field.handleChange(value as Frequency);
+                form.setFieldValue('sendDay', undefined);
               }}
               items={FREQUENCY_OPTIONS}
             >
@@ -154,7 +155,10 @@ export const NewsletterForm = ({
                       onValueChange={(value) =>
                         field.handleChange(value ?? undefined)
                       }
-                      aria-invalid={field.state.meta.isBlurred && field.state.meta.errors.length > 0}
+                      aria-invalid={
+                        field.state.meta.isBlurred &&
+                        field.state.meta.errors.length > 0
+                      }
                     />
                   </FormField>
                 )
@@ -178,7 +182,12 @@ export const NewsletterForm = ({
       </form.Field>
 
       {/* Send time */}
-      <form.Subscribe selector={(state) => ({ hour: state.values.sendHour, minute: state.values.sendMinute })}>
+      <form.Subscribe
+        selector={(state) => ({
+          hour: state.values.sendHour,
+          minute: state.values.sendMinute,
+        })}
+      >
         {({ hour, minute }) => {
           const timeValue = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
           return (
@@ -189,7 +198,9 @@ export const NewsletterForm = ({
                 type="time"
                 value={timeValue}
                 onChange={(e) => {
-                  const [h, m] = (e.target.value || '00:00').split(':').map(Number);
+                  const [h, m] = (e.target.value || '00:00')
+                    .split(':')
+                    .map(Number);
                   form.setFieldValue('sendHour', isNaN(h) ? 0 : h);
                   form.setFieldValue('sendMinute', isNaN(m) ? 0 : m);
                 }}
@@ -205,5 +216,5 @@ export const NewsletterForm = ({
         {isPending ? `${submitLabel}…` : submitLabel}
       </Button>
     </form>
-  )
-}
+  );
+};

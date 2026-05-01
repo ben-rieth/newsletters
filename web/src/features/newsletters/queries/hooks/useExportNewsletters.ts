@@ -6,10 +6,14 @@ import { fetchAndDownload } from '#/utils/download';
 const useExportNewsletters = () => {
   return useMutation({
     mutationFn: async () => {
-      await fetchAndDownload('/export', 'newsletters-export.json');
-    },
-    onError: (error) => {
-      toast.error(getErrorMessage(error));
+      const toastId = toast.loading('Exporting newsletters...');
+      try {
+        await fetchAndDownload('/export', 'newsletters-export.json');
+        toast.success('Export complete!', { id: toastId });
+      } catch (error) {
+        toast.error(getErrorMessage(error), { id: toastId });
+        throw error;
+      }
     },
   });
 };

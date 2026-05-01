@@ -1,8 +1,9 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
-
-export const fetchAndDownload = async (path: string, fallbackFilename: string): Promise<void> => {
+export const fetchAndDownload = async (
+  path: string,
+  fallbackFilename: string,
+): Promise<void> => {
   const token = localStorage.getItem('token');
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const response = await fetch(`${import.meta.env.VITE_API_URL}${path}`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
