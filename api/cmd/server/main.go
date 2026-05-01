@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/config"
@@ -27,6 +29,9 @@ func main() {
 	godotenv.Load()
 	cfg := config.Load()
 	ctx := context.Background()
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	slog.SetDefault(logger)
 
 	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {

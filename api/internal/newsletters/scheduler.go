@@ -64,8 +64,8 @@ func (sch *Scheduler) KickOff(ctx context.Context) {
 	}()
 }
 
-func (sch *Scheduler) ForcePoll(ctx context.Context) {
-	sch.pollNewsletters(ctx)
+func (sch *Scheduler) ForcePoll() {
+	sch.pollNewslettersWithContext()
 }
 
 func (sch *Scheduler) pollNewslettersWithContext() {
@@ -218,10 +218,9 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 	for i, err := range feedErrors {
 		if err != nil {
 			failed = append(failed, nl.Feeds[i])
+			wideLog.AddErrorField(ctx, err)
 		}
 	}
-
-	wideLog.AddErrorField(ctx, feedErrors...)
 
 	var notNilResults []feeds.FeedView
 	for _, result := range results {

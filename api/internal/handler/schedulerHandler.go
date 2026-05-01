@@ -12,7 +12,7 @@ type SchedulerHandler struct {
 	scheduler *newsletters.Scheduler
 }
 
-func NewSchedulerHandler (scheduler *newsletters.Scheduler) *SchedulerHandler {
+func NewSchedulerHandler(scheduler *newsletters.Scheduler) *SchedulerHandler {
 	return &SchedulerHandler{
 		scheduler,
 	}
@@ -20,13 +20,13 @@ func NewSchedulerHandler (scheduler *newsletters.Scheduler) *SchedulerHandler {
 
 func (h *SchedulerHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
-		OperationID: "run-scheduler",
-		Method: "POST",
-		Path: "/scheduler/run",
-		Summary: "Runs the scheduler immediately - for debugging",
+		OperationID:   "run-scheduler",
+		Method:        "POST",
+		Path:          "/scheduler/run",
+		Summary:       "Runs the scheduler immediately - for debugging",
 		DefaultStatus: http.StatusNoContent,
-	}, func(ctx context.Context, i *struct {}) (*struct {}, error) {
-		h.scheduler.ForcePoll(ctx)
+	}, func(_ context.Context, i *struct{}) (*struct{}, error) {
+		h.scheduler.ForcePoll()
 		return nil, nil
 	})
 }

@@ -19,7 +19,7 @@ func WaitForDB(ctx context.Context, db *pgxpool.Pool) error {
 			return nil
 		}
 
-		wideLog.AddErrorField(ctx, fmt.Errorf("DB not ready on ping attempt %d: %w", i, err))
+		wideLog.AddArrayField(ctx, "waitForDbAttempts", fmt.Errorf("DB not ready on ping attempt %d: %w", i, err))
 
 		select {
 		case <-ctx.Done():

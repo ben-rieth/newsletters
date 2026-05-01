@@ -3,7 +3,6 @@ package wideLog
 import (
 	"context"
 	"log/slog"
-	"math/rand/v2"
 	"net/http"
 	"time"
 
@@ -51,6 +50,13 @@ func AddErrorField(ctx context.Context, err ...error) {
 	}
 }
 
+func AddArrayField(ctx context.Context, key string, value any) {
+	wl, ok := ctx.Value(logKey).(*WideLog)
+	if ok {
+		wl.AddArrayField(key, value)
+	}
+}
+
 func shouldLog(ctx huma.Context, logMap *WideLog) (bool, slog.Level) {
 	if ctx.Status() >= http.StatusInternalServerError {
 		logMap.AddLogField("reason", "500")
@@ -74,5 +80,5 @@ func shouldLog(ctx huma.Context, logMap *WideLog) (bool, slog.Level) {
 	}
 
 	logMap.AddLogField("reason", "chance")
-	return rand.Float64() < 0.05, slog.LevelInfo
+	return true, slog.LevelInfo
 }

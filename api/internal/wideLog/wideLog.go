@@ -53,6 +53,24 @@ func (wl *WideLog) AddErrorField(errs ...error) {
 	}
 }
 
+func (wl *WideLog) AddArrayField(key string, value any) {
+	arrayLogValue, ok := (*wl)[key]
+	typedValue, ok := arrayLogValue.value.([]any)
+	if !ok {
+		(*wl)[key] = logValue{
+			value:     value,
+			timestamp: time.Now(),
+		}
+		return
+	}
+
+	newErrs := append(typedValue, value)
+	(*wl)[key] = logValue{
+		value:     newErrs,
+		timestamp: time.Now(),
+	}
+}
+
 func (wl *WideLog) Slog(ctx context.Context, level slog.Level) {
 	entries := make([]logEntry, 0, len(*wl))
 	for k, v := range *wl {

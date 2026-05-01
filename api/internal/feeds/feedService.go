@@ -85,15 +85,18 @@ func (s *FeedService) GetFeedDataSince(
 	since time.Time,
 	userId string,
 ) (*FeedView, error) {
-	wideLog.AddLogField(ctx, "globalFeedId", feed.GlobalFeedId)
-	wideLog.AddLogField(ctx, "newsletterFeedId", feed.GlobalFeedId)
+	logData := make(map[string]any)
+	defer wideLog.AddArrayField(ctx, "GetFeedDataSince", logData)
+
+	logData["globalFeedId"] = feed.GlobalFeedId
+	logData["newsletterFeedId"] = feed.GlobalFeedId
 
 	oneHourAgo := time.Now().Add(time.Hour * -1)
 
 	var finalItems []FeedItemView
 
 	needToFetchLiveFeed := feed.LastRetrievedAt.Before(oneHourAgo)
-	wideLog.AddLogField(ctx, "mustFetchLiveFeed", needToFetchLiveFeed)
+	logData["mustFetchLiveFeed"] = needToFetchLiveFeed
 
 	if needToFetchLiveFeed {
 		wideLog.AddLogField(ctx, "feedUrl", feed.URL)
@@ -102,9 +105,9 @@ func (s *FeedService) GetFeedDataSince(
 			return nil, err
 		}
 
-		wideLog.AddLogField(ctx, "fetchedItems", feedResult.Feed.Items)
+		logData["fetchedItems"] = feedResult.Feed.Items
 		feedResult.Feed = pruneFeedItemsBeforeTime(feedResult.Feed, feed.LastRetrievedAt)
-		wideLog.AddLogField(ctx, "prunedItem", feedResult.Feed.Items)
+		logData["prunedItems"] = feedResult.Feed.Items
 
 		feedItemDetails := buildFeedItemParamsFromGoFeed(feedResult.Feed, feed.GlobalFeedId, feedResult.RetrievedAt)
 		if err = s.updateFeedCache(
@@ -128,7 +131,7 @@ func (s *FeedService) GetFeedDataSince(
 		return nil, err
 	}
 
-	wideLog.AddLogField(ctx, "itemsForNewsletter", len(items))
+	logData["itemsForNewsletter"] = len(items)
 
 	finalItems = make([]FeedItemView, 0, len(items))
 	for _, item := range items {
