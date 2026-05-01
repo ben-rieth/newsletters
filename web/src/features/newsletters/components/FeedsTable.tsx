@@ -18,7 +18,12 @@ type Props = {
   onAddClick: () => void;
 };
 
-export const FeedsTable = ({ feeds, newsletterId, onDeleteClick, onAddClick }: Props) => {
+export const FeedsTable = ({
+  feeds,
+  newsletterId,
+  onDeleteClick,
+  onAddClick,
+}: Props) => {
   if (feeds.length === 0) {
     return (
       <div className="py-6 text-center space-y-3 rounded-md border border-dashed">
@@ -56,8 +61,16 @@ export const FeedsTable = ({ feeds, newsletterId, onDeleteClick, onAddClick }: P
             </TableCell>
             <TableCell>
               <div className="flex items-center gap-1">
-                <Button variant="ghost" size="icon-sm" aria-label="Visit feed website">
-                  <a href={feed.url} target="_blank" rel="noopener noreferrer">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Visit feed website"
+                >
+                  <a
+                    href={feed.htmlUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <ExternalLink className="size-3.5" />
                   </a>
                 </Button>
@@ -65,7 +78,10 @@ export const FeedsTable = ({ feeds, newsletterId, onDeleteClick, onAddClick }: P
                   to="/newsletters/$newsletterId/feeds/$feedId"
                   params={{ newsletterId, feedId: feed.id }}
                   aria-label="Configure feed"
-                  className={buttonVariants({ variant: 'ghost', size: 'icon-sm' })}
+                  className={buttonVariants({
+                    variant: 'ghost',
+                    size: 'icon-sm',
+                  })}
                 >
                   <Settings className="size-3.5" />
                 </Link>

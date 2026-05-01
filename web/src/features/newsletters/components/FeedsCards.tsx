@@ -10,7 +10,12 @@ type Props = {
   onAddClick: () => void;
 };
 
-export const FeedsCards = ({ feeds, newsletterId, onDeleteClick, onAddClick }: Props) => {
+export const FeedsCards = ({
+  feeds,
+  newsletterId,
+  onDeleteClick,
+  onAddClick,
+}: Props) => {
   if (feeds.length === 0) {
     return (
       <div className="py-6 text-center space-y-3 rounded-md border border-dashed">
@@ -38,12 +43,14 @@ export const FeedsCards = ({ feeds, newsletterId, onDeleteClick, onAddClick }: P
               {feed.alias || feed.title}
             </Link>
             {feed.description && (
-              <p className="text-xs text-muted-foreground">{feed.description}</p>
+              <p className="text-xs text-muted-foreground">
+                {feed.description}
+              </p>
             )}
           </div>
           <div className="flex items-center gap-1 ml-4 shrink-0">
             <Button variant="ghost" size="icon" aria-label="Visit feed website">
-              <a href={feed.url} target="_blank" rel="noopener noreferrer">
+              <a href={feed.htmlUrl} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="size-4" />
               </a>
             </Button>

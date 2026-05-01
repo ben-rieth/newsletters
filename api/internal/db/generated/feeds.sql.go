@@ -125,7 +125,7 @@ func (q *Queries) GetCachedFeedDetails(ctx context.Context, url string) (GetCach
 }
 
 const getFeedById = `-- name: GetFeedById :one
-SELECT nlf.id, f.title, f.description, f.url, nlf.alias FROM newsletter_feed AS nlf
+SELECT nlf.id, f.title, f.description, f.url, f.html_url, nlf.alias FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.id = $1 AND nlf.user_id = $2
 `
@@ -140,6 +140,7 @@ type GetFeedByIdRow struct {
 	Title       string
 	Description string
 	Url         string
+	HtmlUrl     string
 	Alias       string
 }
 
@@ -151,6 +152,7 @@ func (q *Queries) GetFeedById(ctx context.Context, arg GetFeedByIdParams) (GetFe
 		&i.Title,
 		&i.Description,
 		&i.Url,
+		&i.HtmlUrl,
 		&i.Alias,
 	)
 	return i, err
@@ -267,7 +269,7 @@ func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []str
 }
 
 const getFeedsForNewsletter = `-- name: GetFeedsForNewsletter :many
-SELECT f.title, f.description, f.url, nf.alias, nf.id FROM newsletter_feed AS nf
+SELECT f.title, f.description, f.url, f.html_url, nf.alias, nf.id FROM newsletter_feed AS nf
 INNER JOIN feed AS f ON nf.feed_id = f.id
 WHERE newsletter_id = $1
 `
@@ -276,6 +278,7 @@ type GetFeedsForNewsletterRow struct {
 	Title       string
 	Description string
 	Url         string
+	HtmlUrl     string
 	Alias       string
 	ID          string
 }
@@ -293,6 +296,7 @@ func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string
 			&i.Title,
 			&i.Description,
 			&i.Url,
+			&i.HtmlUrl,
 			&i.Alias,
 			&i.ID,
 		); err != nil {

@@ -21,7 +21,7 @@ INSERT INTO feed_item (feed_id, title, url, publish_date, retrieved_at) VALUES (
 INSERT INTO feed_url (feed_id, url, source) VALUES ($1, $2, $3);
 
 -- name: GetFeedsForNewsletter :many
-SELECT f.title, f.description, f.url, nf.alias, nf.id FROM newsletter_feed AS nf
+SELECT f.title, f.description, f.url, f.html_url, nf.alias, nf.id FROM newsletter_feed AS nf
 INNER JOIN feed AS f ON nf.feed_id = f.id
 WHERE newsletter_id = $1;
 
@@ -109,6 +109,6 @@ WHERE nlf.newsletter_id = @newsletter_id
 UPDATE feed SET last_retrieved_at = $1, updated_at = NOW() WHERE id = $2;
 
 -- name: GetFeedById :one
-SELECT nlf.id, f.title, f.description, f.url, nlf.alias FROM newsletter_feed AS nlf
+SELECT nlf.id, f.title, f.description, f.url, f.html_url, nlf.alias FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.id = $1 AND nlf.user_id = $2;

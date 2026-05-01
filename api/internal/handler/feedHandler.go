@@ -86,6 +86,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		Title       string `json:"title"`
 		Description string `json:"description"`
 		Url         string `json:"url"`
+		HtmlURL     string `json:"htmlUrl"`
 		Alias       string `json:"alias"`
 	}
 
@@ -117,6 +118,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 				Title:       nlFeed.Title,
 				Description: nlFeed.Description,
 				Url:         nlFeed.Url,
+				HtmlURL:     nlFeed.HtmlUrl,
 				Alias:       nlFeed.Alias,
 			})
 		}
@@ -198,6 +200,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		Alias       string             `json:"alias"`
 		Title       string             `json:"title"`
 		Url         string             `json:"url"`
+		HtmlUrl     string             `json:"htmlUrl"`
 		Description string             `json:"description"`
 		Filters     []feeds.FeedFilter `json:"filters"`
 	}
@@ -251,6 +254,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 				Alias:       feed.Alias,
 				Title:       feed.Title,
 				Url:         feed.Url,
+				HtmlUrl:     feed.HtmlUrl,
 				Description: feed.Description,
 				Filters:     feedFilters,
 			},
