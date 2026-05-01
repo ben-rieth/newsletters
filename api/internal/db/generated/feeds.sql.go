@@ -325,12 +325,15 @@ AND (
         ('url' = ff.field AND item.url NOT ILIKE '%' || ff.pattern || '%')
     ))
 )
-WHERE item.publish_date > $3
+WHERE nlf.newsletter_id = $3 
+    AND nlf.id = $2 
+    AND item.publish_date > $4
 `
 
 type PreviewFeedParams struct {
 	UserID                 string
 	NewsletterFeedID       string
+	NewsletterID           string
 	PublishDateGreaterThan time.Time
 }
 
@@ -345,7 +348,12 @@ type PreviewFeedRow struct {
 }
 
 func (q *Queries) PreviewFeed(ctx context.Context, arg PreviewFeedParams) ([]PreviewFeedRow, error) {
-	rows, err := q.db.Query(ctx, previewFeed, arg.UserID, arg.NewsletterFeedID, arg.PublishDateGreaterThan)
+	rows, err := q.db.Query(ctx, previewFeed,
+		arg.UserID,
+		arg.NewsletterFeedID,
+		arg.NewsletterID,
+		arg.PublishDateGreaterThan,
+	)
 	if err != nil {
 		return nil, err
 	}

@@ -315,6 +315,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		preview, err := h.queries.PreviewFeed(ctx, db.PreviewFeedParams{
 			UserID:                 claims.Subject,
 			NewsletterFeedID:       i.FeedID,
+			NewsletterID:           i.NewsletterID,
 			PublishDateGreaterThan: thirtyDaysAgo,
 		})
 

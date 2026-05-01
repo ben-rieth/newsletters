@@ -101,7 +101,9 @@ AND (
         ('url' = ff.field AND item.url NOT ILIKE '%' || ff.pattern || '%')
     ))
 )
-WHERE item.publish_date > @publish_date_greater_than;
+WHERE nlf.newsletter_id = @newsletter_id 
+    AND nlf.id = @newsletter_feed_id 
+    AND item.publish_date > @publish_date_greater_than;
 
 -- name: UpdateFeedLastRetrievedTime :exec
 UPDATE feed SET last_retrieved_at = $1, updated_at = NOW() WHERE id = $2;
