@@ -10,9 +10,9 @@ import (
 )
 
 type FeedView struct {
-	Title string
-	URL   string
-	Items []FeedItemView
+	Title   string
+	HtmlURL string
+	Items   []FeedItemView
 }
 
 type FeedItemView struct {

@@ -25,7 +25,11 @@
           <tr>
             <td style="padding: 30px;">
               {{range .Feeds}}
-                <h2>{{ .Title }}</h2>
+                {{ if eq .HtmlURL "" }}
+                  <h2>{{ .Title }}</h2>
+                {{else}}
+                  <h2><a href="{{ .HtmlURL }}">{{ .Title }}</a></h2>
+                {{end}}
                 {{ range .Items }}
                 <div style="margin-bottom: 16px;">
                     <h3><a href="{{ .URL }}">{{ .Title }}</a></h3>

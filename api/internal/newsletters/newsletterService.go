@@ -82,6 +82,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 				NewsletterFeedId: row.NewsletterFeedID,
 				Name:             row.Title,
 				URL:              row.Url,
+				HtmlURL:          row.HtmlUrl,
 				LastRetrievedAt:  row.LastRetrievedAt,
 			},
 		)

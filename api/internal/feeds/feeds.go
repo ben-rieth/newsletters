@@ -21,6 +21,7 @@ type BaseFeed struct {
 	NewsletterFeedId string
 	Name             string
 	URL              string
+	HtmlURL          string
 	LastRetrievedAt  time.Time
 }
 

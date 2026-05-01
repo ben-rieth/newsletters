@@ -217,7 +217,10 @@ func (q *Queries) GetFeedItemsPublishedAfter(ctx context.Context, arg GetFeedIte
 }
 
 const getFeedsForManyNewsletters = `-- name: GetFeedsForManyNewsletters :many
-SELECT f.id AS global_feed_id, nlf.id AS newsletter_feed_id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id, nlf.alias
+SELECT 
+    f.id AS global_feed_id, nlf.id AS newsletter_feed_id, 
+    f.title, f.url, f.html_url, f.last_retrieved_at, 
+    nlf.newsletter_id, nlf.alias
 FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.newsletter_id = ANY($1::UUID[])
@@ -228,6 +231,7 @@ type GetFeedsForManyNewslettersRow struct {
 	NewsletterFeedID string
 	Title            string
 	Url              string
+	HtmlUrl          string
 	LastRetrievedAt  time.Time
 	NewsletterID     string
 	Alias            string
@@ -247,6 +251,7 @@ func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []str
 			&i.NewsletterFeedID,
 			&i.Title,
 			&i.Url,
+			&i.HtmlUrl,
 			&i.LastRetrievedAt,
 			&i.NewsletterID,
 			&i.Alias,

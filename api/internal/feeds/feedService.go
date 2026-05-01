@@ -101,15 +101,15 @@ func (s *FeedService) GetFeedDataSince(
 	logData["mustFetchLiveFeed"] = needToFetchLiveFeed
 
 	if needToFetchLiveFeed {
-		wideLog.AddLogField(ctx, "feedUrl", feed.URL)
+		logData["feedUrl"] = feed.URL
 		feedResult, err := s.rssService.FetchFeed(ctx, feed.URL)
 		if err != nil {
 			return nil, err
 		}
 
-		logData["fetchedItems"] = feedResult.Feed.Items
+		logData["fetchedItems"] = len(feedResult.Feed.Items)
 		feedResult.Feed = pruneFeedItemsBeforeTime(feedResult.Feed, feed.LastRetrievedAt)
-		logData["prunedItems"] = feedResult.Feed.Items
+		logData["prunedItems"] = len(feedResult.Feed.Items)
 
 		if err = s.updateFeedCache(
 			ctx,
@@ -143,8 +143,9 @@ func (s *FeedService) GetFeedDataSince(
 	}
 
 	return &FeedView{
-		Items: finalItems,
-		Title: feed.Name,
+		Items:   finalItems,
+		HtmlURL: feed.HtmlURL,
+		Title:   feed.Name,
 	}, nil
 }
 

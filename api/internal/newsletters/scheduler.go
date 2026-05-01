@@ -148,6 +148,9 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 		return err
 	}
 
+	wideLog.AddLogField(ctx, "nonEmptyFeedCount", len(feedResults.Succeeded))
+	wideLog.AddLogField(ctx, "emptyFeedCount", len(feedResults.SucceededNoItems))
+
 	newsletterHtml, err := sch.assembleNewsletter(&nl, feedResults)
 	if err != nil {
 		return err

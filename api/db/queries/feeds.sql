@@ -44,7 +44,10 @@ WHERE newsletter_id = $2 AND id = $3 AND user_id = $4;
 DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2 AND user_id = $3;
 
 -- name: GetFeedsForManyNewsletters :many
-SELECT f.id AS global_feed_id, nlf.id AS newsletter_feed_id, f.title, f.url, f.last_retrieved_at, nlf.newsletter_id, nlf.alias
+SELECT 
+    f.id AS global_feed_id, nlf.id AS newsletter_feed_id, 
+    f.title, f.url, f.html_url, f.last_retrieved_at, 
+    nlf.newsletter_id, nlf.alias
 FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.newsletter_id = ANY($1::UUID[]);
