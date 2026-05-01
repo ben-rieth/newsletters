@@ -325,6 +325,7 @@ type Feed struct {
 	LastRetrievedAt time.Time
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	HtmlUrl         string
 }
 
 type FeedItem struct {

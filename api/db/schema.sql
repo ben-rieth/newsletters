@@ -1,4 +1,4 @@
-\restrict NA6BdTPfzXLfmBFj7AAizH8BR3sxBsgGQDhrGGAhLsA7n8PMqEBXWRKkxhVsdmu
+\restrict h6Plk8W9cqxxrH93HQHjVRb9ftbEggmySr8QlHDSoFbd4XHn8jAzAFcij8PNBVK
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -115,7 +115,8 @@ CREATE TABLE public.feed (
     url text NOT NULL,
     last_retrieved_at timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    html_url text DEFAULT ''::text NOT NULL
 );
 
 
@@ -535,7 +536,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict NA6BdTPfzXLfmBFj7AAizH8BR3sxBsgGQDhrGGAhLsA7n8PMqEBXWRKkxhVsdmu
+\unrestrict h6Plk8W9cqxxrH93HQHjVRb9ftbEggmySr8QlHDSoFbd4XHn8jAzAFcij8PNBVK
 
 
 --
@@ -544,4 +545,5 @@ ALTER TABLE ONLY public.verification_token
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('20260329010424'),
-    ('20260421220214');
+    ('20260421220214'),
+    ('20260501141144');

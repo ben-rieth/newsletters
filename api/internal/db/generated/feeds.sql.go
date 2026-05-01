@@ -97,7 +97,7 @@ func (q *Queries) DoesFeedExist(ctx context.Context, arg DoesFeedExistParams) (b
 }
 
 const getCachedFeedDetails = `-- name: GetCachedFeedDetails :one
-SELECT f.id, f.title, f.url, f.description
+SELECT f.id, f.title, f.url, f.html_url, f.description
 FROM feed_url AS furl
 INNER JOIN feed AS f ON furl.feed_id = f.id 
 WHERE furl.url = $1
@@ -107,6 +107,7 @@ type GetCachedFeedDetailsRow struct {
 	ID          string
 	Title       string
 	Url         string
+	HtmlUrl     string
 	Description string
 }
 
@@ -117,6 +118,7 @@ func (q *Queries) GetCachedFeedDetails(ctx context.Context, url string) (GetCach
 		&i.ID,
 		&i.Title,
 		&i.Url,
+		&i.HtmlUrl,
 		&i.Description,
 	)
 	return i, err
@@ -366,14 +368,15 @@ func (q *Queries) PreviewFeed(ctx context.Context, arg PreviewFeedParams) ([]Pre
 }
 
 const saveFeedDetails = `-- name: SaveFeedDetails :one
-INSERT INTO feed (title, url, description, last_retrieved_at) 
-VALUES ($1, $2, $3, $4)
+INSERT INTO feed (title, url, html_url, description, last_retrieved_at) 
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id
 `
 
 type SaveFeedDetailsParams struct {
 	Title           string
 	Url             string
+	HtmlUrl         string
 	Description     string
 	LastRetrievedAt time.Time
 }
@@ -382,6 +385,7 @@ func (q *Queries) SaveFeedDetails(ctx context.Context, arg SaveFeedDetailsParams
 	row := q.db.QueryRow(ctx, saveFeedDetails,
 		arg.Title,
 		arg.Url,
+		arg.HtmlUrl,
 		arg.Description,
 		arg.LastRetrievedAt,
 	)
@@ -402,6 +406,31 @@ type SaveFeedUrlsParams struct {
 	FeedID string
 	Url    string
 	Source FeedUrlSource
+}
+
+const updateCachedFeed = `-- name: UpdateCachedFeed :exec
+UPDATE feed 
+SET title = $1, html_url = $2, description = $3, last_retrieved_at = $4, updated_at = NOW()
+WHERE id = $5
+`
+
+type UpdateCachedFeedParams struct {
+	Title           string
+	HtmlUrl         string
+	Description     string
+	LastRetrievedAt time.Time
+	ID              string
+}
+
+func (q *Queries) UpdateCachedFeed(ctx context.Context, arg UpdateCachedFeedParams) error {
+	_, err := q.db.Exec(ctx, updateCachedFeed,
+		arg.Title,
+		arg.HtmlUrl,
+		arg.Description,
+		arg.LastRetrievedAt,
+		arg.ID,
+	)
+	return err
 }
 
 const updateFeedLastRetrievedTime = `-- name: UpdateFeedLastRetrievedTime :exec

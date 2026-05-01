@@ -3,7 +3,7 @@ package feeds
 import (
 	"context"
 	"errors"
-	"log"
+	"fmt"
 	"time"
 
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
@@ -38,6 +38,7 @@ func (s *FeedService) GetFeedMetaData(ctx context.Context, url string, returnId 
 			Title:       result.Title,
 			Description: result.Description,
 			URL:         result.Url,
+			HtmlURL:     result.HtmlUrl,
 		}, nil
 	}
 
@@ -66,7 +67,7 @@ func (s *FeedService) GetFeedMetaData(ctx context.Context, url string, returnId 
 		go func() {
 			_, err := s.saveFeedDetails(context.Background(), fetchFeedRes)
 			if err != nil {
-				log.Printf("Failed to cache feed in database: %v", err)
+				wideLog.AddErrorField(ctx, fmt.Errorf("Failed to cache feed in database: %v", err))
 			}
 		}()
 	}
@@ -75,7 +76,8 @@ func (s *FeedService) GetFeedMetaData(ctx context.Context, url string, returnId 
 		Id:          feedId,
 		Title:       fetchFeedRes.Feed.Title,
 		Description: fetchFeedRes.Feed.Description,
-		URL:         fetchFeedRes.Feed.Link,
+		URL:         fetchFeedRes.FinalUrl,
+		HtmlURL:     fetchFeedRes.Feed.Link,
 	}, nil
 }
 
@@ -109,12 +111,10 @@ func (s *FeedService) GetFeedDataSince(
 		feedResult.Feed = pruneFeedItemsBeforeTime(feedResult.Feed, feed.LastRetrievedAt)
 		logData["prunedItems"] = feedResult.Feed.Items
 
-		feedItemDetails := buildFeedItemParamsFromGoFeed(feedResult.Feed, feed.GlobalFeedId, feedResult.RetrievedAt)
 		if err = s.updateFeedCache(
 			ctx,
 			feed.GlobalFeedId,
-			feedItemDetails,
-			feedResult.RetrievedAt,
+			feedResult,
 		); err != nil {
 			return nil, err
 		}
@@ -159,6 +159,7 @@ func (s *FeedService) saveFeedDetails(ctx context.Context, feed *FetchFeedResult
 
 	feedId, err := qtx.SaveFeedDetails(ctx, db.SaveFeedDetailsParams{
 		Title:           feed.Feed.Title,
+		HtmlUrl:         feed.Feed.Link,
 		Url:             feed.FinalUrl,
 		Description:     feed.Feed.Description,
 		LastRetrievedAt: feed.RetrievedAt,
@@ -191,9 +192,10 @@ func (s *FeedService) saveFeedDetails(ctx context.Context, feed *FetchFeedResult
 func (s *FeedService) updateFeedCache(
 	ctx context.Context,
 	feedId string,
-	feedItemDetails []db.SaveFeedItemDetailsParams,
-	retrievedAt time.Time,
+	feedResult *FetchFeedResult,
 ) error {
+	feedItemDetails := buildFeedItemParamsFromGoFeed(feedResult.Feed, feedId, feedResult.RetrievedAt)
+
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
 		return err
@@ -206,9 +208,12 @@ func (s *FeedService) updateFeedCache(
 		return err
 	}
 
-	err = qtx.UpdateFeedLastRetrievedTime(ctx, db.UpdateFeedLastRetrievedTimeParams{
+	err = qtx.UpdateCachedFeed(ctx, db.UpdateCachedFeedParams{
 		ID:              feedId,
-		LastRetrievedAt: retrievedAt,
+		LastRetrievedAt: feedResult.RetrievedAt,
+		Title:           feedResult.Feed.Title,
+		HtmlUrl:         feedResult.Feed.Link,
+		Description:     feedResult.Feed.Description,
 	})
 
 	if err != nil {

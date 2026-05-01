@@ -1,13 +1,18 @@
 -- name: GetCachedFeedDetails :one
-SELECT f.id, f.title, f.url, f.description
+SELECT f.id, f.title, f.url, f.html_url, f.description
 FROM feed_url AS furl
 INNER JOIN feed AS f ON furl.feed_id = f.id 
 WHERE furl.url = $1;
 
 -- name: SaveFeedDetails :one
-INSERT INTO feed (title, url, description, last_retrieved_at) 
-VALUES ($1, $2, $3, $4)
+INSERT INTO feed (title, url, html_url, description, last_retrieved_at) 
+VALUES ($1, $2, $3, $4, $5)
 RETURNING id;
+
+-- name: UpdateCachedFeed :exec
+UPDATE feed 
+SET title = $1, html_url = $2, description = $3, last_retrieved_at = $4, updated_at = NOW()
+WHERE id = $5;
 
 -- name: SaveFeedItemDetails :copyfrom
 INSERT INTO feed_item (feed_id, title, url, publish_date, retrieved_at) VALUES ($1, $2, $3, $4, $5);

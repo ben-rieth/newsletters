@@ -25,6 +25,7 @@ type FeedMetaData struct {
 	Id          string
 	Title       string
 	URL         string
+	HtmlURL     string
 	Description string
 }
 
