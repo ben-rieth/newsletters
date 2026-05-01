@@ -3,6 +3,7 @@ package wideLog
 import (
 	"context"
 	"log/slog"
+	"math/rand/v2"
 	"net/http"
 	"time"
 
@@ -80,5 +81,5 @@ func shouldLog(ctx huma.Context, logMap *WideLog) (bool, slog.Level) {
 	}
 
 	logMap.AddLogField("reason", "chance")
-	return true, slog.LevelInfo
+	return rand.Float64() < 0.05, slog.LevelInfo
 }
