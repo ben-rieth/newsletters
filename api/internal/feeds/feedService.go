@@ -46,7 +46,7 @@ func (s *FeedService) GetFeedMetaData(ctx context.Context, url string, returnId 
 	}
 
 	now := time.Now()
-	itemLookBack := time.Date(now.Year(), now.Month()-2, now.Day(), 0, 0, 0, 0, now.Location())
+	itemLookBack := now.AddDate(0, -2, 0)
 
 	fetchFeedRes, err := s.rssService.FetchFeed(ctx, url)
 	if err != nil {
