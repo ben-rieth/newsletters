@@ -21,6 +21,7 @@ func notFoundError(entityName string) huma.StatusError {
 }
 
 var unauthorizedErrorText = "Not authorized"
+
 func unauthorizedError() huma.StatusError {
 	return huma.Error401Unauthorized(unauthorizedErrorText)
 }
@@ -28,6 +29,6 @@ func unauthorizedError() huma.StatusError {
 var internalServerErrorText = "Something went wrong on our end. Please try again."
 
 func internalServerError(ctx context.Context, err error) huma.StatusError {
-	wideLog.AddLogField(ctx, "error", err)
+	wideLog.AddErrorField(ctx, err)
 	return huma.Error500InternalServerError(internalServerErrorText)
 }

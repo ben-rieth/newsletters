@@ -13,7 +13,7 @@ import (
 
 func WideLogMiddleware(ctx huma.Context, next func(huma.Context)) {
 	logMap := NewWideLog()
-	ctx = huma.WithValue(ctx, logKey, &logMap)
+	ctx = huma.WithValue(ctx, logKey, logMap)
 
 	requestId := uuid.New()
 
