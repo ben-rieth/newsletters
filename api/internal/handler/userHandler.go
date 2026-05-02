@@ -2,23 +2,31 @@ package handler
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/mail"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
+	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/users"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/jackc/pgx/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UserHandler struct {
-	queries     *db.Queries
-	userService *users.UserService
+	queries            *db.Queries
+	userService        *users.UserService
+	emailVerifyService *email.EmailVerifyService
 }
 
-func NewUserHandler(queries *db.Queries, userService *users.UserService) *UserHandler {
-	return &UserHandler{queries, userService}
+func NewUserHandler(
+	queries *db.Queries,
+	userService *users.UserService,
+	emailVerifyService *email.EmailVerifyService,
+) *UserHandler {
+	return &UserHandler{queries, userService, emailVerifyService}
 }
 
 type visibleUser struct {
@@ -51,40 +59,6 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 				Email: user.Email,
 			},
 		}, nil
-	})
-
-	type updateEmailInput struct {
-		Body struct {
-			Email string `json:"email"`
-		}
-	}
-
-	huma.Register(api, huma.Operation{
-		OperationID:   "update-email",
-		Method:        "PATCH",
-		Path:          "/user/email",
-		Summary:       "Update user's email",
-		DefaultStatus: http.StatusNoContent,
-	}, func(ctx context.Context, i *updateEmailInput) (*struct{}, error) {
-		claims, ok := auth.ClaimsFromContext(ctx)
-		if !ok || claims == nil {
-			return nil, huma.Error401Unauthorized("Not authorized")
-		}
-
-		if _, err := mail.ParseAddress(i.Body.Email); err != nil {
-			return nil, badRequestError("Invalid email")
-		}
-
-		err := h.queries.UpdateUserEmail(ctx, db.UpdateUserEmailParams{
-			Email: i.Body.Email,
-			ID:    claims.Subject,
-		})
-
-		if err != nil {
-			return nil, internalServerError(ctx, err)
-		}
-
-		return nil, nil
 	})
 
 	type updatePasswordInput struct {
@@ -167,4 +141,114 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 
 		return nil, nil
 	})
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "update-email",
+		Method:        "PATCH",
+		Path:          "/user/email",
+		Summary:       "Update user's email",
+		DefaultStatus: http.StatusNoContent,
+	}, h.handleEmailUpdate)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "verify-email-update",
+		Method:      "POST",
+		Path:        "/user/email/verify",
+		Summary:     "Verify new email",
+	}, h.handleVerifyEmailUpdate)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "resend-email-verification-for-update",
+		Method:        http.MethodPost,
+		Path:          "/user/verify/resend",
+		Summary:       "Resend email verification email for email update flow",
+		DefaultStatus: http.StatusNoContent,
+	}, h.handleResendVerificationEmail)
+}
+
+func (h *UserHandler) handleEmailUpdate(ctx context.Context, i *struct {
+	Body struct {
+		Email string `json:"email"`
+	}
+}) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, huma.Error401Unauthorized("Not authorized")
+	}
+
+	if _, err := mail.ParseAddress(i.Body.Email); err != nil {
+		return nil, badRequestError("Invalid email")
+	}
+
+	_, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
+	if err == nil {
+		return nil, huma.Error409Conflict("Email is already in use.")
+	}
+
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, internalServerError(ctx, err)
+	}
+
+	err = h.queries.AddPendingEmailUpdate(ctx, db.AddPendingEmailUpdateParams{
+		PendingEmail: i.Body.Email,
+		ID:           claims.Subject,
+	})
+
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	err = h.emailVerifyService.SendVerificationEmail(ctx, claims.Subject, i.Body.Email)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
+}
+
+func (h *UserHandler) handleVerifyEmailUpdate(ctx context.Context, i *struct {
+	Body struct {
+		Code string `json:"code"`
+	}
+}) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, huma.Error401Unauthorized("Not authorized")
+	}
+
+	err := h.emailVerifyService.VerifyUserEmailUpdate(ctx, claims.Subject, i.Body.Code)
+	if err != nil {
+		if errors.Is(err, email.InvalidTokenError) {
+			return nil, badRequestError("Token or email is invalid.")
+		}
+
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
+}
+
+func (h *UserHandler) handleResendVerificationEmail(ctx context.Context, i *struct{}) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, huma.Error401Unauthorized("Not authorized")
+	}
+
+	user, err := h.queries.GetUserById(ctx, claims.Subject)
+	if err != nil {
+		if errors.Is(pgx.ErrNoRows, err) {
+			return nil, nil
+		}
+		return nil, huma.Error500InternalServerError(internalServerErrorText)
+	}
+
+	if _, err := mail.ParseAddress(user.PendingEmail); err != nil {
+		return nil, badRequestError("User not in email update flow")
+	}
+
+	if err = h.emailVerifyService.SendVerificationEmail(ctx, user.ID, user.PendingEmail); err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
 }

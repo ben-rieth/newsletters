@@ -9,6 +9,20 @@ import (
 	"context"
 )
 
+const addPendingEmailUpdate = `-- name: AddPendingEmailUpdate :exec
+UPDATE app_user SET pending_email = $1, updated_at = NOW() WHERE id = $2
+`
+
+type AddPendingEmailUpdateParams struct {
+	PendingEmail string
+	ID           string
+}
+
+func (q *Queries) AddPendingEmailUpdate(ctx context.Context, arg AddPendingEmailUpdateParams) error {
+	_, err := q.db.Exec(ctx, addPendingEmailUpdate, arg.PendingEmail, arg.ID)
+	return err
+}
+
 const createUser = `-- name: CreateUser :one
 INSERT INTO app_user (email, password) VALUES ($1, $2) RETURNING id
 `
@@ -46,7 +60,7 @@ func (q *Queries) DoesUserWithEmailExist(ctx context.Context, email string) (boo
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password, email_verified_at, created_at, updated_at FROM app_user WHERE email = $1
+SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email FROM app_user WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, error) {
@@ -59,12 +73,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, er
 		&i.EmailVerifiedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PendingEmail,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, email, password, email_verified_at, created_at, updated_at FROM app_user WHERE id = $1
+SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email FROM app_user WHERE id = $1
 `
 
 func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
@@ -77,6 +92,7 @@ func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
 		&i.EmailVerifiedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.PendingEmail,
 	)
 	return i, err
 }
@@ -98,6 +114,16 @@ UPDATE app_user SET email_verified_at = NOW() WHERE id = $1
 
 func (q *Queries) MarkUserEmailAsVerified(ctx context.Context, id string) error {
 	_, err := q.db.Exec(ctx, markUserEmailAsVerified, id)
+	return err
+}
+
+const markUserEmailUpdateAsVerified = `-- name: MarkUserEmailUpdateAsVerified :exec
+UPDATE app_user SET email_verified_at = NOW(), email = pending_email, pending_email = ''
+WHERE id = $1
+`
+
+func (q *Queries) MarkUserEmailUpdateAsVerified(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, markUserEmailUpdateAsVerified, id)
 	return err
 }
 

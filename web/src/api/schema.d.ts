@@ -99,7 +99,7 @@ export interface paths {
     get?: never;
     put?: never;
     /** Resend email verification email */
-    post: operations['resend-eamil-verification'];
+    post: operations['resend-email-verification'];
     delete?: never;
     options?: never;
     head?: never;
@@ -385,6 +385,23 @@ export interface paths {
     patch: operations['update-email'];
     trace?: never;
   };
+  '/user/email/verify': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Verify new email */
+    post: operations['verify-email-update'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/user/password': {
     parameters: {
       query?: never;
@@ -400,6 +417,23 @@ export interface paths {
     head?: never;
     /** Update user's password */
     patch: operations['update-password'];
+    trace?: never;
+  };
+  '/user/verify/resend': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Resend email verification email for email update flow */
+    post: operations['resend-email-verification-for-update'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
     trace?: never;
   };
 }
@@ -544,11 +578,11 @@ export interface components {
       /** Format: date-time */
       updatedAt: string;
     };
-    'Resend-eamil-verificationRequest': {
+    'Resend-email-verificationRequest': {
       /**
        * Format: uri
        * @description A URL to the JSON Schema for this object.
-       * @example https://example.com/schemas/Resend-eamil-verificationRequest.json
+       * @example https://example.com/schemas/Resend-email-verificationRequest.json
        */
       readonly $schema?: string;
       email: string;
@@ -628,6 +662,15 @@ export interface components {
       readonly $schema?: string;
       alias: string;
     };
+    'Update-emailRequest': {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/Update-emailRequest.json
+       */
+      readonly $schema?: string;
+      email: string;
+    };
     'Update-newsletter-statusRequest': {
       /**
        * Format: uri
@@ -638,15 +681,6 @@ export interface components {
       /** @enum {string} */
       status: 'active' | 'inactive';
     };
-    UpdateEmailInputBody: {
-      /**
-       * Format: uri
-       * @description A URL to the JSON Schema for this object.
-       * @example https://example.com/schemas/UpdateEmailInputBody.json
-       */
-      readonly $schema?: string;
-      email: string;
-    };
     UpdatePasswordInputBody: {
       /**
        * Format: uri
@@ -656,6 +690,15 @@ export interface components {
       readonly $schema?: string;
       currentPassword: string;
       newPassword: string;
+    };
+    'Verify-email-updateRequest': {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/Verify-email-updateRequest.json
+       */
+      readonly $schema?: string;
+      code: string;
     };
     'Verify-emailRequest': {
       /**
@@ -844,7 +887,7 @@ export interface operations {
       };
     };
   };
-  'resend-eamil-verification': {
+  'resend-email-verification': {
     parameters: {
       query?: never;
       header?: never;
@@ -853,7 +896,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['Resend-eamil-verificationRequest'];
+        'application/json': components['schemas']['Resend-email-verificationRequest'];
       };
     };
     responses: {
@@ -1596,7 +1639,38 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpdateEmailInputBody'];
+        'application/json': components['schemas']['Update-emailRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'verify-email-update': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Verify-email-updateRequest'];
       };
     };
     responses: {
@@ -1630,6 +1704,33 @@ export interface operations {
         'application/json': components['schemas']['UpdatePasswordInputBody'];
       };
     };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'resend-email-verification-for-update': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
     responses: {
       /** @description No Content */
       204: {

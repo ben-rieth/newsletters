@@ -48,6 +48,7 @@ func main() {
 		log.Fatalf("Could not get email templates: %v", err)
 	}
 	emailService := email.NewResendEmailService(&cfg, tmpl)
+	emailVerifyService := email.NewEmailVerifyService(queries, cfg, emailService)
 
 	newsletterService := newsletters.NewNewsletterService(queries, pool)
 
@@ -78,7 +79,7 @@ func main() {
 	authApiRateLimiting := auth.NewRateLimitMiddleware(api, 1, 5)
 	authApi.UseMiddleware(authApiRateLimiting)
 
-	authHandler := handler.NewAuthHandler(queries, emailService, &cfg)
+	authHandler := handler.NewAuthHandler(queries, &cfg, emailVerifyService)
 	authHandler.RegisterRoutes(authApi)
 
 	if cfg.Environment == "dev" {
@@ -108,7 +109,7 @@ func main() {
 	feedFilterHandler := handler.NewFeedFilterHandler(queries)
 	feedFilterHandler.RegisterRoutes(protectedApi)
 
-	userHandler := handler.NewUserHandler(queries, userService)
+	userHandler := handler.NewUserHandler(queries, userService, emailVerifyService)
 	userHandler.RegisterRoutes(protectedApi)
 
 	exportHandler := handler.NewExportHandler(queries)

@@ -315,6 +315,7 @@ type AppUser struct {
 	EmailVerifiedAt pgtype.Timestamptz
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
+	PendingEmail    string
 }
 
 type Feed struct {

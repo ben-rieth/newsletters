@@ -1,4 +1,4 @@
-\restrict h6Plk8W9cqxxrH93HQHjVRb9ftbEggmySr8QlHDSoFbd4XHn8jAzAFcij8PNBVK
+\restrict xh2FNATGTglliynlf5E0AOFKYThbiX9uYXLb8UvzDuhi3lYbXhIgth4WHlUhXEF
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -100,7 +100,8 @@ CREATE TABLE public.app_user (
     password text NOT NULL,
     email_verified_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    pending_email text DEFAULT ''::text NOT NULL
 );
 
 
@@ -536,7 +537,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict h6Plk8W9cqxxrH93HQHjVRb9ftbEggmySr8QlHDSoFbd4XHn8jAzAFcij8PNBVK
+\unrestrict xh2FNATGTglliynlf5E0AOFKYThbiX9uYXLb8UvzDuhi3lYbXhIgth4WHlUhXEF
 
 
 --
@@ -546,4 +547,5 @@ ALTER TABLE ONLY public.verification_token
 INSERT INTO public.schema_migrations (version) VALUES
     ('20260329010424'),
     ('20260421220214'),
-    ('20260501141144');
+    ('20260501141144'),
+    ('20260502170343');

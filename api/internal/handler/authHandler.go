@@ -46,13 +46,17 @@ type refreshInput struct {
 }
 
 type AuthHandler struct {
-	queries      *db.Queries
-	emailService email.EmailService
-	config       *config.Config
+	queries            *db.Queries
+	config             *config.Config
+	emailVerifyService *email.EmailVerifyService
 }
 
-func NewAuthHandler(queries *db.Queries, emailService email.EmailService, config *config.Config) *AuthHandler {
-	return &AuthHandler{queries, emailService, config}
+func NewAuthHandler(
+	queries *db.Queries,
+	config *config.Config,
+	emailVerifyService *email.EmailVerifyService,
+) *AuthHandler {
+	return &AuthHandler{queries, config, emailVerifyService}
 }
 
 func (h *AuthHandler) RegisterRoutes(api huma.API) {
@@ -94,7 +98,7 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 	}, h.handleRevokeToken)
 
 	huma.Register(api, huma.Operation{
-		OperationID:   "resend-eamil-verification",
+		OperationID:   "resend-email-verification",
 		Method:        http.MethodPost,
 		Path:          "/auth/verify/resend",
 		Summary:       "Resend email verification email",
@@ -113,7 +117,7 @@ func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutp
 	}
 
 	if !exists {
-		return nil, huma.Error403Forbidden("Email not on whitelist")
+		return nil, huma.Error403Forbidden("Email not on whitelist. Please contact site owner for invitation.")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(i.Body.Password), bcrypt.DefaultCost)
@@ -137,7 +141,7 @@ func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutp
 	}
 	wideLog.AddLogField(ctx, "didCreateUser", true)
 
-	err = h.sendVerificationEmail(ctx, id, i.Body.Email)
+	err = h.emailVerifyService.SendVerificationEmail(ctx, id, i.Body.Email)
 	if err != nil {
 		return nil, internalServerError(ctx, err)
 	}
@@ -161,7 +165,7 @@ func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutp
 	}
 
 	if !user.EmailVerifiedAt.Valid {
-		err = h.sendVerificationEmail(ctx, user.ID, user.Email)
+		err = h.emailVerifyService.SendVerificationEmail(ctx, user.ID, i.Body.Email)
 		if err != nil {
 			return nil, internalServerError(ctx, err)
 		}
@@ -195,32 +199,15 @@ func (h *AuthHandler) handleVerifyEmail(ctx context.Context, i *struct {
 }) (*authOutput, error) {
 	user, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
 	if err != nil {
-		return nil, huma.Error401Unauthorized("Token or email is invalid")
+		return nil, badRequestError("Token or email is invalid.")
 	}
 
-	hashedToken := hashVerificationToken(i.Body.Code)
-	_, err = h.queries.FindValidToken(ctx, db.FindValidTokenParams{
-		UserID:               user.ID,
-		Code:                 hashedToken,
-		Purpose:              db.TokenPurposeEmailVerify,
-		ExpiresAtGreaterThan: time.Now(),
-	})
+	err = h.emailVerifyService.VerifyUserEmail(ctx, user.ID, i.Body.Code)
 	if err != nil {
-		if errors.Is(pgx.ErrNoRows, err) {
+		if errors.Is(err, email.InvalidTokenError) {
 			return nil, badRequestError("Token or email is invalid.")
 		}
 
-		return nil, internalServerError(ctx, err)
-	}
-
-	if err = h.queries.DeleteExistingTokensWithPurpose(ctx, db.DeleteExistingTokensWithPurposeParams{
-		UserID:  user.ID,
-		Purpose: db.TokenPurposeEmailVerify,
-	}); err != nil {
-		return nil, internalServerError(ctx, err)
-	}
-
-	if err = h.queries.MarkUserEmailAsVerified(ctx, user.ID); err != nil {
 		return nil, internalServerError(ctx, err)
 	}
 
@@ -300,64 +287,11 @@ func (h *AuthHandler) handleResendVerificationEmail(ctx context.Context, i *stru
 		return nil, huma.Error500InternalServerError(internalServerErrorText)
 	}
 
-	if err = h.sendVerificationEmail(ctx, user.ID, user.Email); err != nil {
+	if err = h.emailVerifyService.SendVerificationEmail(ctx, user.ID, i.Body.Email); err != nil {
 		return nil, internalServerError(ctx, err)
 	}
 
 	return nil, nil
-}
-
-func (h *AuthHandler) sendVerificationEmail(
-	ctx context.Context,
-	userID string,
-	userEmail string,
-) error {
-	err := h.queries.DeleteExistingTokensWithPurpose(ctx, db.DeleteExistingTokensWithPurposeParams{
-		UserID:  userID,
-		Purpose: db.TokenPurposeEmailVerify,
-	})
-	if err != nil {
-		return err
-	}
-
-	verificationToken, err := auth.MakeVerificationToken()
-	if err != nil {
-		return err
-	}
-	wideLog.AddLogField(ctx, "didMakeVerificationToken", true)
-
-	hashedToken := hashVerificationToken(verificationToken)
-
-	err = h.queries.SaveVerificationToken(ctx, db.SaveVerificationTokenParams{
-		UserID:    userID,
-		Code:      hashedToken,
-		Purpose:   db.TokenPurposeEmailVerify,
-		ExpiresAt: time.Now().Add(time.Minute * 10),
-	})
-	if err != nil {
-		return err
-	}
-
-	emailHtml, err := h.emailService.AssembleEmail("verify-email.html", map[string]any{
-		"Code": verificationToken,
-	})
-	if err != nil {
-		return err
-	}
-
-	result, err := h.emailService.Send(
-		ctx,
-		"Verify your email",
-		h.config.NewsletterSenderEmail.Address,
-		userEmail,
-		emailHtml,
-	)
-	if err != nil {
-		return err
-	}
-
-	wideLog.AddLogField(ctx, "emailSendResult", result)
-	return nil
 }
 
 func (h *AuthHandler) buildTokenResult(ctx context.Context, userID string) (*Tokens, error) {
