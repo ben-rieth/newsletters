@@ -207,7 +207,6 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 			if err != nil {
 				feedErrors[index] = err
 				results[index] = nil
-
 				return
 			}
 

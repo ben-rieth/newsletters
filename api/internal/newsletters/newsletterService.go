@@ -75,16 +75,22 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 
 	feedsByNewsletter := make(map[string][]feeds.BaseFeed)
 	for _, row := range feedsResult {
+		baseFeed := feeds.BaseFeed{
+			GlobalFeedId:     row.GlobalFeedID,
+			NewsletterFeedId: row.NewsletterFeedID,
+			Name:             row.Title,
+			URL:              row.Url,
+			HtmlURL:          row.HtmlUrl,
+			LastRetrievedAt:  row.LastRetrievedAt,
+		}
+
+		if len(row.Alias) > 0 {
+			baseFeed.Name = row.Alias
+		}
+
 		feedsByNewsletter[row.NewsletterID] = append(
 			feedsByNewsletter[row.NewsletterID],
-			feeds.BaseFeed{
-				GlobalFeedId:     row.GlobalFeedID,
-				NewsletterFeedId: row.NewsletterFeedID,
-				Name:             row.Title,
-				URL:              row.Url,
-				HtmlURL:          row.HtmlUrl,
-				LastRetrievedAt:  row.LastRetrievedAt,
-			},
+			baseFeed,
 		)
 	}
 
