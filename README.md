@@ -14,13 +14,13 @@ A self-hosted newsletter service that aggregates RSS/Atom feeds into scheduled e
 
 ## Stack
 
-| Layer | Technology |
-|---|---|
-| Backend | Go, [Huma v2](https://huma.rocks) (REST + OpenAPI), PostgreSQL |
-| Frontend | React, [TanStack Start](https://tanstack.com/start), TanStack Router, TanStack Query v5 |
-| API client | [openapi-fetch](https://openapi-ts.dev/openapi-fetch/) with auto-generated types |
-| UI | [shadcn/ui](https://ui.shadcn.com), Tailwind CSS v4 |
-| Email | [Resend](https://resend.com) |
+| Layer      | Technology                                                                              |
+| ---------- | --------------------------------------------------------------------------------------- |
+| Backend    | Go, [Huma v2](https://huma.rocks) (REST + OpenAPI), PostgreSQL                          |
+| Frontend   | React, [TanStack Start](https://tanstack.com/start), TanStack Router, TanStack Query v5 |
+| API client | [openapi-fetch](https://openapi-ts.dev/openapi-fetch/) with auto-generated types        |
+| UI         | [shadcn/ui](https://ui.shadcn.com), Tailwind CSS v4                                     |
+| Email      | [Resend](https://resend.com)                                                            |
 
 ## Project Structure
 
@@ -41,39 +41,44 @@ A self-hosted newsletter service that aggregates RSS/Atom feeds into scheduled e
 
 - Go 1.25+
 - Node.js + [pnpm](https://pnpm.io)
-- PostgreSQL
+- Docker (for the database)
 - [Air](https://github.com/air-verse/air) (Go live reloader) — `go install github.com/air-verse/air@latest`
 - A [Resend](https://resend.com) API key
 
 ## Getting Started
 
-**1. Clone and set up the database**
+**1. Clone and start the database**
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/ben-rieth/newsletters.git
 cd newsletters
-# Create a PostgreSQL database and run api/db/schema.sql
-psql -d your_db < api/db/schema.sql
+docker compose up -d
 ```
+
+This starts a PostgreSQL 16 container on port 5432 and applies `api/db/schema.sql` automatically.
 
 **2. Configure the backend**
 
 ```bash
-cp api/.env.example api/.env  # or create api/.env manually
+cp api/.env.example api/.env
 ```
 
 ```env
 # api/.env
-DATABASE_URL=postgres://user:password@localhost:5432/newsletters
+HOST=localhost
+PORT=8080
+WEB_URL=http://localhost:3000
+ENVIRONMENT=dev
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/newsletters
 JWT_SECRET=your-secret-here
 RESEND_API_KEY=re_...
-EMAIL_FROM=newsletters@yourdomain.com
+NEWSLETTER_SENDER_EMAIL=newsletters@yourdomain.com
 ```
 
 **3. Configure the frontend**
 
 ```bash
-cp web/.env.example web/.env  # or create web/.env manually
+cp web/.env.example web/.env
 ```
 
 ```env
