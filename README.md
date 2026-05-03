@@ -52,7 +52,7 @@ A self-hosted newsletter service that aggregates RSS/Atom feeds into scheduled e
 ```bash
 git clone https://github.com/ben-rieth/newsletters.git
 cd newsletters
-docker compose up -d
+docker compose -f docker-compose.dev.yml up -d
 ```
 
 This starts a PostgreSQL 16 container on port 5432 and applies `api/db/schema.sql` automatically.
