@@ -36,17 +36,22 @@ func (wl *WideLog) AddLogField(key string, value any) {
 
 func (wl *WideLog) AddErrorField(errs ...error) {
 	errLogValue, ok := (*wl)["error"]
-	typedErrs, ok := errLogValue.value.([]error)
+	typedErrs, ok := errLogValue.value.([]string)
+
+	errorStrings := make([]string, 0, len(errs))
+	for _, err := range errs {
+		errorStrings = append(errorStrings, err.Error())
+	}
 
 	if !ok {
 		(*wl)["error"] = logValue{
-			value:     errs,
+			value:     errorStrings,
 			timestamp: time.Now(),
 		}
 		return
 	}
 
-	newErrs := append(typedErrs, errs...)
+	newErrs := append(typedErrs, errorStrings...)
 	(*wl)["error"] = logValue{
 		value:     newErrs,
 		timestamp: time.Now(),
@@ -64,9 +69,9 @@ func (wl *WideLog) AddArrayField(key string, value any) {
 		return
 	}
 
-	newErrs := append(typedValue, value)
+	newValues := append(typedValue, value)
 	(*wl)[key] = logValue{
-		value:     newErrs,
+		value:     newValues,
 		timestamp: time.Now(),
 	}
 }
