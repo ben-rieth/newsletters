@@ -4,6 +4,7 @@ import { clearSession } from '#/features/auth/lib/session';
 
 const client = createClient<paths>({
   baseUrl: import.meta.env.VITE_API_URL,
+  credentials: 'include',
 });
 
 // Save a clone of each request before the body is consumed so we can retry
@@ -12,15 +13,8 @@ const requestClones = new WeakMap<Request, Request>();
 
 client.use({
   onRequest({ request }) {
-    if (request.url.includes('/auth/refresh')) {
-      return request;
-    }
-
-    requestClones.set(request, request.clone());
-
-    const token = localStorage.getItem('token');
-    if (token) {
-      request.headers.set('Authorization', `Bearer ${token}`);
+    if (!request.url.includes('/auth/')) {
+      requestClones.set(request, request.clone());
     }
     return request;
   },
@@ -29,18 +23,9 @@ client.use({
       return response;
     }
 
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (!refreshToken) {
-      clearSession();
-      return response;
-    }
-
     const refreshResponse = await fetch(
       `${import.meta.env.VITE_API_URL}/auth/refresh`,
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${refreshToken}` },
-      },
+      { method: 'POST', credentials: 'include' },
     );
 
     if (!refreshResponse.ok) {
@@ -48,21 +33,13 @@ client.use({
       return response;
     }
 
-    const { tokens } = (await refreshResponse.json()) as {
-      tokens: { token: string; refreshToken: string };
-    };
-    localStorage.setItem('token', tokens.token);
-    localStorage.setItem('refreshToken', tokens.refreshToken);
-
     const saved = requestClones.get(request);
     if (!saved) {
       clearSession();
       return response;
     }
 
-    const headers = new Headers(saved.headers);
-    headers.set('Authorization', `Bearer ${tokens.token}`);
-    return fetch(new Request(saved, { headers }));
+    return fetch(new Request(saved));
   },
 });
 

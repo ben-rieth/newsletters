@@ -2,9 +2,8 @@ export const fetchAndDownload = async (
   path: string,
   fallbackFilename: string,
 ): Promise<void> => {
-  const token = localStorage.getItem('token');
   const response = await fetch(`${import.meta.env.VITE_API_URL}${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    credentials: 'include',
   });
 
   if (!response.ok) {

@@ -31,16 +31,16 @@ type Tokens struct {
 }
 
 type authOutputBody struct {
-	Verified bool    `json:"verified"`
-	Tokens   *Tokens `json:"tokens"`
+	Verified bool `json:"verified"`
 }
 
 type authOutput struct {
-	Body authOutputBody
+	SetCookie []http.Cookie `header:"Set-Cookie"`
+	Body      authOutputBody
 }
 
 type refreshInput struct {
-	RefreshToken string `header:"Authorization"`
+	RefreshToken string `cookie:"refresh_token"`
 }
 
 type AuthHandler struct {
@@ -59,11 +59,10 @@ func NewAuthHandler(
 
 func (h *AuthHandler) RegisterRoutes(api huma.API) {
 	huma.Register(api, huma.Operation{
-		OperationID:   "sign-up",
-		Method:        "POST",
-		Path:          "/auth/sign-up",
-		Summary:       "Sign up",
-		DefaultStatus: http.StatusNoContent,
+		OperationID: "sign-up",
+		Method:      "POST",
+		Path:        "/auth/sign-up",
+		Summary:     "Sign up",
 	}, h.handleSignUp)
 
 	huma.Register(api, huma.Operation{
@@ -88,11 +87,10 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 	}, h.handleTokenRefresh)
 
 	huma.Register(api, huma.Operation{
-		OperationID:   "revoke-token",
-		Method:        "POST",
-		Path:          "/auth/revoke",
-		Summary:       "Revoke a refresh token",
-		DefaultStatus: 204,
+		OperationID: "revoke-token",
+		Method:      "POST",
+		Path:        "/auth/revoke",
+		Summary:     "Revoke a refresh token",
 	}, h.handleRevokeToken)
 
 	huma.Register(api, huma.Operation{
@@ -147,7 +145,6 @@ func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutp
 	return &authOutput{
 		Body: authOutputBody{
 			Verified: false,
-			Tokens:   nil,
 		},
 	}, nil
 }
@@ -171,7 +168,6 @@ func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutp
 		return &authOutput{
 			Body: authOutputBody{
 				Verified: false,
-				Tokens:   nil,
 			},
 		}, nil
 	}
@@ -184,8 +180,8 @@ func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutp
 	return &authOutput{
 		Body: authOutputBody{
 			Verified: true,
-			Tokens:   tokenResult,
 		},
+		SetCookie: buildAuthCookies(tokenResult),
 	}, nil
 }
 
@@ -195,6 +191,10 @@ func (h *AuthHandler) handleVerifyEmail(ctx context.Context, i *struct {
 		Email string `json:"email"`
 	}
 }) (*authOutput, error) {
+	if _, err := mail.ParseAddress(i.Body.Email); err != nil {
+		return nil, badRequestError("Invalid email")
+	}
+
 	user, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
 	if err != nil {
 		return nil, badRequestError("Token or email is invalid.")
@@ -217,18 +217,13 @@ func (h *AuthHandler) handleVerifyEmail(ctx context.Context, i *struct {
 	return &authOutput{
 		Body: authOutputBody{
 			Verified: true,
-			Tokens:   tokenResult,
 		},
+		SetCookie: buildAuthCookies(tokenResult),
 	}, nil
 }
 
 func (h *AuthHandler) handleTokenRefresh(ctx context.Context, i *refreshInput) (*authOutput, error) {
-	token, err := auth.GetTokenFromAuthorizationHeader(i.RefreshToken)
-	if err != nil {
-		return nil, huma.Error401Unauthorized("Invalid authorization header provided")
-	}
-
-	tokenData, err := h.queries.GetRefreshToken(ctx, token)
+	tokenData, err := h.queries.GetRefreshToken(ctx, i.RefreshToken)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, huma.Error401Unauthorized("Invalid token. Please sign in again.")
@@ -253,23 +248,27 @@ func (h *AuthHandler) handleTokenRefresh(ctx context.Context, i *refreshInput) (
 	return &authOutput{
 		Body: authOutputBody{
 			Verified: true,
-			Tokens:   tokenResult,
 		},
+		SetCookie: buildAuthCookies(tokenResult),
 	}, nil
 }
 
-func (h *AuthHandler) handleRevokeToken(ctx context.Context, i *refreshInput) (*struct{}, error) {
-	token, err := auth.GetTokenFromAuthorizationHeader(i.RefreshToken)
-	if err != nil {
-		return nil, huma.Error401Unauthorized("Invalid authorization header provided")
+func (h *AuthHandler) handleRevokeToken(ctx context.Context, i *refreshInput) (*authOutput, error) {
+	if len(i.RefreshToken) == 0 {
+		return nil, badRequestError("Invalid token provided")
 	}
 
-	err = h.queries.RevokeToken(ctx, token)
+	err := h.queries.RevokeToken(ctx, i.RefreshToken)
 	if err != nil {
 		return nil, internalServerError(ctx, err)
 	}
 
-	return nil, nil
+	return &authOutput{
+		Body: authOutputBody{
+			Verified: false,
+		},
+		SetCookie: clearAuthCookies(),
+	}, nil
 }
 
 func (h *AuthHandler) handleResendVerificationEmail(ctx context.Context, i *struct {
@@ -302,7 +301,7 @@ func (h *AuthHandler) buildTokenResult(ctx context.Context, userID string) (*Tok
 	err = h.queries.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
 		Token:     refreshToken,
 		UserID:    userID,
-		ExpiresAt: time.Now().Add(time.Hour * 24 * 30),
+		ExpiresAt: time.Now().Add(auth.RefreshTokenTTL),
 	})
 
 	if err != nil {
@@ -313,4 +312,66 @@ func (h *AuthHandler) buildTokenResult(ctx context.Context, userID string) (*Tok
 		Token:        token,
 		RefreshToken: refreshToken,
 	}, nil
+}
+
+func buildAuthCookies(tokens *Tokens) []http.Cookie {
+	return []http.Cookie{
+		{
+			Name:     "access_token",
+			Value:    tokens.Token,
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
+			Path:     "/",
+			MaxAge:   int(auth.AccessTokenTTL.Seconds()),
+		},
+		{
+			Name:     "refresh_token",
+			Value:    tokens.RefreshToken,
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
+			Path:     "/",
+			MaxAge:   int(auth.RefreshTokenTTL.Seconds()),
+		},
+		{
+			Name:     "signed_in",
+			Value:    "1",
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
+			Path:     "/",
+			MaxAge:   int(auth.RefreshTokenTTL.Seconds()),
+		},
+	}
+}
+
+func clearAuthCookies() []http.Cookie {
+	return []http.Cookie{
+		{
+			Name:     "access_token",
+			Value:    "",
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
+			Path:     "/",
+			MaxAge:   -1,
+		},
+		{
+			Name:     "refresh_token",
+			Value:    "",
+			HttpOnly: true,
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
+			Path:     "/",
+			MaxAge:   -1,
+		},
+		{
+			Name:     "signed_in",
+			Value:    "0",
+			Secure:   true,
+			SameSite: http.SameSiteStrictMode,
+			MaxAge:   -1,
+			Path:     "/",
+		},
+	}
 }

@@ -1,38 +1,30 @@
 package auth
 
 import (
-	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
 )
 
-var invalidBearerError = errors.New("Invalid Authorization Header")
-
-func GetTokenFromAuthorizationHeader(header string) (string, error) {
-	if header == "" || !strings.HasPrefix(header, "Bearer ") {
-		return "", invalidBearerError
-	}
-
-	token := strings.TrimPrefix(header, "Bearer ")
-	return token, nil
-}
-
 func AuthMiddleware(api huma.API) func(ctx huma.Context, next func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
 		cfg := config.Load()
 
-		authHeader := ctx.Header("Authorization")
-		tokenStr, err := GetTokenFromAuthorizationHeader(authHeader)
+		tokenCookie, err := huma.ReadCookie(ctx, "access_token")
 		if err != nil {
-			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Proper authorization header not included")
+			wideLog.AddErrorField(ctx.Context(), err)
+			huma.WriteErr(api, ctx, http.StatusInternalServerError, "Something went wrong on our end. Please try again.")
 			return
 		}
 
-		claims, err := ParseToken(tokenStr, cfg.JWTSecret)
+		if tokenCookie == nil {
+			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Access token not included with request")
+			return
+		}
+
+		claims, err := ParseToken(tokenCookie.Value, cfg.JWTSecret)
 		if err != nil {
 			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Unauthorized")
 			return

@@ -17,10 +17,8 @@ const useVerifyEmail = () => {
       }
       return data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       localStorage.removeItem('pendingVerificationEmail');
-      localStorage.setItem('token', data.tokens.token);
-      localStorage.setItem('refreshToken', data.tokens.refreshToken);
       dispatchAuthChange();
       navigate({ to: '/newsletters' });
     },

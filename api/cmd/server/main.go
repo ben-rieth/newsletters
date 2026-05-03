@@ -119,9 +119,10 @@ func main() {
 	exportHandler.RegisterRoutes(protectedApi)
 
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{cfg.WebURL},
-		AllowedMethods: []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders: []string{"Authorization", "Content-Type"},
+		AllowedOrigins:   []string{cfg.WebURL},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type"},
+		AllowCredentials: true,
 	})
 
 	srv := &http.Server{Addr: fmt.Sprintf("%s:%s", cfg.Host, cfg.Port), Handler: c.Handler(mux)}

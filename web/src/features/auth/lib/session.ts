@@ -6,18 +6,15 @@ export const dispatchAuthChange = () => {
 
 export const subscribeToAuthChanges = (callback: () => void) => {
   window.addEventListener('auth-change', callback);
-  window.addEventListener('storage', callback);
   return () => {
     window.removeEventListener('auth-change', callback);
-    window.removeEventListener('storage', callback);
   };
 };
 
-export const getIsSignedIn = () => !!localStorage.getItem('token');
+export const getIsSignedIn = () =>
+  document.cookie.split(';').some((c) => c.trim().startsWith('signed_in='));
 
 export const clearSession = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('refreshToken');
   dispatchAuthChange();
   router.navigate({ to: '/sign-in' });
 };

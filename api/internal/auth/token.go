@@ -16,7 +16,11 @@ type Claims struct {
 }
 
 type contextKey string
+
 const ClaimsKey contextKey = "claims"
+
+const AccessTokenTTL time.Duration = time.Hour * 1
+const RefreshTokenTTL time.Duration = time.Hour * 24 * 30
 
 func ClaimsFromContext(ctx context.Context) (*Claims, bool) {
 	claims, ok := ctx.Value(ClaimsKey).(*Claims)
@@ -29,9 +33,9 @@ func GenerateToken(
 ) (string, error) {
 	claims := Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 1)),
-			IssuedAt: jwt.NewNumericDate(time.Now()),
-			Subject: userID,
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenTTL)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Subject:   userID,
 		},
 	}
 
@@ -62,7 +66,7 @@ func ParseToken(tokenString, tokenSecret string) (*Claims, error) {
 
 func MakeRefreshToken() string {
 	token := make([]byte, 32)
-	
+
 	rand.Read(token)
 	return hex.EncodeToString(token)
 }

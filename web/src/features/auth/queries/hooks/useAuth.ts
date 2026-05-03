@@ -23,8 +23,6 @@ const useAuth = (path: AuthPath) => {
         navigate({ to: '/verify-email' });
         return;
       }
-      localStorage.setItem('token', data.tokens.token);
-      localStorage.setItem('refreshToken', data.tokens.refreshToken);
       dispatchAuthChange();
       navigate({ to: '/newsletters' });
     },
