@@ -2,8 +2,6 @@ package handler
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"net/http"
 	"net/mail"
@@ -315,9 +313,4 @@ func (h *AuthHandler) buildTokenResult(ctx context.Context, userID string) (*Tok
 		Token:        token,
 		RefreshToken: refreshToken,
 	}, nil
-}
-
-func hashVerificationToken(token string) string {
-	hashedToken := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(hashedToken[:])
 }
