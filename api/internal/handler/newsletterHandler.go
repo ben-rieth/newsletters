@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"errors"
-	"log"
 	"net/http"
 	"time"
 
@@ -144,7 +143,6 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 				return nil, notFoundError("Newsletter")
 			}
 
-			log.Printf("error: %v", err)
 			return nil, internalServerError(ctx, err)
 		}
 

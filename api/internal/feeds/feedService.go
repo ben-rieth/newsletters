@@ -248,13 +248,6 @@ func buildUrlList(feed *FetchFeedResult, feedId string) []db.SaveFeedUrlsParams 
 	feedUrls[feed.OriginalUrl] = buildUrlParams(feed.OriginalUrl, db.FeedUrlSourceUserSubmitted, feedId)
 	feedUrls[feed.FinalUrl] = buildUrlParams(feed.FinalUrl, db.FeedUrlSourceCanonical, feedId)
 
-	// TODO: research if I should include links in the feed data itself
-	// feedUrls[feed.Feed.FeedLink] = buildUrlParams(feed.Feed.FeedLink, db.FeedurlsourceInFeedResponse, feedId)
-	// feedUrls[feed.Feed.Link] = buildUrlParams(feed.Feed.Link, db.FeedurlsourceInFeedResponse, feedId)
-	// for _, url := range feed.Feed.Links {
-	// 	feedUrls[url] = buildUrlParams(url, db.FeedurlsourceInFeedResponse, feedId)
-	// }
-
 	finalUrls := make([]db.SaveFeedUrlsParams, 0, len(feedUrls))
 	for k, v := range feedUrls {
 		if k == "" {
