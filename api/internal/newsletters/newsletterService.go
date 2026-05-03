@@ -2,7 +2,6 @@ package newsletters
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	db "github.com/ben-rieth/newsletter-api/internal/db"
@@ -39,7 +38,7 @@ func NewNewsletterService(queries *dbgen.Queries, db *pgxpool.Pool) *NewsletterS
 func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]SendableNewsletter, error) {
 	newsletterResult, err := service.queries.GetDueNewsletters(ctx)
 	if err != nil {
-		return nil, errors.New("Database Failure")
+		return nil, err
 	}
 
 	newsletterIds := make([]string, 0)
@@ -70,7 +69,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 
 	feedsResult, err := service.queries.GetFeedsForManyNewsletters(ctx, newsletterIds)
 	if err != nil {
-		return nil, errors.New("Database Failure")
+		return nil, err
 	}
 
 	feedsByNewsletter := make(map[string][]feeds.BaseFeed)
