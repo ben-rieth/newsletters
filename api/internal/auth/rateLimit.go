@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"sync"
@@ -53,7 +54,7 @@ func (i *IPRateLimiter) cleanUp() {
 	}
 }
 
-func NewRateLimitMiddleware(api huma.API, limit, burst int) func(ctx huma.Context, next func(huma.Context)) {
+func NewRateLimitMiddleware(ctx context.Context, api huma.API, limit, burst int) func(ctx huma.Context, next func(huma.Context)) {
 	limiters := make(map[string]*Limiter)
 
 	ipRateLimiter := IPRateLimiter{
@@ -63,12 +64,12 @@ func NewRateLimitMiddleware(api huma.API, limit, burst int) func(ctx huma.Contex
 	}
 
 	ticker := time.NewTicker(30 * time.Minute)
-	done := make(chan bool)
 
 	go func() {
 		for {
 			select {
-			case <-done:
+			case <-ctx.Done():
+				ticker.Stop()
 				return
 			case <-ticker.C:
 				ipRateLimiter.cleanUp()

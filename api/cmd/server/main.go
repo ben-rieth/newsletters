@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/config"
@@ -28,7 +30,8 @@ import (
 func main() {
 	godotenv.Load()
 	cfg := config.Load()
-	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
@@ -76,7 +79,7 @@ func main() {
 	api.UseMiddleware(wideLog.WideLogMiddleware)
 
 	authApi := huma.NewGroup(api)
-	authApiRateLimiting := auth.NewRateLimitMiddleware(api, 1, 5)
+	authApiRateLimiting := auth.NewRateLimitMiddleware(ctx, api, 1, 5)
 	authApi.UseMiddleware(authApiRateLimiting)
 
 	authHandler := handler.NewAuthHandler(queries, &cfg, emailVerifyService)
@@ -84,11 +87,11 @@ func main() {
 
 	if cfg.Environment == "dev" {
 		debugApi := huma.NewGroup(api)
-		scheudlerHandler := handler.NewSchedulerHandler(scheduler)
-		scheudlerHandler.RegisterRoutes(debugApi)
+		schedulerHandler := handler.NewSchedulerHandler(scheduler)
+		schedulerHandler.RegisterRoutes(debugApi)
 	}
 
-	rateLimiting := auth.NewRateLimitMiddleware(api, 10, 30)
+	rateLimiting := auth.NewRateLimitMiddleware(ctx, api, 10, 30)
 
 	publicApi := huma.NewGroup(api)
 	publicApi.UseMiddleware(rateLimiting)
@@ -121,6 +124,16 @@ func main() {
 		AllowedHeaders: []string{"Authorization", "Content-Type"},
 	})
 
-	log.Printf("Running on port %s", cfg.Port)
-	log.Fatal(http.ListenAndServe(fmt.Sprintf("%s:%s", cfg.Host, cfg.Port), c.Handler(mux)))
+	srv := &http.Server{Addr: fmt.Sprintf("%s:%s", cfg.Host, cfg.Port), Handler: c.Handler(mux)}
+
+	go func() {
+		<-ctx.Done()
+		if err := srv.Shutdown(context.Background()); err != nil {
+			log.Printf("server shutdown error: %v", err)
+		}
+	}()
+
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
 }
