@@ -281,7 +281,7 @@ func (h *AuthHandler) handleResendVerificationEmail(ctx context.Context, i *stru
 }) (*struct{}, error) {
 	user, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
 	if err != nil {
-		if errors.Is(pgx.ErrNoRows, err) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, huma.Error500InternalServerError(internalServerErrorText)

@@ -1,6 +1,6 @@
 # Newsletters
 
-A self-hosted newsletter service that aggregates RSS/Atom feeds into scheduled email digests. Create newsletters, add feeds, filter content, and deliver curated digests on your own schedule.
+A web application that aggregates RSS/Atom feeds into scheduled email digests. Create newsletters, add feeds, filter content, and deliver curated digests on your own schedule.
 
 ## Features
 
