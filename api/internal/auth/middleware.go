@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
@@ -14,13 +15,13 @@ func AuthMiddleware(api huma.API) func(ctx huma.Context, next func(huma.Context)
 
 		tokenCookie, err := huma.ReadCookie(ctx, "access_token")
 		if err != nil {
+			if errors.Is(err, http.ErrNoCookie) {
+				huma.WriteErr(api, ctx, http.StatusUnauthorized, "Access token not included with request")
+				return
+			}
+
 			wideLog.AddErrorField(ctx.Context(), err)
 			huma.WriteErr(api, ctx, http.StatusInternalServerError, "Something went wrong on our end. Please try again.")
-			return
-		}
-
-		if tokenCookie == nil {
-			huma.WriteErr(api, ctx, http.StatusUnauthorized, "Access token not included with request")
 			return
 		}
 
