@@ -103,6 +103,36 @@ const AboutPage = () => {
 
       <Card>
         <CardHeader>
+          <CardTitle>Attribution</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          <p>
+            Favicon: &ldquo;Newspaper&rdquo; emoji (U+1F4F0) by Twitter, Inc and
+            other contributors.{' '}
+            <a
+              href="https://github.com/twitter/twemoji/blob/master/assets/svg/1f4f0.svg"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground transition-colors"
+            >
+              Source
+            </a>
+            . Licensed under{' '}
+            <a
+              href="https://creativecommons.org/licenses/by/4.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-foreground transition-colors"
+            >
+              CC BY 4.0
+            </a>
+            .
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Built by Ben Riethmeier</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-4">
