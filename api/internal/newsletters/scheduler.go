@@ -83,7 +83,7 @@ func (sch *Scheduler) pollNewslettersWithContext() {
 	}
 
 	endTime := time.Now()
-	wl.AddLogField("duration", endTime.Sub(startTime))
+	wl.AddLogField("duration", endTime.Sub(startTime).String())
 
 	shouldKeep, level := shouldKeepSchedulerLog(wl)
 
@@ -122,7 +122,7 @@ func (sch *Scheduler) pollNewsletters(ctx context.Context) error {
 			startTime := time.Now()
 			err := sch.buildAndSendNewsletter(nlCtx, nl, sem)
 			endTime := time.Now()
-			nlLog.AddLogField("duration", endTime.Sub(startTime))
+			nlLog.AddLogField("duration", endTime.Sub(startTime).String())
 
 			if err != nil {
 				nlLog.AddErrorField(err)

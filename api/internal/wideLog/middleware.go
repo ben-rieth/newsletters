@@ -28,7 +28,7 @@ func WideLogMiddleware(ctx huma.Context, next func(huma.Context)) {
 	next(ctx)
 
 	endTime := time.Now()
-	logMap.AddLogField("duration", endTime.Sub(startTime))
+	logMap.AddLogField("duration", endTime.Sub(startTime).String())
 	logMap.AddLogField("status", ctx.Status())
 
 	keepLog, logLevel := shouldLog(ctx, logMap)
