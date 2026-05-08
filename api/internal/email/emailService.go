@@ -7,35 +7,39 @@ import (
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
+	"github.com/ben-rieth/newsletter-api/internal/jobs"
+	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/resend/resend-go/v3"
 )
 
 type EmailService interface {
-	Send (ctx context.Context, subject, sender, recipient, body string) (*SendResult, error)
-	AssembleEmail (templateName string, arguments map[string]any) (string, error)
+	Send(ctx context.Context, subject, sender, recipient, body string) (*SendResult, error)
+	BackgroundSend(ctx context.Context, subject, sender, recipient, body string)
+	AssembleEmail(templateName string, arguments map[string]any) (string, error)
 }
 
 type SendResult struct {
- 	ID string
+	ID   string
 	Time time.Time
 }
 
 type ResendEmailService struct {
 	resendClient *resend.Client
-	tmpl *template.Template
+	tmpl         *template.Template
+	jobQueue     jobs.JobQueue
 }
 
-func NewResendEmailService(globalConfig *config.Config, tmpl *template.Template) *ResendEmailService {
+func NewResendEmailService(globalConfig *config.Config, tmpl *template.Template, jobQueue jobs.JobQueue) *ResendEmailService {
 	resendClient := resend.NewClient(globalConfig.ResendAPIKey)
-	return &ResendEmailService{resendClient, tmpl}
+	return &ResendEmailService{resendClient, tmpl, jobQueue}
 }
 
-func (s *ResendEmailService) Send (ctx context.Context, subject, sender, recipient, body string) (*SendResult, error) {
+func (s *ResendEmailService) Send(ctx context.Context, subject, sender, recipient, body string) (*SendResult, error) {
 	params := &resend.SendEmailRequest{
-		To: []string{recipient},
-		From: sender,
+		To:      []string{recipient},
+		From:    sender,
 		Subject: subject,
-		Html: body,
+		Html:    body,
 	}
 
 	sent, err := s.resendClient.Emails.SendWithContext(ctx, params)
@@ -45,9 +49,20 @@ func (s *ResendEmailService) Send (ctx context.Context, subject, sender, recipie
 
 	sendTime := time.Now()
 	return &SendResult{
-		ID: sent.Id,
+		ID:   sent.Id,
 		Time: sendTime,
 	}, err
+}
+
+func (s *ResendEmailService) BackgroundSend(ctx context.Context, subject, sender, recipient, body string) {
+	s.jobQueue <- func(ctx context.Context) {
+		result, err := s.Send(ctx, subject, sender, recipient, body)
+		if err != nil {
+			wideLog.AddErrorField(ctx, err)
+		}
+
+		wideLog.AddLogField(ctx, "sendResult", result)
+	}
 }
 
 func (s *ResendEmailService) AssembleEmail(templateName string, arguments map[string]any) (string, error) {

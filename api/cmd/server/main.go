@@ -16,6 +16,7 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/handler"
+	"github.com/ben-rieth/newsletter-api/internal/jobs"
 	"github.com/ben-rieth/newsletter-api/internal/newsletters"
 	"github.com/ben-rieth/newsletter-api/internal/templates"
 	"github.com/ben-rieth/newsletter-api/internal/users"
@@ -44,19 +45,21 @@ func main() {
 
 	queries := db.New(pool)
 
+	jobQueue := jobs.StartJobQueue(ctx, cfg)
+
 	rssService := feeds.NewRssService()
 
 	tmpl, err := templates.ParseEmailTemplates()
 	if err != nil {
 		log.Fatalf("Could not get email templates: %v", err)
 	}
-	emailService := email.NewResendEmailService(&cfg, tmpl)
+	emailService := email.NewResendEmailService(&cfg, tmpl, jobQueue)
 	emailVerifyService := email.NewEmailVerifyService(queries, cfg, emailService)
 
 	newsletterService := newsletters.NewNewsletterService(queries, pool)
 
 	feeds.InitBlockedIPs()
-	feedsService := feeds.NewFeedService(rssService, queries, pool)
+	feedsService := feeds.NewFeedService(rssService, queries, pool, jobQueue)
 
 	userService := users.NewUserService(queries, pool)
 
@@ -87,7 +90,7 @@ func main() {
 
 	if cfg.Environment == "dev" {
 		debugApi := huma.NewGroup(api)
-		schedulerHandler := handler.NewSchedulerHandler(scheduler)
+		schedulerHandler := handler.NewSchedulerHandler(scheduler, jobQueue)
 		schedulerHandler.RegisterRoutes(debugApi)
 	}
 

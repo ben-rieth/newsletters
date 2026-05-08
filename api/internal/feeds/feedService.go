@@ -7,6 +7,7 @@ import (
 	"time"
 
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
+	"github.com/ben-rieth/newsletter-api/internal/jobs"
 	"github.com/ben-rieth/newsletter-api/internal/utils"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/jackc/pgx/v5"
@@ -18,15 +19,17 @@ type FeedService struct {
 	rssService *RssService
 	queries    *db.Queries
 	db         *pgxpool.Pool
+	jobQueue   jobs.JobQueue
 }
 
 var FeedCacheStaleError = errors.New("Feed cache is stale.")
 
-func NewFeedService(rssService *RssService, queries *db.Queries, db *pgxpool.Pool) *FeedService {
+func NewFeedService(rssService *RssService, queries *db.Queries, db *pgxpool.Pool, jobQueue jobs.JobQueue) *FeedService {
 	return &FeedService{
 		rssService,
 		queries,
 		db,
+		jobQueue,
 	}
 }
 
@@ -58,18 +61,18 @@ func (s *FeedService) GetFeedMetaData(ctx context.Context, url string, returnId 
 
 	var feedId string
 	if returnId {
-		feedId, err = s.saveFeedDetails(context.Background(), fetchFeedRes)
+		feedId, err = s.saveFeedDetails(ctx, fetchFeedRes)
 		if err != nil {
 			return nil, utils.SystemError
 		}
 	} else {
 		feedId = ""
-		go func() {
-			_, err := s.saveFeedDetails(context.Background(), fetchFeedRes)
+		s.jobQueue <- func(ctx context.Context) {
+			_, err := s.saveFeedDetails(ctx, fetchFeedRes)
 			if err != nil {
 				wideLog.AddErrorField(ctx, fmt.Errorf("Failed to cache feed in database: %v", err))
 			}
-		}()
+		}
 	}
 
 	return &FeedMetaData{

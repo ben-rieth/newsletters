@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/mail"
 	"os"
+	"strconv"
 )
 
 type Config struct {
@@ -15,9 +16,15 @@ type Config struct {
 	ResendAPIKey          string
 	Environment           string
 	NewsletterSenderEmail mail.Address
+	JobQueueSize          int
 }
 
 func Load() Config {
+	jobQueueSize, err := strconv.Atoi(os.Getenv("JOB_QUEUE_SIZE"))
+	if err != nil {
+		log.Fatal("JOB_QUEUE_SIZE must be valid integer")
+	}
+
 	cfg := Config{
 		DatabaseURL:  os.Getenv("DATABASE_URL"),
 		Port:         os.Getenv("PORT"),
@@ -26,6 +33,7 @@ func Load() Config {
 		JWTSecret:    os.Getenv("JWT_SECRET"),
 		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
 		Environment:  os.Getenv("ENVIRONMENT"),
+		JobQueueSize: jobQueueSize,
 	}
 
 	if cfg.DatabaseURL == "" {

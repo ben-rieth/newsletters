@@ -64,18 +64,13 @@ func (s *EmailVerifyService) SendVerificationEmail(
 		return err
 	}
 
-	result, err := s.emailService.Send(
+	s.emailService.BackgroundSend(
 		ctx,
 		"Verify your email",
 		s.config.NewsletterSenderEmail.Address,
 		userEmail,
 		emailHtml,
 	)
-	if err != nil {
-		return err
-	}
-
-	wideLog.AddLogField(ctx, "emailSendResult", result)
 	return nil
 }
 

@@ -262,5 +262,5 @@ func shouldKeepSchedulerLog(wl *wideLog.WideLog) (bool, slog.Level) {
 		return true, slog.LevelError
 	}
 
-	return rand.Float64() < 0.05, slog.LevelInfo
+	return rand.Float64() < 0.02, slog.LevelInfo
 }
