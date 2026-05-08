@@ -21,6 +21,10 @@
     }
     # health check for railway
     rewrite /health 200
+    # proxy /api/* to the backend, stripping the /api prefix
+    handle_path /api/* {
+        reverse_proxy {$BACKEND_INTERNAL_URL}
+    }
     # serve from the 'dist' folder (Vite builds into the 'dist' folder)
     root * dist
     # enable gzipping responses
