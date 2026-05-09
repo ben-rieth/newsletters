@@ -139,6 +139,7 @@ func (s *FeedService) GetFeedDataSince(
 	finalItems = make([]FeedItemView, 0, len(items))
 	for _, item := range items {
 		finalItems = append(finalItems, FeedItemView{
+			ItemID:      item.ID,
 			Title:       item.Title,
 			URL:         item.Url,
 			PublishDate: item.PublishDate,

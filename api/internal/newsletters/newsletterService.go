@@ -169,3 +169,43 @@ func (s *NewsletterService) DeleteNewsletter(
 
 	return tx.Commit(ctx)
 }
+
+func (s *NewsletterService) StoreNewsletterIssue(
+	ctx context.Context,
+	newsletterId, userId string,
+	sentAt time.Time,
+	itemIds []string,
+) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := s.queries.WithTx(tx)
+
+	issueId, err := qtx.StoreNewsletterIssue(ctx, dbgen.StoreNewsletterIssueParams{
+		NewsletterID: newsletterId,
+		UserID:       userId,
+		SentAt:       sentAt,
+	})
+	if err != nil {
+		return nil
+	}
+
+	items := make([]dbgen.StoreNewsletterIssueItemsParams, 0)
+	for _, itemId := range itemIds {
+		items = append(items, dbgen.StoreNewsletterIssueItemsParams{
+			ItemID:  itemId,
+			UserID:  userId,
+			IssueID: issueId,
+		})
+	}
+
+	_, err = qtx.StoreNewsletterIssueItems(ctx, items)
+	if err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}

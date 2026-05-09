@@ -195,7 +195,7 @@ func (q *Queries) GetFeedById(ctx context.Context, arg GetFeedByIdParams) (GetFe
 }
 
 const getFeedItemsPublishedAfter = `-- name: GetFeedItemsPublishedAfter :many
-SELECT title, url, publish_date FROM feed_item AS item
+SELECT item.id, title, url, publish_date FROM feed_item AS item
 WHERE feed_id = $1 AND publish_date > $2
 AND NOT EXISTS (
     SELECT 1 FROM newsletter_feed_filter AS ff
@@ -224,6 +224,7 @@ type GetFeedItemsPublishedAfterParams struct {
 }
 
 type GetFeedItemsPublishedAfterRow struct {
+	ID          string
 	Title       string
 	Url         string
 	PublishDate time.Time
@@ -243,7 +244,12 @@ func (q *Queries) GetFeedItemsPublishedAfter(ctx context.Context, arg GetFeedIte
 	var items []GetFeedItemsPublishedAfterRow
 	for rows.Next() {
 		var i GetFeedItemsPublishedAfterRow
-		if err := rows.Scan(&i.Title, &i.Url, &i.PublishDate); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Url,
+			&i.PublishDate,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

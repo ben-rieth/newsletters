@@ -176,6 +176,21 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 	if err != nil {
 		return err
 	}
+
+	itemIds := make([]string, 0)
+	for _, feed := range feedResults.Succeeded {
+		for _, item := range feed.Items {
+			itemIds = append(itemIds, item.ItemID)
+		}
+	}
+
+	err = sch.newsletterService.StoreNewsletterIssue(
+		ctx, nl.ID, nl.UserID, sentAt, itemIds,
+	)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
