@@ -2,14 +2,14 @@ FROM node:lts-alpine AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN corepack enable pnpm && corepack install -g pnpm@latest-11
 
 ENV CI=true
 ENV HUSKY=0
 
 FROM base AS prod
 WORKDIR /app
-COPY pnpm-lock.yaml ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm fetch
 COPY package.json ./
 RUN pnpm install --offline
