@@ -40,13 +40,17 @@ export const FeedsList = ({ newsletterId }: Props) => {
   const { data: feeds } = useSuspenseQuery(feedsOptions(newsletterId));
 
   const query = search.trim().toLowerCase();
-  const filteredFeeds = query
-    ? feeds.filter((f) => {
-        const name = (f.alias || f.title).toLowerCase();
-        const desc = f.description.toLowerCase();
-        return name.includes(query) || desc.includes(query);
-      })
-    : feeds;
+  const filteredFeeds = (
+    query
+      ? feeds.filter((f) => {
+          const name = (f.alias || f.title).toLowerCase();
+          const desc = f.description.toLowerCase();
+          return name.includes(query) || desc.includes(query);
+        })
+      : feeds
+  ).toSorted((a, b) =>
+    (a.alias || a.title).localeCompare(b.alias || b.title),
+  );
 
   const deleteFeed = useDeleteFeed(newsletterId, () => {
     toast.success('Feed deleted!');
