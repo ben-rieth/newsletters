@@ -18,8 +18,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog';
-import { ViewToggle, type View } from '#/components/ViewToggle';
-import { feedsOptions, type Feed } from '../queries/feeds';
+import { ViewToggle } from '#/components/ViewToggle';
+import type { View } from '#/components/ViewToggle';
+import { feedsOptions } from '../queries/feeds';
+import type { Feed } from '../queries/feeds';
 import { AddFeedDialog } from './AddFeedDialog';
 import { FeedsCards } from './FeedsCards';
 import { FeedsTable } from './FeedsTable';
