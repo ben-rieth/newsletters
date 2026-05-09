@@ -96,6 +96,42 @@ func (q *Queries) DoesFeedExist(ctx context.Context, arg DoesFeedExistParams) (b
 	return exists, err
 }
 
+const doesUserAlreadyRecieveFeed = `-- name: DoesUserAlreadyRecieveFeed :many
+SELECT nlf.alias, n.name FROM newsletter_feed AS nlf
+INNER JOIN newsletter AS n ON nlf.newsletter_id = n.id
+WHERE nlf.user_id = $1 AND nlf.feed_id = $2
+`
+
+type DoesUserAlreadyRecieveFeedParams struct {
+	UserID string
+	FeedID string
+}
+
+type DoesUserAlreadyRecieveFeedRow struct {
+	Alias string
+	Name  string
+}
+
+func (q *Queries) DoesUserAlreadyRecieveFeed(ctx context.Context, arg DoesUserAlreadyRecieveFeedParams) ([]DoesUserAlreadyRecieveFeedRow, error) {
+	rows, err := q.db.Query(ctx, doesUserAlreadyRecieveFeed, arg.UserID, arg.FeedID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DoesUserAlreadyRecieveFeedRow
+	for rows.Next() {
+		var i DoesUserAlreadyRecieveFeedRow
+		if err := rows.Scan(&i.Alias, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getCachedFeedDetails = `-- name: GetCachedFeedDetails :one
 SELECT f.id, f.title, f.url, f.html_url, f.description
 FROM feed_url AS furl

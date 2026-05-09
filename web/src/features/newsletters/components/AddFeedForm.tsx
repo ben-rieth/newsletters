@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useForm } from '@tanstack/react-form';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, TriangleAlert } from 'lucide-react';
 import { Button } from '#/components/ui/button';
 import { FieldError } from '#/components/ui/field';
 import { FormField } from '#/components/ui/form-field';
@@ -54,7 +54,7 @@ export const AddFeedForm = ({
       }
       await onSubmit({
         url: value.url,
-        alias: value.alias ?? '',
+        alias: value.alias,
       });
     },
   });
@@ -76,7 +76,9 @@ export const AddFeedForm = ({
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={(e) => {
                 field.handleBlur();
-                const result = feedUrlSchema.shape.url.safeParse(e.target.value);
+                const result = feedUrlSchema.shape.url.safeParse(
+                  e.target.value,
+                );
                 if (result.success) {
                   setFetchUrl(e.target.value);
                 }
@@ -106,13 +108,36 @@ export const AddFeedForm = ({
       {metadataQuery.data && (
         <>
           <div className="rounded-md border bg-muted/40 p-3 space-y-1">
-            <p className="text-sm font-medium">{metadataQuery.data.Title}</p>
-            {metadataQuery.data.Description && (
+            <p className="text-sm font-medium">
+              {metadataQuery.data.metadata.Title}
+            </p>
+            {metadataQuery.data.metadata.Description && (
               <p className="text-xs text-muted-foreground">
-                {metadataQuery.data.Description}
+                {metadataQuery.data.metadata.Description}
               </p>
             )}
           </div>
+
+          {metadataQuery.data.existingRecievedFeeds &&
+            metadataQuery.data.existingRecievedFeeds.length > 0 && (
+              <div className="flex gap-2.5 rounded-md border border-yellow-500/40 bg-yellow-500/10 p-3 text-sm text-yellow-700 dark:text-yellow-400">
+                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="space-y-1">
+                  <p className="font-medium">You already receive this feed</p>
+                  <ul className="list-disc pl-4 text-xs">
+                    {metadataQuery.data.existingRecievedFeeds.map((f) => (
+                      <li key={`${f.newsletterName}-${f.alias}`}>
+                        In newsletter{' '}
+                        <span className="font-medium">
+                          "{f.newsletterName}"
+                        </span>{' '}
+                        {f.alias !== '' && `(as ${f.alias})`}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            )}
 
           <form.Field name="alias">
             {(field) => (
@@ -122,7 +147,7 @@ export const AddFeedForm = ({
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
-                  placeholder={metadataQuery.data.Title}
+                  placeholder={metadataQuery.data.metadata.Title}
                 />
               </FormField>
             )}

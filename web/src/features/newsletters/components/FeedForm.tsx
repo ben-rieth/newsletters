@@ -43,7 +43,7 @@ export const FeedForm = ({
   const metadataQuery = useQuery(feedMetadataOptions(fetchUrl));
 
   const form = useForm({
-    defaultValues: { url: defaultValues.url, alias: defaultValues.alias ?? '' },
+    defaultValues: { url: defaultValues.url, alias: defaultValues.alias },
     validators: { onChange: feedUrlSchema },
     onSubmit: async ({ value }) => {
       if (!metadataQuery.data) {
@@ -51,7 +51,7 @@ export const FeedForm = ({
       }
       await onSubmit({
         url: value.url,
-        alias: value.alias ?? '',
+        alias: value.alias,
       });
     },
   });
@@ -107,10 +107,12 @@ export const FeedForm = ({
       {metadataQuery.data && (
         <>
           <div className="rounded-md border bg-muted/40 p-3 space-y-1">
-            <p className="text-sm font-medium">{metadataQuery.data.Title}</p>
-            {metadataQuery.data.Description && (
+            <p className="text-sm font-medium">
+              {metadataQuery.data.metadata.Title}
+            </p>
+            {metadataQuery.data.metadata.Description && (
               <p className="text-xs text-muted-foreground">
-                {metadataQuery.data.Description}
+                {metadataQuery.data.metadata.Description}
               </p>
             )}
           </div>
@@ -123,7 +125,7 @@ export const FeedForm = ({
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}
-                  placeholder={metadataQuery.data.Title}
+                  placeholder={metadataQuery.data.metadata.Title}
                 />
               </FormField>
             )}
