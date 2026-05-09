@@ -1,7 +1,6 @@
-import { useState } from 'react'
-import { Select as SelectPrimitive } from '@base-ui/react/select'
-import { CheckIcon, ChevronDownIcon, SearchIcon } from 'lucide-react'
-import { cn } from '#/lib/utils'
+import { useState } from 'react';
+import { Select as SelectPrimitive } from '@base-ui/react/select';
+import { CheckIcon, ChevronDownIcon, SearchIcon } from 'lucide-react';
 
 const COMMON_TIMEZONES = [
   'America/New_York',
@@ -31,23 +30,23 @@ const COMMON_TIMEZONES = [
   'Australia/Perth',
   'Pacific/Auckland',
   'UTC',
-]
+];
 
-const now = new Date()
+const now = new Date();
 
 const getGenericName = (tz: string): string =>
   new Intl.DateTimeFormat('en', { timeZone: tz, timeZoneName: 'longGeneric' })
     .formatToParts(now)
-    .find((p) => p.type === 'timeZoneName')?.value ?? tz
+    .find((p) => p.type === 'timeZoneName')?.value ?? tz;
 
-type TimezoneOption = { iana: string; genericName: string }
+type TimezoneOption = { iana: string; genericName: string };
 
 const toOption = (tz: string): TimezoneOption => ({
   iana: tz,
   genericName: getGenericName(tz),
-})
+});
 
-const USER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone
+const USER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 const SUGGESTED: TimezoneOption[] = [
   USER_TIMEZONE,
@@ -55,41 +54,41 @@ const SUGGESTED: TimezoneOption[] = [
 ]
   .filter((tz) => {
     try {
-      Intl.DateTimeFormat('en', { timeZone: tz })
-      return true
+      Intl.DateTimeFormat('en', { timeZone: tz });
+      return true;
     } catch {
-      return false
+      return false;
     }
   })
-  .map(toOption)
+  .map(toOption);
 
-const SUGGESTED_SET = new Set(SUGGESTED.map((tz) => tz.iana))
+const SUGGESTED_SET = new Set(SUGGESTED.map((tz) => tz.iana));
 
 const ALL_OTHERS: TimezoneOption[] = Intl.supportedValuesOf('timeZone')
   .filter((tz) => !SUGGESTED_SET.has(tz))
-  .map(toOption)
+  .map(toOption);
 
 type Props = {
-  id?: string
-  value: string
-  onValueChange: (value: string) => void
-}
+  id?: string;
+  value: string;
+  onValueChange: (value: string) => void;
+};
 
 export const TimezoneSelect = ({ id, value, onValueChange }: Props) => {
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState('');
 
-  const q = search.trim().toLowerCase()
-  const isSearching = q.length > 0
+  const q = search.trim().toLowerCase();
+  const isSearching = q.length > 0;
   const matches = (tz: TimezoneOption) =>
     tz.genericName.toLowerCase().includes(q) ||
-    tz.iana.toLowerCase().includes(q)
+    tz.iana.toLowerCase().includes(q);
 
-  const filteredSuggested = isSearching ? SUGGESTED.filter(matches) : SUGGESTED
-  const filteredOthers = isSearching ? ALL_OTHERS.filter(matches) : []
+  const filteredSuggested = isSearching ? SUGGESTED.filter(matches) : SUGGESTED;
+  const filteredOthers = isSearching ? ALL_OTHERS.filter(matches) : [];
 
   const selected =
     SUGGESTED.find((tz) => tz.iana === value) ??
-    ALL_OTHERS.find((tz) => tz.iana === value)
+    ALL_OTHERS.find((tz) => tz.iana === value);
 
   const renderItem = ({ iana, genericName }: TimezoneOption) => (
     <SelectPrimitive.Item
@@ -105,14 +104,16 @@ export const TimezoneSelect = ({ id, value, onValueChange }: Props) => {
         <CheckIcon className="size-3.5" />
       </SelectPrimitive.ItemIndicator>
     </SelectPrimitive.Item>
-  )
+  );
 
   return (
     <SelectPrimitive.Root
       value={value}
-      onValueChange={onValueChange}
+      onValueChange={(value) => value != null && onValueChange(value)}
       onOpenChange={(open) => {
-        if (!open) { setSearch('') }
+        if (!open) {
+          setSearch('');
+        }
       }}
     >
       <SelectPrimitive.Trigger
@@ -173,15 +174,16 @@ export const TimezoneSelect = ({ id, value, onValueChange }: Props) => {
                 </SelectPrimitive.Group>
               )}
 
-              {filteredSuggested.length === 0 && filteredOthers.length === 0 && (
-                <p className="py-6 text-center text-xs/relaxed text-muted-foreground">
-                  No timezone found.
-                </p>
-              )}
+              {filteredSuggested.length === 0 &&
+                filteredOthers.length === 0 && (
+                  <p className="py-6 text-center text-xs/relaxed text-muted-foreground">
+                    No timezone found.
+                  </p>
+                )}
             </SelectPrimitive.List>
           </SelectPrimitive.Popup>
         </SelectPrimitive.Positioner>
       </SelectPrimitive.Portal>
     </SelectPrimitive.Root>
-  )
-}
+  );
+};

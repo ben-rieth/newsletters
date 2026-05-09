@@ -48,9 +48,7 @@ export const FeedsList = ({ newsletterId }: Props) => {
           return name.includes(query) || desc.includes(query);
         })
       : feeds
-  ).toSorted((a, b) =>
-    (a.alias || a.title).localeCompare(b.alias || b.title),
-  );
+  ).toSorted((a, b) => (a.alias || a.title).localeCompare(b.alias || b.title));
 
   const deleteFeed = useDeleteFeed(newsletterId, () => {
     toast.success('Feed deleted!');
