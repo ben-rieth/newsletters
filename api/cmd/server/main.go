@@ -57,6 +57,7 @@ func main() {
 	emailVerifyService := email.NewEmailVerifyService(queries, cfg, emailService)
 
 	newsletterService := newsletters.NewNewsletterService(queries, pool)
+	issuesService := newsletters.NewIssuesService(queries)
 
 	feeds.InitBlockedIPs()
 	feedsService := feeds.NewFeedService(rssService, queries, pool, jobQueue)
@@ -120,6 +121,9 @@ func main() {
 
 	exportHandler := handler.NewExportHandler(queries)
 	exportHandler.RegisterRoutes(protectedApi)
+
+	issuesHandler := handler.NewIssuesHandler(queries, issuesService)
+	issuesHandler.RegisterRoutes(protectedApi)
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{cfg.WebURL},

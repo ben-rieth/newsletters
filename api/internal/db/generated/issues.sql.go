@@ -10,6 +10,159 @@ import (
 	"time"
 )
 
+const getAllUserIssues = `-- name: GetAllUserIssues :many
+SELECT i.id, nl.id, nl.name, i.sent_at FROM newsletter_issue AS i 
+INNER JOIN newsletter AS nl ON i.newsletter_id = nl.id
+WHERE i.user_id = $1
+ORDER BY sent_at DESC
+`
+
+type GetAllUserIssuesRow struct {
+	ID     string
+	ID_2   string
+	Name   string
+	SentAt time.Time
+}
+
+func (q *Queries) GetAllUserIssues(ctx context.Context, userID string) ([]GetAllUserIssuesRow, error) {
+	rows, err := q.db.Query(ctx, getAllUserIssues, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAllUserIssuesRow
+	for rows.Next() {
+		var i GetAllUserIssuesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ID_2,
+			&i.Name,
+			&i.SentAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getIssue = `-- name: GetIssue :one
+SELECT i.id, nl.name, i.sent_at FROM newsletter_issue AS i 
+INNER JOIN newsletter AS nl ON i.newsletter_id = nl.id
+WHERE i.user_id = $1 AND i.id = $2
+`
+
+type GetIssueParams struct {
+	UserID string
+	ID     string
+}
+
+type GetIssueRow struct {
+	ID     string
+	Name   string
+	SentAt time.Time
+}
+
+func (q *Queries) GetIssue(ctx context.Context, arg GetIssueParams) (GetIssueRow, error) {
+	row := q.db.QueryRow(ctx, getIssue, arg.UserID, arg.ID)
+	var i GetIssueRow
+	err := row.Scan(&i.ID, &i.Name, &i.SentAt)
+	return i, err
+}
+
+const getIssueFeeds = `-- name: GetIssueFeeds :many
+SELECT DISTINCT f.id, f.title, f.description, f.url, f.last_retrieved_at, f.created_at, f.updated_at, f.html_url 
+FROM feed AS f
+INNER JOIN feed_item AS item ON item.feed_id = f.id
+INNER JOIN newsletter_feed_item_status AS issue_item ON item.id = issue_item.item_id
+WHERE issue_item.issue_id = $1 AND user_id = $2
+`
+
+type GetIssueFeedsParams struct {
+	IssueID string
+	UserID  string
+}
+
+func (q *Queries) GetIssueFeeds(ctx context.Context, arg GetIssueFeedsParams) ([]Feed, error) {
+	rows, err := q.db.Query(ctx, getIssueFeeds, arg.IssueID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Feed
+	for rows.Next() {
+		var i Feed
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.Url,
+			&i.LastRetrievedAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.HtmlUrl,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getIssueItems = `-- name: GetIssueItems :many
+SELECT ii.state, ii.item_id, i.title, i.url, i.publish_date, i.feed_id
+FROM newsletter_feed_item_status AS ii
+INNER JOIN feed_item AS i ON ii.item_id = i.id
+WHERE issue_id = $1 AND user_id = $2
+`
+
+type GetIssueItemsParams struct {
+	IssueID string
+	UserID  string
+}
+
+type GetIssueItemsRow struct {
+	State       ItemState
+	ItemID      string
+	Title       string
+	Url         string
+	PublishDate time.Time
+	FeedID      string
+}
+
+func (q *Queries) GetIssueItems(ctx context.Context, arg GetIssueItemsParams) ([]GetIssueItemsRow, error) {
+	rows, err := q.db.Query(ctx, getIssueItems, arg.IssueID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetIssueItemsRow
+	for rows.Next() {
+		var i GetIssueItemsRow
+		if err := rows.Scan(
+			&i.State,
+			&i.ItemID,
+			&i.Title,
+			&i.Url,
+			&i.PublishDate,
+			&i.FeedID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const storeNewsletterIssue = `-- name: StoreNewsletterIssue :one
 INSERT INTO newsletter_issue (newsletter_id, user_id, sent_at) VALUES ($1, $2, $3) RETURNING id
 `
