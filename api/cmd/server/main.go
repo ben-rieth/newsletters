@@ -103,6 +103,9 @@ func main() {
 	unsubscribeHandler := handler.NewUnsubscribeHandler(queries, &cfg, emailService)
 	unsubscribeHandler.RegisterRoutes(publicApi)
 
+	linksHandler := handler.NewLinksHandler(queries)
+	linksHandler.RegisterRoutes(publicApi)
+
 	protectedApi := huma.NewGroup(api)
 	protectedApi.UseMiddleware(rateLimiting)
 	protectedApi.UseMiddleware(auth.AuthMiddleware(api))

@@ -77,7 +77,7 @@ const getIssueFeeds = `-- name: GetIssueFeeds :many
 SELECT DISTINCT f.id, f.title, f.description, f.url, f.last_retrieved_at, f.created_at, f.updated_at, f.html_url 
 FROM feed AS f
 INNER JOIN feed_item AS item ON item.feed_id = f.id
-INNER JOIN newsletter_feed_item_status AS issue_item ON item.id = issue_item.item_id
+INNER JOIN issue_item AS issue_item ON item.id = issue_item.item_id
 WHERE issue_item.issue_id = $1 AND user_id = $2
 `
 
@@ -115,9 +115,22 @@ func (q *Queries) GetIssueFeeds(ctx context.Context, arg GetIssueFeedsParams) ([
 	return items, nil
 }
 
+const getIssueItemUrlByToken = `-- name: GetIssueItemUrlByToken :one
+SELECT fi.url FROM issue_item AS ii
+INNER JOIN feed_item AS fi ON ii.item_id = fi.id
+WHERE ii.token = $1
+`
+
+func (q *Queries) GetIssueItemUrlByToken(ctx context.Context, token string) (string, error) {
+	row := q.db.QueryRow(ctx, getIssueItemUrlByToken, token)
+	var url string
+	err := row.Scan(&url)
+	return url, err
+}
+
 const getIssueItems = `-- name: GetIssueItems :many
-SELECT ii.state, ii.item_id, i.title, i.url, i.publish_date, i.feed_id
-FROM newsletter_feed_item_status AS ii
+SELECT ii.state, ii.item_id, ii.token, i.title, i.publish_date, i.feed_id
+FROM issue_item AS ii
 INNER JOIN feed_item AS i ON ii.item_id = i.id
 WHERE issue_id = $1 AND user_id = $2
 `
@@ -130,8 +143,8 @@ type GetIssueItemsParams struct {
 type GetIssueItemsRow struct {
 	State       ItemState
 	ItemID      string
+	Token       string
 	Title       string
-	Url         string
 	PublishDate time.Time
 	FeedID      string
 }
@@ -148,8 +161,8 @@ func (q *Queries) GetIssueItems(ctx context.Context, arg GetIssueItemsParams) ([
 		if err := rows.Scan(
 			&i.State,
 			&i.ItemID,
+			&i.Token,
 			&i.Title,
-			&i.Url,
 			&i.PublishDate,
 			&i.FeedID,
 		); err != nil {
@@ -161,6 +174,17 @@ func (q *Queries) GetIssueItems(ctx context.Context, arg GetIssueItemsParams) ([
 		return nil, err
 	}
 	return items, nil
+}
+
+const markIssueItemAsRead = `-- name: MarkIssueItemAsRead :exec
+UPDATE issue_item AS ii
+SET state = 'read'
+WHERE token = $1
+`
+
+func (q *Queries) MarkIssueItemAsRead(ctx context.Context, token string) error {
+	_, err := q.db.Exec(ctx, markIssueItemAsRead, token)
+	return err
 }
 
 const storeNewsletterIssue = `-- name: StoreNewsletterIssue :one

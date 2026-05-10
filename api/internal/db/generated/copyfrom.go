@@ -110,5 +110,5 @@ func (r iteratorForStoreNewsletterIssueItems) Err() error {
 }
 
 func (q *Queries) StoreNewsletterIssueItems(ctx context.Context, arg []StoreNewsletterIssueItemsParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"newsletter_feed_item_status"}, []string{"issue_id", "item_id", "user_id"}, &iteratorForStoreNewsletterIssueItems{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"issue_item"}, []string{"issue_id", "item_id", "user_id"}, &iteratorForStoreNewsletterIssueItems{rows: arg})
 }

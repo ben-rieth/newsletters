@@ -67,7 +67,7 @@ func (q *Queries) DeleteNewsletterFeed(ctx context.Context, arg DeleteNewsletter
 }
 
 const deleteNewsletterFeedItemStatuses = `-- name: DeleteNewsletterFeedItemStatuses :exec
-DELETE FROM newsletter_feed_item_status WHERE user_id = $1
+DELETE FROM issue_item WHERE user_id = $1
 `
 
 func (q *Queries) DeleteNewsletterFeedItemStatuses(ctx context.Context, userID string) error {

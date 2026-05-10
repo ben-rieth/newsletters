@@ -349,6 +349,17 @@ type FeedUrl struct {
 	UpdatedAt time.Time
 }
 
+type IssueItem struct {
+	ID        string
+	ItemID    string
+	UserID    string
+	State     ItemState
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	IssueID   string
+	Token     string
+}
+
 type Newsletter struct {
 	ID               string
 	Name             string
@@ -385,16 +396,6 @@ type NewsletterFeedFilter struct {
 	Pattern          string
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
-}
-
-type NewsletterFeedItemStatus struct {
-	ID        string
-	ItemID    string
-	UserID    string
-	State     ItemState
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	IssueID   string
 }
 
 type NewsletterIssue struct {

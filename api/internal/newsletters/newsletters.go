@@ -37,10 +37,24 @@ type Issue struct {
 }
 
 type DetailedIssue struct {
-	IssueID        string           `json:"issueId"`
-	NewsletterName string           `json:"newsletterName"`
-	SentAt         time.Time        `json:"sentAt"`
-	Feeds          []feeds.FeedView `json:"feeds"`
+	IssueID        string      `json:"issueId"`
+	NewsletterName string      `json:"newsletterName"`
+	SentAt         time.Time   `json:"sentAt"`
+	Feeds          []IssueFeed `json:"feeds"`
+}
+
+type IssueItem struct {
+	ItemID      string       `json:"itemId"`
+	Title       string       `json:"title"`
+	Token       string       `json:"token"`
+	State       db.ItemState `json:"state"`
+	PublishDate time.Time    `json:"publishDate"`
+}
+
+type IssueFeed struct {
+	Title   string      `json:"title"`
+	HtmlURL string      `json:"webUrl"`
+	Items   []IssueItem `json:"items"`
 }
 
 func DbNewsletterToNewsletterType(newsletter db.Newsletter) Newsletter {

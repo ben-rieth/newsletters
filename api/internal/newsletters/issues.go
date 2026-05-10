@@ -4,7 +4,6 @@ import (
 	"context"
 
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
-	"github.com/ben-rieth/newsletter-api/internal/feeds"
 )
 
 type IssuesService struct {
@@ -43,21 +42,22 @@ func (s *IssuesService) GetIssue(ctx context.Context, issueID, userID string) (*
 		return nil, err
 	}
 
-	itemsByFeed := make(map[string][]feeds.FeedItemView)
+	itemsByFeed := make(map[string][]IssueItem)
 	for _, item := range items {
-		itemView := feeds.FeedItemView{
+		itemView := IssueItem{
 			ItemID:      item.ItemID,
 			Title:       item.Title,
-			URL:         item.Url,
 			PublishDate: item.PublishDate,
+			State:       item.State,
+			Token:       item.Token,
 		}
 
 		itemsByFeed[item.FeedID] = append(itemsByFeed[item.FeedID], itemView)
 	}
 
-	feedViews := make([]feeds.FeedView, 0, len(issueFeeds))
+	feedViews := make([]IssueFeed, 0, len(issueFeeds))
 	for _, feed := range issueFeeds {
-		feedViews = append(feedViews, feeds.FeedView{
+		feedViews = append(feedViews, IssueFeed{
 			Title:   feed.Title,
 			HtmlURL: feed.HtmlUrl,
 			Items:   itemsByFeed[feed.ID],

@@ -1,8 +1,8 @@
-import { Link } from '@tanstack/react-router'
-import type { Issue } from '#/features/newsletters/queries/issues'
+import { Link } from '@tanstack/react-router';
+import type { Issue } from '#/features/newsletters/queries/issues';
 
 interface IssuesListProps {
-  issues: Issue[]
+  issues: Issue[];
 }
 
 const IssuesList = ({ issues }: IssuesListProps) => {
@@ -11,12 +11,12 @@ const IssuesList = ({ issues }: IssuesListProps) => {
       <p className="text-sm text-muted-foreground py-8 text-center">
         No issues yet — newsletters will appear here after they're first sent.
       </p>
-    )
+    );
   }
 
   const sorted = [...issues].sort(
     (a, b) => new Date(b.sentAt).getTime() - new Date(a.sentAt).getTime(),
-  )
+  );
 
   return (
     <div className="divide-y border rounded-md">
@@ -38,7 +38,7 @@ const IssuesList = ({ issues }: IssuesListProps) => {
         </Link>
       ))}
     </div>
-  )
-}
+  );
+};
 
-export default IssuesList
+export default IssuesList;

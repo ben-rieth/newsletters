@@ -64,7 +64,7 @@ DELETE FROM newsletter_feed WHERE newsletter_id = $1;
 DELETE FROM newsletter_feed WHERE user_id = $1;
 
 -- name: DeleteNewsletterFeedItemStatuses :exec
-DELETE FROM newsletter_feed_item_status WHERE user_id = $1;
+DELETE FROM issue_item WHERE user_id = $1;
 
 -- name: GetFeedItemsPublishedAfter :many
 SELECT item.id, title, url, publish_date FROM feed_item AS item

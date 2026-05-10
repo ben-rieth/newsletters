@@ -1,25 +1,25 @@
-import client from '#/api/client'
-import type { components } from '#/api/schema'
-import { queryOptions } from '@tanstack/react-query'
+import client from '#/api/client';
+import type { components } from '#/api/schema';
+import { queryOptions } from '@tanstack/react-query';
 
-export type Issue = components['schemas']['Issue']
-export type DetailedIssue = components['schemas']['DetailedIssue']
-export type FeedView = components['schemas']['FeedView']
-export type FeedItemView = components['schemas']['FeedItemView']
+export type Issue = components['schemas']['Issue'];
+export type DetailedIssue = components['schemas']['DetailedIssue'];
+export type IssueFeed = components['schemas']['IssueFeed'];
+export type IssueItem = components['schemas']['IssueItem'];
 
 export const issueKeys = {
   all: ['issues' as const],
   detail: (id: string) => ['issues', id] as const,
-}
+};
 
 export const issuesOptions = queryOptions({
   queryKey: issueKeys.all,
   queryFn: async () => {
-    const { data, error } = await client.GET('/issues')
-    if (error) throw error
-    return data
+    const { data, error } = await client.GET('/issues');
+    if (error) throw error;
+    return data;
   },
-})
+});
 
 export const issueDetailOptions = (issueId: string) =>
   queryOptions({
@@ -27,8 +27,8 @@ export const issueDetailOptions = (issueId: string) =>
     queryFn: async () => {
       const { data, error } = await client.GET('/issues/{id}', {
         params: { path: { id: issueId } },
-      })
-      if (error) throw error
-      return data
+      });
+      if (error) throw error;
+      return data;
     },
-  })
+  });
