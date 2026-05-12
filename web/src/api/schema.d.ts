@@ -157,6 +157,57 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/issues': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get all issues for a user */
+    get: operations['get-issues'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/issues/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get a single issue with all items */
+    get: operations['get-issue'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/link/{token}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Redirect to a newsletter item after marking an item as read */
+    get: operations['link-track'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/newsletter/{newsletterId}/feed': {
     parameters: {
       query?: never;
@@ -458,17 +509,29 @@ export interface components {
        * @example https://example.com/schemas/AuthOutputBody.json
        */
       readonly $schema?: string;
-      tokens: components['schemas']['Tokens'];
       verified: boolean;
     };
-    DeleteUserRequestBody: {
+    'Delete-userRequest': {
       /**
        * Format: uri
        * @description A URL to the JSON Schema for this object.
-       * @example https://example.com/schemas/DeleteUserRequestBody.json
+       * @example https://example.com/schemas/Delete-userRequest.json
        */
       readonly $schema?: string;
       password: string;
+    };
+    DetailedIssue: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/DetailedIssue.json
+       */
+      readonly $schema?: string;
+      feeds: components['schemas']['IssueFeed'][] | null;
+      issueId: string;
+      newsletterName: string;
+      /** Format: date-time */
+      sentAt: string;
     };
     ErrorDetail: {
       /** @description Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
@@ -517,6 +580,10 @@ export interface components {
        */
       type: string;
     };
+    ExistingRecievedFeed: {
+      alias: string;
+      newsletterName: string;
+    };
     FeedFilter: {
       field: string;
       id: string;
@@ -524,26 +591,51 @@ export interface components {
       pattern: string;
     };
     FeedMetaData: {
-      /**
-       * Format: uri
-       * @description A URL to the JSON Schema for this object.
-       * @example https://example.com/schemas/FeedMetaData.json
-       */
-      readonly $schema?: string;
       Description: string;
       HtmlURL: string;
       Id: string;
       Title: string;
       URL: string;
     };
-    GetFeedMetaDataInputBody: {
+    'Get-feed-metadataRequest': {
       /**
        * Format: uri
        * @description A URL to the JSON Schema for this object.
-       * @example https://example.com/schemas/GetFeedMetaDataInputBody.json
+       * @example https://example.com/schemas/Get-feed-metadataRequest.json
        */
       readonly $schema?: string;
       url: string;
+    };
+    GetFeedMetaDataOutputBody: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/GetFeedMetaDataOutputBody.json
+       */
+      readonly $schema?: string;
+      existingRecievedFeeds:
+        | components['schemas']['ExistingRecievedFeed'][]
+        | null;
+      metadata: components['schemas']['FeedMetaData'];
+    };
+    Issue: {
+      issueId: string;
+      newsletterName: string;
+      /** Format: date-time */
+      sentAt: string;
+    };
+    IssueFeed: {
+      items: components['schemas']['IssueItem'][] | null;
+      title: string;
+      webUrl: string;
+    };
+    IssueItem: {
+      itemId: string;
+      /** Format: date-time */
+      publishDate: string;
+      state: string;
+      title: string;
+      token: string;
     };
     ItemPreview: {
       id: string;
@@ -626,10 +718,6 @@ export interface components {
       sendMinute: number;
       sendTimezone: string;
     };
-    Tokens: {
-      refreshToken: string;
-      token: string;
-    };
     UiDetailedFeed: {
       /**
        * Format: uri
@@ -681,11 +769,11 @@ export interface components {
       /** @enum {string} */
       status: 'active' | 'inactive';
     };
-    UpdatePasswordInputBody: {
+    'Update-passwordRequest': {
       /**
        * Format: uri
        * @description A URL to the JSON Schema for this object.
-       * @example https://example.com/schemas/UpdatePasswordInputBody.json
+       * @example https://example.com/schemas/Update-passwordRequest.json
        */
       readonly $schema?: string;
       currentPassword: string;
@@ -731,17 +819,18 @@ export interface operations {
   'refresh-token': {
     parameters: {
       query?: never;
-      header?: {
-        Authorization?: string;
-      };
+      header?: never;
       path?: never;
-      cookie?: never;
+      cookie?: {
+        refresh_token?: string;
+      };
     };
     requestBody?: never;
     responses: {
       /** @description OK */
       200: {
         headers: {
+          'Set-Cookie'?: string;
           [name: string]: unknown;
         };
         content: {
@@ -762,20 +851,23 @@ export interface operations {
   'revoke-token': {
     parameters: {
       query?: never;
-      header?: {
-        Authorization?: string;
-      };
+      header?: never;
       path?: never;
-      cookie?: never;
+      cookie?: {
+        refresh_token?: string;
+      };
     };
     requestBody?: never;
     responses: {
-      /** @description No Content */
-      204: {
+      /** @description OK */
+      200: {
         headers: {
+          'Set-Cookie'?: string;
           [name: string]: unknown;
         };
-        content?: never;
+        content: {
+          'application/json': components['schemas']['AuthOutputBody'];
+        };
       };
       /** @description Error */
       default: {
@@ -804,6 +896,7 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          'Set-Cookie'?: string;
           [name: string]: unknown;
         };
         content: {
@@ -834,9 +927,10 @@ export interface operations {
       };
     };
     responses: {
-      /** @description No Content */
-      204: {
+      /** @description OK */
+      200: {
         headers: {
+          'Set-Cookie'?: string;
           [name: string]: unknown;
         };
         content: {
@@ -870,6 +964,7 @@ export interface operations {
       /** @description OK */
       200: {
         headers: {
+          'Set-Cookie'?: string;
           [name: string]: unknown;
         };
         content: {
@@ -983,7 +1078,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['GetFeedMetaDataInputBody'];
+        'application/json': components['schemas']['Get-feed-metadataRequest'];
       };
     };
     responses: {
@@ -993,8 +1088,98 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['FeedMetaData'];
+          'application/json': components['schemas']['GetFeedMetaDataOutputBody'];
         };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'get-issues': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['Issue'][] | null;
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'get-issue': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['DetailedIssue'];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'link-track': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Temporary Redirect */
+      307: {
+        headers: {
+          Location?: string;
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Error */
       default: {
@@ -1608,7 +1793,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['DeleteUserRequestBody'];
+        'application/json': components['schemas']['Delete-userRequest'];
       };
     };
     responses: {
@@ -1701,7 +1886,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['UpdatePasswordInputBody'];
+        'application/json': components['schemas']['Update-passwordRequest'];
       };
     };
     responses: {

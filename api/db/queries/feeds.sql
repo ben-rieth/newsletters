@@ -4,6 +4,11 @@ FROM feed_url AS furl
 INNER JOIN feed AS f ON furl.feed_id = f.id 
 WHERE furl.url = $1;
 
+-- name: DoesUserAlreadyRecieveFeed :many
+SELECT nlf.alias, n.name FROM newsletter_feed AS nlf
+INNER JOIN newsletter AS n ON nlf.newsletter_id = n.id
+WHERE nlf.user_id = $1 AND nlf.feed_id = $2;
+
 -- name: SaveFeedDetails :one
 INSERT INTO feed (title, url, html_url, description, last_retrieved_at) 
 VALUES ($1, $2, $3, $4, $5)
@@ -59,10 +64,10 @@ DELETE FROM newsletter_feed WHERE newsletter_id = $1;
 DELETE FROM newsletter_feed WHERE user_id = $1;
 
 -- name: DeleteNewsletterFeedItemStatuses :exec
-DELETE FROM newsletter_feed_item_status WHERE user_id = $1;
+DELETE FROM issue_item WHERE user_id = $1;
 
 -- name: GetFeedItemsPublishedAfter :many
-SELECT title, url, publish_date FROM feed_item AS item
+SELECT item.id, title, url, publish_date FROM feed_item AS item
 WHERE feed_id = @global_feed_id AND publish_date > @publish_date_greater_than
 AND NOT EXISTS (
     SELECT 1 FROM newsletter_feed_filter AS ff

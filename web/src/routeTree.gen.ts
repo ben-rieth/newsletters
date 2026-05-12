@@ -14,11 +14,15 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NewslettersRouteImport } from './routes/newsletters'
+import { Route as BadLinkRouteImport } from './routes/bad-link'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as IssuesRouteRouteImport } from './routes/issues/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UnsubscribeIndexRouteImport } from './routes/unsubscribe/index'
 import { Route as NewslettersIndexRouteImport } from './routes/newsletters.index'
+import { Route as IssuesIndexRouteImport } from './routes/issues/index'
 import { Route as NewslettersNewsletterIdRouteImport } from './routes/newsletters/$newsletterId'
+import { Route as IssuesIssueIdRouteImport } from './routes/issues/$issueId'
 import { Route as NewslettersNewsletterIdIndexRouteImport } from './routes/newsletters/$newsletterId/index'
 import { Route as NewslettersNewsletterIdFeedsFeedIdRouteImport } from './routes/newsletters/$newsletterId/feeds/$feedId'
 
@@ -47,9 +51,19 @@ const NewslettersRoute = NewslettersRouteImport.update({
   path: '/newsletters',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BadLinkRoute = BadLinkRouteImport.update({
+  id: '/bad-link',
+  path: '/bad-link',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IssuesRouteRoute = IssuesRouteRouteImport.update({
+  id: '/issues',
+  path: '/issues',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -67,10 +81,20 @@ const NewslettersIndexRoute = NewslettersIndexRouteImport.update({
   path: '/',
   getParentRoute: () => NewslettersRoute,
 } as any)
+const IssuesIndexRoute = IssuesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => IssuesRouteRoute,
+} as any)
 const NewslettersNewsletterIdRoute = NewslettersNewsletterIdRouteImport.update({
   id: '/$newsletterId',
   path: '/$newsletterId',
   getParentRoute: () => NewslettersRoute,
+} as any)
+const IssuesIssueIdRoute = IssuesIssueIdRouteImport.update({
+  id: '/$issueId',
+  path: '/$issueId',
+  getParentRoute: () => IssuesRouteRoute,
 } as any)
 const NewslettersNewsletterIdIndexRoute =
   NewslettersNewsletterIdIndexRouteImport.update({
@@ -87,13 +111,17 @@ const NewslettersNewsletterIdFeedsFeedIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/issues': typeof IssuesRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/bad-link': typeof BadLinkRoute
   '/newsletters': typeof NewslettersRouteWithChildren
   '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/issues/$issueId': typeof IssuesIssueIdRoute
   '/newsletters/$newsletterId': typeof NewslettersNewsletterIdRouteWithChildren
+  '/issues/': typeof IssuesIndexRoute
   '/newsletters/': typeof NewslettersIndexRoute
   '/unsubscribe/': typeof UnsubscribeIndexRoute
   '/newsletters/$newsletterId/': typeof NewslettersNewsletterIdIndexRoute
@@ -102,10 +130,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/bad-link': typeof BadLinkRoute
   '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/issues/$issueId': typeof IssuesIssueIdRoute
+  '/issues': typeof IssuesIndexRoute
   '/newsletters': typeof NewslettersIndexRoute
   '/unsubscribe': typeof UnsubscribeIndexRoute
   '/newsletters/$newsletterId': typeof NewslettersNewsletterIdIndexRoute
@@ -114,13 +145,17 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/issues': typeof IssuesRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/bad-link': typeof BadLinkRoute
   '/newsletters': typeof NewslettersRouteWithChildren
   '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/issues/$issueId': typeof IssuesIssueIdRoute
   '/newsletters/$newsletterId': typeof NewslettersNewsletterIdRouteWithChildren
+  '/issues/': typeof IssuesIndexRoute
   '/newsletters/': typeof NewslettersIndexRoute
   '/unsubscribe/': typeof UnsubscribeIndexRoute
   '/newsletters/$newsletterId/': typeof NewslettersNewsletterIdIndexRoute
@@ -130,13 +165,17 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/issues'
     | '/about'
+    | '/bad-link'
     | '/newsletters'
     | '/profile'
     | '/sign-in'
     | '/sign-up'
     | '/verify-email'
+    | '/issues/$issueId'
     | '/newsletters/$newsletterId'
+    | '/issues/'
     | '/newsletters/'
     | '/unsubscribe/'
     | '/newsletters/$newsletterId/'
@@ -145,10 +184,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/bad-link'
     | '/profile'
     | '/sign-in'
     | '/sign-up'
     | '/verify-email'
+    | '/issues/$issueId'
+    | '/issues'
     | '/newsletters'
     | '/unsubscribe'
     | '/newsletters/$newsletterId'
@@ -156,13 +198,17 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/issues'
     | '/about'
+    | '/bad-link'
     | '/newsletters'
     | '/profile'
     | '/sign-in'
     | '/sign-up'
     | '/verify-email'
+    | '/issues/$issueId'
     | '/newsletters/$newsletterId'
+    | '/issues/'
     | '/newsletters/'
     | '/unsubscribe/'
     | '/newsletters/$newsletterId/'
@@ -171,7 +217,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  IssuesRouteRoute: typeof IssuesRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  BadLinkRoute: typeof BadLinkRoute
   NewslettersRoute: typeof NewslettersRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   SignInRoute: typeof SignInRoute
@@ -217,11 +265,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewslettersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bad-link': {
+      id: '/bad-link'
+      path: '/bad-link'
+      fullPath: '/bad-link'
+      preLoaderRoute: typeof BadLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/about': {
       id: '/about'
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/issues': {
+      id: '/issues'
+      path: '/issues'
+      fullPath: '/issues'
+      preLoaderRoute: typeof IssuesRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -245,12 +307,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewslettersIndexRouteImport
       parentRoute: typeof NewslettersRoute
     }
+    '/issues/': {
+      id: '/issues/'
+      path: '/'
+      fullPath: '/issues/'
+      preLoaderRoute: typeof IssuesIndexRouteImport
+      parentRoute: typeof IssuesRouteRoute
+    }
     '/newsletters/$newsletterId': {
       id: '/newsletters/$newsletterId'
       path: '/$newsletterId'
       fullPath: '/newsletters/$newsletterId'
       preLoaderRoute: typeof NewslettersNewsletterIdRouteImport
       parentRoute: typeof NewslettersRoute
+    }
+    '/issues/$issueId': {
+      id: '/issues/$issueId'
+      path: '/$issueId'
+      fullPath: '/issues/$issueId'
+      preLoaderRoute: typeof IssuesIssueIdRouteImport
+      parentRoute: typeof IssuesRouteRoute
     }
     '/newsletters/$newsletterId/': {
       id: '/newsletters/$newsletterId/'
@@ -268,6 +344,20 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface IssuesRouteRouteChildren {
+  IssuesIssueIdRoute: typeof IssuesIssueIdRoute
+  IssuesIndexRoute: typeof IssuesIndexRoute
+}
+
+const IssuesRouteRouteChildren: IssuesRouteRouteChildren = {
+  IssuesIssueIdRoute: IssuesIssueIdRoute,
+  IssuesIndexRoute: IssuesIndexRoute,
+}
+
+const IssuesRouteRouteWithChildren = IssuesRouteRoute._addFileChildren(
+  IssuesRouteRouteChildren,
+)
 
 interface NewslettersNewsletterIdRouteChildren {
   NewslettersNewsletterIdIndexRoute: typeof NewslettersNewsletterIdIndexRoute
@@ -302,7 +392,9 @@ const NewslettersRouteWithChildren = NewslettersRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  IssuesRouteRoute: IssuesRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  BadLinkRoute: BadLinkRoute,
   NewslettersRoute: NewslettersRouteWithChildren,
   ProfileRoute: ProfileRoute,
   SignInRoute: SignInRoute,

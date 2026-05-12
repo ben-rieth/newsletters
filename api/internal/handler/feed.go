@@ -261,14 +261,18 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		}, nil
 	})
 
-	type getFeedMetaDataInput struct {
-		Body struct {
-			URL string `json:"url"`
-		}
+	type existingRecievedFeed struct {
+		Alias          string `json:"alias"`
+		NewsletterName string `json:"newsletterName"`
+	}
+
+	type getFeedMetaDataOutputBody struct {
+		Metadata              *feeds.FeedMetaData     `json:"metadata"`
+		ExistingRecievedFeeds []*existingRecievedFeed `json:"existingRecievedFeeds"`
 	}
 
 	type getFeedMetaDataOutput struct {
-		Body feeds.FeedMetaData
+		Body *getFeedMetaDataOutputBody
 	}
 
 	huma.Register(api, huma.Operation{
@@ -276,7 +280,19 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		Method:      "POST",
 		Path:        "/feed",
 		Summary:     "Gets data about an RSS feed URL",
-	}, func(ctx context.Context, i *getFeedMetaDataInput) (*getFeedMetaDataOutput, error) {
+	}, func(
+		ctx context.Context,
+		i *struct {
+			Body struct {
+				URL string `json:"url"`
+			}
+		},
+	) (*getFeedMetaDataOutput, error) {
+		claims, ok := auth.ClaimsFromContext(ctx)
+		if !ok || claims == nil {
+			return nil, unauthorizedError()
+		}
+
 		err := feeds.IsSafeFeedUrl(i.Body.URL)
 		if err != nil {
 			return nil, badRequestError("Invalid Url")
@@ -287,8 +303,28 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 			return nil, internalServerError(ctx, err)
 		}
 
+		existingUserFeedsResult, err := h.queries.DoesUserAlreadyRecieveFeed(ctx, db.DoesUserAlreadyRecieveFeedParams{
+			UserID: claims.Subject,
+			FeedID: metadata.Id,
+		})
+
+		if err != nil {
+			return nil, internalServerError(ctx, err)
+		}
+
+		existingRecievedFeeds := make([]*existingRecievedFeed, 0, len(existingUserFeedsResult))
+		for _, existing := range existingUserFeedsResult {
+			existingRecievedFeeds = append(existingRecievedFeeds, &existingRecievedFeed{
+				NewsletterName: existing.Name,
+				Alias:          existing.Alias,
+			})
+		}
+
 		return &getFeedMetaDataOutput{
-			Body: *metadata,
+			Body: &getFeedMetaDataOutputBody{
+				Metadata:              metadata,
+				ExistingRecievedFeeds: existingRecievedFeeds,
+			},
 		}, nil
 	})
 

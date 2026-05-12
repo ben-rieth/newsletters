@@ -3,7 +3,6 @@ package feeds
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
@@ -59,20 +58,9 @@ func (s *FeedService) GetFeedMetaData(ctx context.Context, url string, returnId 
 
 	fetchFeedRes.Feed = pruneFeedItemsBeforeTime(fetchFeedRes.Feed, itemLookBack)
 
-	var feedId string
-	if returnId {
-		feedId, err = s.saveFeedDetails(ctx, fetchFeedRes)
-		if err != nil {
-			return nil, utils.SystemError
-		}
-	} else {
-		feedId = ""
-		s.jobQueue <- func(ctx context.Context) {
-			_, err := s.saveFeedDetails(ctx, fetchFeedRes)
-			if err != nil {
-				wideLog.AddErrorField(ctx, fmt.Errorf("Failed to cache feed in database: %v", err))
-			}
-		}
+	feedId, err := s.saveFeedDetails(ctx, fetchFeedRes)
+	if err != nil {
+		return nil, utils.SystemError
 	}
 
 	return &FeedMetaData{
@@ -139,6 +127,7 @@ func (s *FeedService) GetFeedDataSince(
 	finalItems = make([]FeedItemView, 0, len(items))
 	for _, item := range items {
 		finalItems = append(finalItems, FeedItemView{
+			ItemID:      item.ID,
 			Title:       item.Title,
 			URL:         item.Url,
 			PublishDate: item.PublishDate,

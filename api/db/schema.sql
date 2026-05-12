@@ -1,4 +1,4 @@
-\restrict xh2FNATGTglliynlf5E0AOFKYThbiX9uYXLb8UvzDuhi3lYbXhIgth4WHlUhXEF
+\restrict ZdRU7WdSKgptaBqaz4kO8meeRDkGVQIVEGoxvbfmj1JIXecyeHZoDoftIjIRRxg
 
 -- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
@@ -152,6 +152,22 @@ CREATE TABLE public.feed_url (
 
 
 --
+-- Name: issue_item; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.issue_item (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    item_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    state public.item_state DEFAULT 'unread'::public.item_state NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    issue_id uuid NOT NULL,
+    token uuid DEFAULT gen_random_uuid() NOT NULL
+);
+
+
+--
 -- Name: newsletter; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -205,17 +221,15 @@ CREATE TABLE public.newsletter_feed_filter (
 
 
 --
--- Name: newsletter_feed_item_status; Type: TABLE; Schema: public; Owner: -
+-- Name: newsletter_issue; Type: TABLE; Schema: public; Owner: -
 --
 
-CREATE TABLE public.newsletter_feed_item_status (
+CREATE TABLE public.newsletter_issue (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    newsletter_feed_id uuid NOT NULL,
-    item_id uuid NOT NULL,
+    newsletter_id uuid NOT NULL,
     user_id uuid NOT NULL,
-    state public.item_state DEFAULT 'unread'::public.item_state NOT NULL,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    sent_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -358,10 +372,10 @@ ALTER TABLE ONLY public.newsletter_feed_filter
 
 
 --
--- Name: newsletter_feed_item_status newsletter_feed_item_status_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+-- Name: issue_item newsletter_feed_item_status_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.newsletter_feed_item_status
+ALTER TABLE ONLY public.issue_item
     ADD CONSTRAINT newsletter_feed_item_status_pkey PRIMARY KEY (id);
 
 
@@ -371,6 +385,14 @@ ALTER TABLE ONLY public.newsletter_feed_item_status
 
 ALTER TABLE ONLY public.newsletter_feed
     ADD CONSTRAINT newsletter_feed_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: newsletter_issue newsletter_issue_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_issue
+    ADD CONSTRAINT newsletter_issue_pkey PRIMARY KEY (id);
 
 
 --
@@ -446,6 +468,14 @@ ALTER TABLE ONLY public.feed_url
 
 
 --
+-- Name: issue_item issue_item_issue_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.issue_item
+    ADD CONSTRAINT issue_item_issue_id_fkey FOREIGN KEY (issue_id) REFERENCES public.newsletter_issue(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
 -- Name: newsletter_feed newsletter_feed_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -470,26 +500,18 @@ ALTER TABLE ONLY public.newsletter_feed_filter
 
 
 --
--- Name: newsletter_feed_item_status newsletter_feed_item_status_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: issue_item newsletter_feed_item_status_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.newsletter_feed_item_status
+ALTER TABLE ONLY public.issue_item
     ADD CONSTRAINT newsletter_feed_item_status_item_id_fkey FOREIGN KEY (item_id) REFERENCES public.feed_item(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
--- Name: newsletter_feed_item_status newsletter_feed_item_status_newsletter_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: issue_item newsletter_feed_item_status_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.newsletter_feed_item_status
-    ADD CONSTRAINT newsletter_feed_item_status_newsletter_feed_id_fkey FOREIGN KEY (newsletter_feed_id) REFERENCES public.newsletter_feed(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
-
-
---
--- Name: newsletter_feed_item_status newsletter_feed_item_status_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.newsletter_feed_item_status
+ALTER TABLE ONLY public.issue_item
     ADD CONSTRAINT newsletter_feed_item_status_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
@@ -507,6 +529,22 @@ ALTER TABLE ONLY public.newsletter_feed
 
 ALTER TABLE ONLY public.newsletter_feed
     ADD CONSTRAINT newsletter_feed_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: newsletter_issue newsletter_issue_newsletter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_issue
+    ADD CONSTRAINT newsletter_issue_newsletter_id_fkey FOREIGN KEY (newsletter_id) REFERENCES public.newsletter(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: newsletter_issue newsletter_issue_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_issue
+    ADD CONSTRAINT newsletter_issue_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --
@@ -537,7 +575,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict xh2FNATGTglliynlf5E0AOFKYThbiX9uYXLb8UvzDuhi3lYbXhIgth4WHlUhXEF
+\unrestrict ZdRU7WdSKgptaBqaz4kO8meeRDkGVQIVEGoxvbfmj1JIXecyeHZoDoftIjIRRxg
 
 
 --
@@ -548,4 +586,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260329010424'),
     ('20260421220214'),
     ('20260501141144'),
-    ('20260502170343');
+    ('20260502170343'),
+    ('20260509195259');

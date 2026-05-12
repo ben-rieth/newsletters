@@ -12,7 +12,7 @@ const useRunScheduler = () => {
       }
     },
     onSuccess: () => {
-      toast.success('Scheduler ran successfully');
+      toast.success('Scheduler running.');
     },
     onError: (error) => {
       toast.error(getErrorMessage(error));

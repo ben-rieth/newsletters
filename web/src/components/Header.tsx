@@ -19,6 +19,9 @@ const Header = () => {
             <Link to="/newsletters" className={navLinkClass}>
               Newsletters
             </Link>
+            <Link to="/issues" className={navLinkClass}>
+              Issues
+            </Link>
             <Link to="/profile" className={navLinkClass}>
               Profile
             </Link>

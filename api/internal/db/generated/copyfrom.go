@@ -78,3 +78,38 @@ func (r iteratorForSaveFeedUrls) Err() error {
 func (q *Queries) SaveFeedUrls(ctx context.Context, arg []SaveFeedUrlsParams) (int64, error) {
 	return q.db.CopyFrom(ctx, []string{"feed_url"}, []string{"feed_id", "url", "source"}, &iteratorForSaveFeedUrls{rows: arg})
 }
+
+// iteratorForStoreNewsletterIssueItems implements pgx.CopyFromSource.
+type iteratorForStoreNewsletterIssueItems struct {
+	rows                 []StoreNewsletterIssueItemsParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForStoreNewsletterIssueItems) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForStoreNewsletterIssueItems) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].IssueID,
+		r.rows[0].ItemID,
+		r.rows[0].UserID,
+		r.rows[0].Token,
+	}, nil
+}
+
+func (r iteratorForStoreNewsletterIssueItems) Err() error {
+	return nil
+}
+
+func (q *Queries) StoreNewsletterIssueItems(ctx context.Context, arg []StoreNewsletterIssueItemsParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"issue_item"}, []string{"issue_id", "item_id", "user_id", "token"}, &iteratorForStoreNewsletterIssueItems{rows: arg})
+}

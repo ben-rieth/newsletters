@@ -32,13 +32,28 @@
                 {{end}}
                 {{ range .Items }}
                 <div style="margin-bottom: 16px;">
-                    <h3><a href="{{ .URL }}">{{ .Title }}</a></h3>
+                    <h3>
+                      {{ if eq .TrackingURL "" }}
+                        <a href="{{ .URL }}">{{ .Title }}</a>
+                      {{ else }}
+                        <a href="{{ .TrackingURL }}">{{ .Title }}</a>
+                      {{end}}
+                    </h3>
                     <p style="margin: -8px 0 0; font-size: 12px; color: #888888;">{{ .PublishDate }}</p>
                 </div>
                 {{end}}
               {{else}}
                 No feed updates this time
               {{end}}
+            </td>
+          </tr>
+
+          <!-- View in app -->
+          <tr>
+            <td style="padding: 0 30px 20px; text-align: center;">
+              <a href="{{ .IssueURL }}" style="font-size: 13px; color: #1a1a2e;">
+                View this issue in the app →
+              </a>
             </td>
           </tr>
 
@@ -85,7 +100,10 @@
           <!-- Footer -->
           <tr>
             <td style="background-color: #f4f4f4; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
-              <p style="margin: 0; font-size: 12px; color: #888888;">
+              <p style="margin: 8px 0 0; font-size: 12px;">
+                <a href="{{.ManageNewslettersURL}}" style="color: #888888;">Manage newsletters</a>
+              </p>
+              <p style="margin: 12px 0 0;; font-size: 12px; color: #888888;">
                 You're receiving this because you signed up for digest emails.
               </p>
               <p style="margin: 8px 0 0; font-size: 12px;">

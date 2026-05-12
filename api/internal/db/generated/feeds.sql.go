@@ -67,7 +67,7 @@ func (q *Queries) DeleteNewsletterFeed(ctx context.Context, arg DeleteNewsletter
 }
 
 const deleteNewsletterFeedItemStatuses = `-- name: DeleteNewsletterFeedItemStatuses :exec
-DELETE FROM newsletter_feed_item_status WHERE user_id = $1
+DELETE FROM issue_item WHERE user_id = $1
 `
 
 func (q *Queries) DeleteNewsletterFeedItemStatuses(ctx context.Context, userID string) error {
@@ -94,6 +94,42 @@ func (q *Queries) DoesFeedExist(ctx context.Context, arg DoesFeedExistParams) (b
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
+}
+
+const doesUserAlreadyRecieveFeed = `-- name: DoesUserAlreadyRecieveFeed :many
+SELECT nlf.alias, n.name FROM newsletter_feed AS nlf
+INNER JOIN newsletter AS n ON nlf.newsletter_id = n.id
+WHERE nlf.user_id = $1 AND nlf.feed_id = $2
+`
+
+type DoesUserAlreadyRecieveFeedParams struct {
+	UserID string
+	FeedID string
+}
+
+type DoesUserAlreadyRecieveFeedRow struct {
+	Alias string
+	Name  string
+}
+
+func (q *Queries) DoesUserAlreadyRecieveFeed(ctx context.Context, arg DoesUserAlreadyRecieveFeedParams) ([]DoesUserAlreadyRecieveFeedRow, error) {
+	rows, err := q.db.Query(ctx, doesUserAlreadyRecieveFeed, arg.UserID, arg.FeedID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []DoesUserAlreadyRecieveFeedRow
+	for rows.Next() {
+		var i DoesUserAlreadyRecieveFeedRow
+		if err := rows.Scan(&i.Alias, &i.Name); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getCachedFeedDetails = `-- name: GetCachedFeedDetails :one
@@ -159,7 +195,7 @@ func (q *Queries) GetFeedById(ctx context.Context, arg GetFeedByIdParams) (GetFe
 }
 
 const getFeedItemsPublishedAfter = `-- name: GetFeedItemsPublishedAfter :many
-SELECT title, url, publish_date FROM feed_item AS item
+SELECT item.id, title, url, publish_date FROM feed_item AS item
 WHERE feed_id = $1 AND publish_date > $2
 AND NOT EXISTS (
     SELECT 1 FROM newsletter_feed_filter AS ff
@@ -188,6 +224,7 @@ type GetFeedItemsPublishedAfterParams struct {
 }
 
 type GetFeedItemsPublishedAfterRow struct {
+	ID          string
 	Title       string
 	Url         string
 	PublishDate time.Time
@@ -207,7 +244,12 @@ func (q *Queries) GetFeedItemsPublishedAfter(ctx context.Context, arg GetFeedIte
 	var items []GetFeedItemsPublishedAfterRow
 	for rows.Next() {
 		var i GetFeedItemsPublishedAfterRow
-		if err := rows.Scan(&i.Title, &i.Url, &i.PublishDate); err != nil {
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Url,
+			&i.PublishDate,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)

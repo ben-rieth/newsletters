@@ -30,6 +30,33 @@ type NewslettersExport struct {
 	Newsletters []ExportableNewsletter `json:"newsletters"`
 }
 
+type Issue struct {
+	IssueID        string    `json:"issueId"`
+	NewsletterName string    `json:"newsletterName"`
+	SentAt         time.Time `json:"sentAt"`
+}
+
+type DetailedIssue struct {
+	IssueID        string      `json:"issueId"`
+	NewsletterName string      `json:"newsletterName"`
+	SentAt         time.Time   `json:"sentAt"`
+	Feeds          []IssueFeed `json:"feeds"`
+}
+
+type IssueItem struct {
+	ItemID      string       `json:"itemId"`
+	Title       string       `json:"title"`
+	Token       string       `json:"token"`
+	State       db.ItemState `json:"state"`
+	PublishDate time.Time    `json:"publishDate"`
+}
+
+type IssueFeed struct {
+	Title   string      `json:"title"`
+	HtmlURL string      `json:"webUrl"`
+	Items   []IssueItem `json:"items"`
+}
+
 func DbNewsletterToNewsletterType(newsletter db.Newsletter) Newsletter {
 	var lastSentAt *time.Time
 	if newsletter.LastSentAt.Valid {
