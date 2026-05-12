@@ -158,15 +158,16 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 		sch.cfg.PublicApiURL,
 	)
 
-	newsletterHtml, err := sch.assembleNewsletter(&nl, feedResults)
-	if err != nil {
-		return err
-	}
-
 	issueId, err := sch.newsletterService.StoreNewsletterIssue(
 		ctx, nl.ID, nl.UserID, itemIdToTokenMap,
 	)
 	if err != nil {
+		return err
+	}
+
+	newsletterHtml, err := sch.assembleNewsletter(&nl, feedResults, issueId)
+	if err != nil {
+		sch.cleanUpAfterSendFailure(ctx, issueId, nl.UserID)
 		return err
 	}
 
@@ -179,15 +180,7 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 	)
 
 	if err != nil {
-		deleteErr := sch.newsletterService.DeleteIssue(ctx, issueId, nl.UserID)
-
-		if deleteErr != nil {
-			wideLog.AddErrorField(
-				ctx,
-				fmt.Errorf("Failed to delete issue after failed email send: %w", deleteErr),
-			)
-		}
-
+		sch.cleanUpAfterSendFailure(ctx, issueId, nl.UserID)
 		return err
 	}
 	wideLog.AddLogField(ctx, "emailSendId", result.ID)
@@ -271,14 +264,28 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 func (sch *Scheduler) assembleNewsletter(
 	nl *SendableNewsletter,
 	fetchResults newsletterFetchFeedResult,
+	issueID string,
 ) (string, error) {
 	return sch.emailService.AssembleEmail("newsletter.html", map[string]any{
-		"NewsletterName": nl.Name,
-		"Feeds":          fetchResults.Succeeded,
-		"EmptyFeeds":     fetchResults.SucceededNoItems,
-		"FailedFeeds":    fetchResults.Failed,
-		"UnsubscribeURL": fmt.Sprintf("%s/unsubscribe?unsubscribeToken=%s", sch.cfg.WebURL, nl.UnsubscribeToken),
+		"NewsletterName":       nl.Name,
+		"Feeds":                fetchResults.Succeeded,
+		"EmptyFeeds":           fetchResults.SucceededNoItems,
+		"FailedFeeds":          fetchResults.Failed,
+		"UnsubscribeURL":       fmt.Sprintf("%s/unsubscribe?unsubscribeToken=%s", sch.cfg.WebURL, nl.UnsubscribeToken),
+		"ManageNewslettersURL": fmt.Sprintf("%s/newsletters", sch.cfg.WebURL),
+		"IssueURL":             fmt.Sprintf("%s/issues/%s", sch.cfg.WebURL, issueID),
 	})
+}
+
+func (sch *Scheduler) cleanUpAfterSendFailure(ctx context.Context, issueId, userId string) {
+	deleteErr := sch.newsletterService.DeleteIssue(ctx, issueId, userId)
+
+	if deleteErr != nil {
+		wideLog.AddErrorField(
+			ctx,
+			fmt.Errorf("Failed to delete issue after failed email send: %w", deleteErr),
+		)
+	}
 }
 
 func shouldKeepSchedulerLog(wl *wideLog.WideLog) (bool, slog.Level) {

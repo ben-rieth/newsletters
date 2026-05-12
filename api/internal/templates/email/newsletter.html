@@ -48,6 +48,15 @@
             </td>
           </tr>
 
+          <!-- View in app -->
+          <tr>
+            <td style="padding: 0 30px 20px; text-align: center;">
+              <a href="{{ .IssueURL }}" style="font-size: 13px; color: #1a1a2e;">
+                View this issue in the app →
+              </a>
+            </td>
+          </tr>
+
           <!-- Empty Feeds -->
           {{if .EmptyFeeds}}
           <tr>
@@ -91,7 +100,10 @@
           <!-- Footer -->
           <tr>
             <td style="background-color: #f4f4f4; padding: 20px; text-align: center; border-radius: 0 0 8px 8px;">
-              <p style="margin: 0; font-size: 12px; color: #888888;">
+              <p style="margin: 8px 0 0; font-size: 12px;">
+                <a href="{{.ManageNewslettersURL}}" style="color: #888888;">Manage newsletters</a>
+              </p>
+              <p style="margin: 12px 0 0;; font-size: 12px; color: #888888;">
                 You're receiving this because you signed up for digest emails.
               </p>
               <p style="margin: 8px 0 0; font-size: 12px;">
