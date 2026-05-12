@@ -2,7 +2,7 @@
 INSERT INTO newsletter_issue (newsletter_id, user_id, sent_at) VALUES ($1, $2, $3) RETURNING id;
 
 -- name: StoreNewsletterIssueItems :copyfrom
-INSERT INTO issue_item (issue_id, item_id, user_id) VALUES ($1, $2, $3);
+INSERT INTO issue_item (issue_id, item_id, user_id, token) VALUES ($1, $2, $3, $4);
 
 -- name: GetAllUserIssues :many
 SELECT i.id, nl.id, nl.name, i.sent_at FROM newsletter_issue AS i 
@@ -37,3 +37,9 @@ WHERE ii.token = $1;
 UPDATE issue_item AS ii
 SET state = 'read'
 WHERE token = $1;
+
+-- name: DeleteItemsForIssue :exec
+DELETE FROM issue_item WHERE issue_id = $1 AND user_id = $2;
+
+-- name: DeleteIssue :exec
+DELETE FROM newsletter_issue WHERE id = $1 AND user_id = $2;

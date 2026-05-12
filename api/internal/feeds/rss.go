@@ -10,16 +10,17 @@ import (
 )
 
 type FeedView struct {
-	Title   string         `json:"title"`
-	HtmlURL string         `json:"webUrl"`
-	Items   []FeedItemView `json:"items"`
+	Title   string
+	HtmlURL string
+	Items   []FeedItemView
 }
 
 type FeedItemView struct {
-	ItemID      string    `json:"itemId"`
-	Title       string    `json:"title"`
-	URL         string    `json:"url"`
-	PublishDate time.Time `json:"publishDate"`
+	ItemID      string
+	Title       string
+	URL         string
+	PublishDate time.Time
+	TrackingURL string
 }
 
 type FeedMetaData struct {

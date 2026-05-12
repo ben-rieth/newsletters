@@ -32,7 +32,13 @@
                 {{end}}
                 {{ range .Items }}
                 <div style="margin-bottom: 16px;">
-                    <h3><a href="{{ .URL }}">{{ .Title }}</a></h3>
+                    <h3>
+                      {{ if eq .TrackingURL "" }}
+                        <a href="{{ .URL }}">{{ .Title }}</a>
+                      {{ else }}
+                        <a href="{{ .TrackingURL }}">{{ .Title }}</a>
+                      {{end}}
+                    </h3>
                     <p style="margin: -8px 0 0; font-size: 12px; color: #888888;">{{ .PublishDate }}</p>
                 </div>
                 {{end}}

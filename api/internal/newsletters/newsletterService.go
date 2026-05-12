@@ -173,12 +173,11 @@ func (s *NewsletterService) DeleteNewsletter(
 func (s *NewsletterService) StoreNewsletterIssue(
 	ctx context.Context,
 	newsletterId, userId string,
-	sentAt time.Time,
-	itemIds []string,
-) error {
+	itemIdToToken map[string]string,
+) (string, error) {
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer tx.Rollback(ctx)
 
@@ -187,23 +186,55 @@ func (s *NewsletterService) StoreNewsletterIssue(
 	issueId, err := qtx.StoreNewsletterIssue(ctx, dbgen.StoreNewsletterIssueParams{
 		NewsletterID: newsletterId,
 		UserID:       userId,
-		SentAt:       sentAt,
+		SentAt:       time.Now(),
 	})
 	if err != nil {
-		return nil
+		return "", err
 	}
 
 	items := make([]dbgen.StoreNewsletterIssueItemsParams, 0)
-	for _, itemId := range itemIds {
+	for itemId, token := range itemIdToToken {
 		items = append(items, dbgen.StoreNewsletterIssueItemsParams{
 			ItemID:  itemId,
 			UserID:  userId,
 			IssueID: issueId,
+			Token:   token,
 		})
 	}
 
 	_, err = qtx.StoreNewsletterIssueItems(ctx, items)
 	if err != nil {
+		return "", err
+	}
+
+	err = tx.Commit(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	return issueId, nil
+}
+
+func (s *NewsletterService) DeleteIssue(ctx context.Context, issueID, userID string) error {
+	tx, err := s.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := s.queries.WithTx(tx)
+
+	if err := qtx.DeleteItemsForIssue(ctx, dbgen.DeleteItemsForIssueParams{
+		IssueID: issueID,
+		UserID:  userID,
+	}); err != nil {
+		return err
+	}
+
+	if err := qtx.DeleteIssue(ctx, dbgen.DeleteIssueParams{
+		ID:     issueID,
+		UserID: userID,
+	}); err != nil {
 		return err
 	}
 

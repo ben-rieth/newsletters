@@ -57,7 +57,7 @@ func main() {
 	emailVerifyService := email.NewEmailVerifyService(queries, cfg, emailService)
 
 	newsletterService := newsletters.NewNewsletterService(queries, pool)
-	issuesService := newsletters.NewIssuesService(queries)
+	issuesService := newsletters.NewIssuesService(queries, pool)
 
 	feeds.InitBlockedIPs()
 	feedsService := feeds.NewFeedService(rssService, queries, pool, jobQueue)

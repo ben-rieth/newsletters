@@ -34,7 +34,11 @@ func StartJobQueue(ctx context.Context, cfg config.Config) JobQueue {
 				runJob(jobCtx, job)
 
 				endTime := time.Now()
-				wl.AddLogField("duration", endTime.Sub(startTime).String())
+
+				duration := endTime.Sub(startTime)
+
+				wl.AddLogField("durationRaw", duration)
+				wl.AddLogField("duration", duration.String())
 
 				shouldLog, level := shouldLog(wl)
 				if shouldLog {
@@ -72,7 +76,7 @@ func shouldLog(logMap *wideLog.WideLog) (bool, slog.Level) {
 		return true, slog.LevelError
 	}
 
-	d, ok := wideLog.GetField[time.Duration](logMap, "duration")
+	d, ok := wideLog.GetField[time.Duration](logMap, "durationRaw")
 	if !ok {
 		logMap.AddLogField("reason", "missing-duration")
 		return true, slog.LevelError

@@ -151,7 +151,21 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 	wideLog.AddLogField(ctx, "nonEmptyFeedCount", len(feedResults.Succeeded))
 	wideLog.AddLogField(ctx, "emptyFeedCount", len(feedResults.SucceededNoItems))
 
+	itemIdToTokenMap := generateTokensForItems(feedResults.Succeeded)
+	feedResults.Succeeded = wrapItemURLs(
+		feedResults.Succeeded,
+		itemIdToTokenMap,
+		sch.cfg.PublicApiURL,
+	)
+
 	newsletterHtml, err := sch.assembleNewsletter(&nl, feedResults)
+	if err != nil {
+		return err
+	}
+
+	issueId, err := sch.newsletterService.StoreNewsletterIssue(
+		ctx, nl.ID, nl.UserID, itemIdToTokenMap,
+	)
 	if err != nil {
 		return err
 	}
@@ -165,6 +179,15 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 	)
 
 	if err != nil {
+		deleteErr := sch.newsletterService.DeleteIssue(ctx, issueId, nl.UserID)
+
+		if deleteErr != nil {
+			wideLog.AddErrorField(
+				ctx,
+				fmt.Errorf("Failed to delete issue after failed email send: %w", deleteErr),
+			)
+		}
+
 		return err
 	}
 	wideLog.AddLogField(ctx, "emailSendId", result.ID)
@@ -173,20 +196,6 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 	sentAt := result.Time
 
 	err = sch.newsletterService.UpdateSendTimes(ctx, &nl, sentAt)
-	if err != nil {
-		return err
-	}
-
-	itemIds := make([]string, 0)
-	for _, feed := range feedResults.Succeeded {
-		for _, item := range feed.Items {
-			itemIds = append(itemIds, item.ItemID)
-		}
-	}
-
-	err = sch.newsletterService.StoreNewsletterIssue(
-		ctx, nl.ID, nl.UserID, sentAt, itemIds,
-	)
 	if err != nil {
 		return err
 	}
@@ -278,4 +287,26 @@ func shouldKeepSchedulerLog(wl *wideLog.WideLog) (bool, slog.Level) {
 	}
 
 	return rand.Float64() < 0.02, slog.LevelInfo
+}
+
+func generateTokensForItems(feeds []feeds.FeedView) map[string]string {
+	itemIdToTokenMap := make(map[string]string)
+
+	for _, feed := range feeds {
+		for _, item := range feed.Items {
+			itemIdToTokenMap[item.ItemID] = uuid.NewString()
+		}
+	}
+
+	return itemIdToTokenMap
+}
+
+func wrapItemURLs(feeds []feeds.FeedView, idToTokenMap map[string]string, urlBase string) []feeds.FeedView {
+	for _, feed := range feeds {
+		for _, item := range feed.Items {
+			item.TrackingURL = fmt.Sprintf("%s/link/%s", urlBase, idToTokenMap[item.ItemID])
+		}
+	}
+
+	return feeds
 }

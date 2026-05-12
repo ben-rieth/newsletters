@@ -15,6 +15,7 @@ type Config struct {
 	JWTSecret             string
 	ResendAPIKey          string
 	Environment           string
+	PublicApiURL          string
 	NewsletterSenderEmail mail.Address
 	JobQueueSize          int
 }
@@ -34,6 +35,7 @@ func Load() Config {
 		ResendAPIKey: os.Getenv("RESEND_API_KEY"),
 		Environment:  os.Getenv("ENVIRONMENT"),
 		JobQueueSize: jobQueueSize,
+		PublicApiURL: os.Getenv("PUBLIC_API_URL"),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -73,6 +75,10 @@ func Load() Config {
 
 	if cfg.Host == "" {
 		cfg.Host = "localhost"
+	}
+
+	if cfg.PublicApiURL == "" {
+		cfg.PublicApiURL = "http://localhost:8080"
 	}
 
 	return cfg

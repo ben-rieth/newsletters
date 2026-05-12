@@ -102,6 +102,7 @@ func (r iteratorForStoreNewsletterIssueItems) Values() ([]interface{}, error) {
 		r.rows[0].IssueID,
 		r.rows[0].ItemID,
 		r.rows[0].UserID,
+		r.rows[0].Token,
 	}, nil
 }
 
@@ -110,5 +111,5 @@ func (r iteratorForStoreNewsletterIssueItems) Err() error {
 }
 
 func (q *Queries) StoreNewsletterIssueItems(ctx context.Context, arg []StoreNewsletterIssueItemsParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"issue_item"}, []string{"issue_id", "item_id", "user_id"}, &iteratorForStoreNewsletterIssueItems{rows: arg})
+	return q.db.CopyFrom(ctx, []string{"issue_item"}, []string{"issue_id", "item_id", "user_id", "token"}, &iteratorForStoreNewsletterIssueItems{rows: arg})
 }

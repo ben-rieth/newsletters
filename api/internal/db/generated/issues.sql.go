@@ -10,6 +10,34 @@ import (
 	"time"
 )
 
+const deleteIssue = `-- name: DeleteIssue :exec
+DELETE FROM newsletter_issue WHERE id = $1 AND user_id = $2
+`
+
+type DeleteIssueParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) DeleteIssue(ctx context.Context, arg DeleteIssueParams) error {
+	_, err := q.db.Exec(ctx, deleteIssue, arg.ID, arg.UserID)
+	return err
+}
+
+const deleteItemsForIssue = `-- name: DeleteItemsForIssue :exec
+DELETE FROM issue_item WHERE issue_id = $1 AND user_id = $2
+`
+
+type DeleteItemsForIssueParams struct {
+	IssueID string
+	UserID  string
+}
+
+func (q *Queries) DeleteItemsForIssue(ctx context.Context, arg DeleteItemsForIssueParams) error {
+	_, err := q.db.Exec(ctx, deleteItemsForIssue, arg.IssueID, arg.UserID)
+	return err
+}
+
 const getAllUserIssues = `-- name: GetAllUserIssues :many
 SELECT i.id, nl.id, nl.name, i.sent_at FROM newsletter_issue AS i 
 INNER JOIN newsletter AS nl ON i.newsletter_id = nl.id
@@ -208,4 +236,5 @@ type StoreNewsletterIssueItemsParams struct {
 	IssueID string
 	ItemID  string
 	UserID  string
+	Token   string
 }

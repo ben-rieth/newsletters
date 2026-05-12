@@ -4,14 +4,16 @@ import (
 	"context"
 
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type IssuesService struct {
 	queries *db.Queries
+	pool    *pgxpool.Pool
 }
 
-func NewIssuesService(queries *db.Queries) *IssuesService {
-	return &IssuesService{queries}
+func NewIssuesService(queries *db.Queries, pool *pgxpool.Pool) *IssuesService {
+	return &IssuesService{queries, pool}
 }
 
 func (s *IssuesService) GetIssue(ctx context.Context, issueID, userID string) (*DetailedIssue, error) {
