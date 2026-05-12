@@ -14,6 +14,7 @@ import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as NewslettersRouteImport } from './routes/newsletters'
+import { Route as BadLinkRouteImport } from './routes/bad-link'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IssuesRouteRouteImport } from './routes/issues/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -48,6 +49,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const NewslettersRoute = NewslettersRouteImport.update({
   id: '/newsletters',
   path: '/newsletters',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BadLinkRoute = BadLinkRouteImport.update({
+  id: '/bad-link',
+  path: '/bad-link',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/issues': typeof IssuesRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/bad-link': typeof BadLinkRoute
   '/newsletters': typeof NewslettersRouteWithChildren
   '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/bad-link': typeof BadLinkRoute
   '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
   '/sign-up': typeof SignUpRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/issues': typeof IssuesRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/bad-link': typeof BadLinkRoute
   '/newsletters': typeof NewslettersRouteWithChildren
   '/profile': typeof ProfileRoute
   '/sign-in': typeof SignInRoute
@@ -158,6 +167,7 @@ export interface FileRouteTypes {
     | '/'
     | '/issues'
     | '/about'
+    | '/bad-link'
     | '/newsletters'
     | '/profile'
     | '/sign-in'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/bad-link'
     | '/profile'
     | '/sign-in'
     | '/sign-up'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/'
     | '/issues'
     | '/about'
+    | '/bad-link'
     | '/newsletters'
     | '/profile'
     | '/sign-in'
@@ -207,6 +219,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   IssuesRouteRoute: typeof IssuesRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  BadLinkRoute: typeof BadLinkRoute
   NewslettersRoute: typeof NewslettersRouteWithChildren
   ProfileRoute: typeof ProfileRoute
   SignInRoute: typeof SignInRoute
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       path: '/newsletters'
       fullPath: '/newsletters'
       preLoaderRoute: typeof NewslettersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bad-link': {
+      id: '/bad-link'
+      path: '/bad-link'
+      fullPath: '/bad-link'
+      preLoaderRoute: typeof BadLinkRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -374,6 +394,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   IssuesRouteRoute: IssuesRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  BadLinkRoute: BadLinkRoute,
   NewslettersRoute: NewslettersRouteWithChildren,
   ProfileRoute: ProfileRoute,
   SignInRoute: SignInRoute,

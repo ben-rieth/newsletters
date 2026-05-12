@@ -103,7 +103,7 @@ func main() {
 	unsubscribeHandler := handler.NewUnsubscribeHandler(queries, &cfg, emailService)
 	unsubscribeHandler.RegisterRoutes(publicApi)
 
-	linksHandler := handler.NewLinksHandler(queries)
+	linksHandler := handler.NewLinksHandler(queries, &cfg)
 	linksHandler.RegisterRoutes(publicApi)
 
 	protectedApi := huma.NewGroup(api)
