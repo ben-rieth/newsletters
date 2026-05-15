@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { MoreHorizontal, Download } from 'lucide-react';
+import { MoreHorizontal, Download, Plus } from 'lucide-react';
 import { Button } from '#/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu';
 import { H2 } from '#/components/ui/typography';
-import { ViewToggle, type View } from '#/components/ViewToggle';
+import { ViewToggle  } from '#/components/ViewToggle';
+import type {View} from '#/components/ViewToggle';
 import { CreateNewsletterDialog } from '#/features/newsletters/components/CreateNewsletterDialog';
 import { NewslettersTable } from '#/features/newsletters/components/NewslettersTable';
 import { NewslettersCards } from '#/features/newsletters/components/NewslettersCards';
@@ -20,7 +22,7 @@ import useExportNewsletters from '#/features/newsletters/queries/hooks/useExport
 const NewslettersPage = () => {
   const { data: newsletters } = useSuspenseQuery(newslettersOptions);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [view, setView] = useState<View>('table');
+  const [view, setView] = useState<View>('cards');
   const exportAll = useExportNewsletters();
 
   return (
@@ -28,15 +30,30 @@ const NewslettersPage = () => {
       <div className="flex items-center justify-between">
         <H2>Newsletters</H2>
         <div className="flex items-center gap-2">
-          <ViewToggle value={view} onChange={setView} />
-          <Button onClick={() => setDialogOpen(true)}>New Newsletter</Button>
+          <div className="hidden sm:flex">
+            <ViewToggle value={view} onChange={setView} />
+          </div>
+          <Button
+            className="hidden sm:flex"
+            onClick={() => setDialogOpen(true)}
+          >
+            New Newsletter
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger
               render={<Button variant="outline" size="icon" />}
             >
               <MoreHorizontal className="h-4 w-4" />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem
+                className="sm:hidden"
+                onClick={() => setDialogOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New Newsletter
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="sm:hidden" />
               <DropdownMenuItem
                 onClick={() => exportAll.mutate()}
                 disabled={exportAll.isPending}
