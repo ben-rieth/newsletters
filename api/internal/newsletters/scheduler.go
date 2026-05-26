@@ -310,8 +310,9 @@ func generateTokensForItems(feeds []feeds.FeedView) map[string]string {
 
 func wrapItemURLs(feeds []feeds.FeedView, idToTokenMap map[string]string, urlBase string) []feeds.FeedView {
 	for _, feed := range feeds {
-		for _, item := range feed.Items {
-			item.TrackingURL = fmt.Sprintf("%s/link/%s", urlBase, idToTokenMap[item.ItemID])
+		for i := range feed.Items {
+			item := &feed.Items[i]
+			feed.Items[i].TrackingURL = fmt.Sprintf("%s/link/%s", urlBase, idToTokenMap[item.ItemID])
 		}
 	}
 
