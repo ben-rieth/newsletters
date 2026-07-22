@@ -4,8 +4,6 @@ import type {
   IssueItem,
 } from '#/features/issues/queries/issues';
 
-const API_URL = import.meta.env.VITE_API_URL;
-
 interface IssueDetailProps {
   issue: DetailedIssue;
 }
@@ -55,7 +53,7 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
                     return (
                       <li key={item.itemId}>
                         <a
-                          href={`${API_URL}/link/${item.token}`}
+                          href={`/api/link/${item.token}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`text-sm font-medium hover:underline ${read ? 'text-muted-foreground line-through' : 'text-foreground'}`}

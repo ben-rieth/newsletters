@@ -16,6 +16,14 @@ const config = defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  build: {
+    outDir: 'dist',
+  },
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8080',
+    },
+  },
 });
 
 export default config;

@@ -2,7 +2,7 @@ export const fetchAndDownload = async (
   path: string,
   fallbackFilename: string,
 ): Promise<void> => {
-  const response = await fetch(`${import.meta.env.VITE_API_URL}${path}`, {
+  const response = await fetch(`/api${path}`, {
     credentials: 'include',
   });
 

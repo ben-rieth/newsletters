@@ -19,13 +19,13 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/jobs"
 	"github.com/ben-rieth/newsletter-api/internal/newsletters"
 	"github.com/ben-rieth/newsletter-api/internal/templates"
+	"github.com/ben-rieth/newsletter-api/internal/ui"
 	"github.com/ben-rieth/newsletter-api/internal/users"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humago"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
-	"github.com/rs/cors"
 )
 
 func main() {
@@ -77,9 +77,10 @@ func main() {
 		go scheduler.KickOff(ctx)
 	}
 
-	mux := http.NewServeMux()
+	apiMux := http.NewServeMux()
+
 	humaConfig := huma.DefaultConfig("Newsletter API", "1.0.0")
-	api := humago.New(mux, humaConfig)
+	api := humago.New(apiMux, humaConfig)
 	api.UseMiddleware(wideLog.WideLogMiddleware)
 
 	authApi := huma.NewGroup(api)
@@ -128,14 +129,11 @@ func main() {
 	issuesHandler := handler.NewIssuesHandler(queries, issuesService)
 	issuesHandler.RegisterRoutes(protectedApi)
 
-	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{cfg.WebURL},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type"},
-		AllowCredentials: true,
-	})
+	mux := http.NewServeMux()
+	mux.Handle("/", ui.Handler())
+	mux.Handle("/api/", http.StripPrefix("/api", apiMux))
 
-	srv := &http.Server{Addr: fmt.Sprintf("%s:%s", cfg.Host, cfg.Port), Handler: c.Handler(mux)}
+	srv := &http.Server{Addr: fmt.Sprintf("%s:%s", cfg.Host, cfg.Port), Handler: mux}
 
 	go func() {
 		<-ctx.Done()

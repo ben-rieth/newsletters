@@ -1,5 +1,4 @@
 allowBuilds:
-  esbuild: true
-  msw: false
-  unrs-resolver: false
   lightningcss: true
+  msw: true
+  unrs-resolver: true
