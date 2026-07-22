@@ -1,1 +1,8 @@
+# `git commit` exports GIT_INDEX_FILE into the hook environment. lint-staged
+# backs up/restores state with `git stash`, which manages the index itself and
+# misbehaves when GIT_INDEX_FILE is already set — the result is that the staged
+# prettier/eslint fixes are written to the wrong index and never land in the
+# commit. Unset it so lint-staged and git both use the repository's real index.
+unset GIT_INDEX_FILE
+
 cd web && pnpm exec lint-staged
