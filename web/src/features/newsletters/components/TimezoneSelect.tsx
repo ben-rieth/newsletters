@@ -109,7 +109,7 @@ export const TimezoneSelect = ({ id, value, onValueChange }: Props) => {
   return (
     <SelectPrimitive.Root
       value={value}
-      onValueChange={(value) => value != null && onValueChange(value)}
+      onValueChange={(next) => next != null && onValueChange(next)}
       onOpenChange={(open) => {
         if (!open) {
           setSearch('');

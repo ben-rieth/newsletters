@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { feedPreviewOptions, type ItemPreview } from '../queries/feeds';
+import { feedPreviewOptions } from '../queries/feeds';
+import type { ItemPreview } from '../queries/feeds';
 import { Button } from '#/components/ui/button';
 import { Badge } from '#/components/ui/badge';
 import { cn } from '#/lib/utils';
@@ -101,9 +102,7 @@ export const FeedPreview = ({ newsletterId, feedId }: Props) => {
       </div>
 
       {hasRequested && isError && (
-        <p className="text-sm text-destructive">
-          {(error as Error)?.message ?? 'Failed to load preview.'}
-        </p>
+        <p className="text-sm text-destructive">{error.message}</p>
       )}
 
       {hasRequested && !isFetching && data && data.length === 0 && (
