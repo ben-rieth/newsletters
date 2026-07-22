@@ -2,8 +2,10 @@ import createClient from 'openapi-fetch';
 import type { paths } from './schema';
 import { clearSession } from '#/features/auth/lib/session';
 
+const BASE_URL = '/api';
+
 const client = createClient<paths>({
-  baseUrl: import.meta.env.VITE_API_URL,
+  baseUrl: BASE_URL,
   credentials: 'include',
 });
 
@@ -23,10 +25,10 @@ client.use({
       return response;
     }
 
-    const refreshResponse = await fetch(
-      `${import.meta.env.VITE_API_URL}/auth/refresh`,
-      { method: 'POST', credentials: 'include' },
-    );
+    const refreshResponse = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
 
     if (!refreshResponse.ok) {
       clearSession();

@@ -15,10 +15,10 @@ const useAuth = (path: AuthPath) => {
       if (error) {
         throw error;
       }
-      return data as components['schemas']['AuthOutputBody'] | undefined;
+      return data;
     },
     onSuccess: (data, variables) => {
-      if (!data?.verified) {
+      if (!data.verified) {
         localStorage.setItem('pendingVerificationEmail', variables.email);
         navigate({ to: '/verify-email' });
         return;

@@ -5,8 +5,9 @@
   "imports": {
     "#/*": "./src/*"
   },
+  "packageManager": "pnpm@11.15.1",
   "scripts": {
-    "dev": "vite dev --port 3000",
+    "dev": "vite dev --port 3001",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
@@ -18,7 +19,7 @@
   "lint-staged": {
     "*.{ts,tsx}": [
       "prettier --write",
-      "eslint --fix"
+      "eslint"
     ],
     "*.{json,css,md}": [
       "prettier --write"

@@ -75,24 +75,13 @@ RESEND_API_KEY=re_...
 NEWSLETTER_SENDER_EMAIL=newsletters@yourdomain.com
 ```
 
-**3. Configure the frontend**
-
-```bash
-cp web/.env.example web/.env
-```
-
-```env
-# web/.env
-VITE_API_URL=http://localhost:8080
-```
-
-**4. Install frontend dependencies**
+**3. Install frontend dependencies**
 
 ```bash
 cd web && pnpm install
 ```
 
-**5. Start development servers**
+**4. Start development servers**
 
 ```bash
 # From the repo root — runs both API and web in parallel

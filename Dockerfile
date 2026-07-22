@@ -1,11 +1,19 @@
 # Build stage
+FROM node:lts-alpine AS frontend
+WORKDIR /app/web
+COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml ./
+RUN corepack enable pnpm && pnpm install --frozen-lockfile
+COPY web/ .
+RUN pnpm build
+
 FROM golang:1.26.2-alpine AS builder
 
 WORKDIR /app
+COPY --from=frontend /app/web/dist ./web/dist
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o api ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -tags prod -ldflags="-s -w" -o api ./cmd/server
 
 # Final stage
 FROM debian:bookworm-slim AS dbmate
