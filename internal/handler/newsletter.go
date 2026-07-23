@@ -106,6 +106,15 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		DefaultStatus: http.StatusNoContent,
 		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
 	}, h.handleScheduleOneOffSend)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "cancel-one-off",
+		Path:          "/newsletter/{newsletterId}/one-off",
+		Method:        http.MethodDelete,
+		Description:   "Cancel an upcoming one off",
+		DefaultStatus: http.StatusNoContent,
+		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
+	}, h.handleCancelOneOffSend)
 }
 
 func (h *NewsletterHandler) handleListNewsletters(ctx context.Context, input *struct{}) (*listNewslettersOutput, error) {
@@ -307,7 +316,12 @@ func (h *NewsletterHandler) handleScheduleOneOffSend(ctx context.Context, i *str
 		return nil, internalServerError(ctx, err)
 	}
 
-	if sendTime.After(nl.NextSendTime) {
+	nextSendTime := nl.NextSendTime
+	if nl.OriginalNextSendTime.Valid {
+		nextSendTime = nl.OriginalNextSendTime.Time
+	}
+
+	if sendTime.After(nextSendTime) {
 		return nil, badRequestError("One off send cannot occur after the next time")
 	}
 
@@ -315,6 +329,37 @@ func (h *NewsletterHandler) handleScheduleOneOffSend(ctx context.Context, i *str
 		ID:           i.NewsletterID,
 		UserID:       claims.Subject,
 		NextSendTime: sendTime,
+	})
+
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
+}
+
+func (h *NewsletterHandler) handleCancelOneOffSend(ctx context.Context, i *baseNewsletterInput) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	nl, err := h.queries.GetNewsletter(ctx, db.GetNewsletterParams{
+		ID:     i.NewsletterID,
+		UserID: claims.Subject,
+	})
+
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	if !nl.OriginalNextSendTime.Valid {
+		return nil, nil
+	}
+
+	err = h.queries.CancelAdditionalSendTime(ctx, db.CancelAdditionalSendTimeParams{
+		ID:     i.NewsletterID,
+		UserID: claims.Subject,
 	})
 
 	if err != nil {

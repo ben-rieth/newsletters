@@ -8,6 +8,7 @@ import useUpdateNewsletter from '../queries/hooks/useUpdateNewsletter';
 import useDeleteNewsletter from '../queries/hooks/useDeleteNewsletter';
 import useExportNewsletter from '../queries/hooks/useExportNewsletter';
 import useUpdateNewsletterStatus from '../queries/hooks/useUpdateNewsletterStatus';
+import useCancelOneOffSend from '../queries/hooks/useCancelOneOffSend';
 import { FeedsList } from './FeedsList';
 import { ScheduleSendDialog } from './ScheduleSendDialog';
 import { NewsletterDebugActions } from '#/features/debug/components/NewsletterDebugActions';
@@ -26,6 +27,12 @@ import {
 type Props = {
   newsletter: Newsletter;
 };
+
+const formatDateTime = (dateStr: string) =>
+  new Date(dateStr).toLocaleString('en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
 
 export const NewsletterDetail = ({ newsletter }: Props) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -59,6 +66,10 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
     );
   });
 
+  const cancelOneOff = useCancelOneOffSend(() => {
+    toast.success('One-off send cancelled.');
+  });
+
   return (
     <div className="space-y-8">
       <section className="space-y-4">
@@ -76,11 +87,38 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
       </section>
       <section className="space-y-4">
         <h3 className="text-lg font-semibold">Actions</h3>
-        <div className="flex items-center gap-2">
+        {newsletter.oneOffSendTime ? (
+          <div className="max-w-sm space-y-2 rounded-md border p-3">
+            <p className="text-sm">
+              <span className="font-medium">One-off send</span> scheduled for{' '}
+              <span className="font-medium">
+                {formatDateTime(newsletter.oneOffSendTime)}
+              </span>
+            </p>
+            <div className="flex items-center gap-2">
+              <ScheduleSendDialog
+                newsletterId={newsletter.id}
+                maxSendTime={
+                  newsletter.regularSendTime ?? newsletter.nextSendTime
+                }
+                initialSendTime={newsletter.oneOffSendTime}
+              />
+              <Button
+                variant="outline"
+                onClick={() => cancelOneOff.mutate(newsletter.id)}
+                disabled={cancelOneOff.isPending}
+              >
+                {cancelOneOff.isPending ? 'Cancelling...' : 'Cancel one-off'}
+              </Button>
+            </div>
+          </div>
+        ) : (
           <ScheduleSendDialog
             newsletterId={newsletter.id}
-            nextSendTime={newsletter.nextSendTime}
+            maxSendTime={newsletter.nextSendTime}
           />
+        )}
+        <div className="flex items-center gap-2">
           <Button
             variant="outline"
             onClick={() => exportNewsletter.mutate(newsletter.id)}

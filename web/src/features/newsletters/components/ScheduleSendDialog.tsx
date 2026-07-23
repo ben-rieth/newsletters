@@ -17,22 +17,31 @@ import {
 
 type Props = {
   newsletterId: string;
-  nextSendTime: string;
+  maxSendTime: string;
+  initialSendTime?: string;
 };
 
 const formatDateTime = (date: Date) =>
   date.toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
 
-export const ScheduleSendDialog = ({ newsletterId, nextSendTime }: Props) => {
+export const ScheduleSendDialog = ({
+  newsletterId,
+  maxSendTime,
+  initialSendTime,
+}: Props) => {
+  const isReschedule = Boolean(initialSendTime);
   const [open, setOpen] = useState(false);
-  const [sendTime, setSendTime] = useState<Date | undefined>(undefined);
+  const [sendTime, setSendTime] = useState<Date | undefined>(
+    initialSendTime ? new Date(initialSendTime) : undefined,
+  );
 
-  const nextSend = new Date(nextSendTime);
+  const maxSend = new Date(maxSendTime);
 
   const scheduleSend = useScheduleOneOffSend(() => {
-    toast.success('One-off send scheduled!');
+    toast.success(
+      isReschedule ? 'One-off send rescheduled!' : 'One-off send scheduled!',
+    );
     setOpen(false);
-    setSendTime(undefined);
   });
 
   const handleSubmit = () => {
@@ -44,7 +53,7 @@ export const ScheduleSendDialog = ({ newsletterId, nextSendTime }: Props) => {
       toast.error('Send time must be in the future.');
       return;
     }
-    if (sendTime > nextSend) {
+    if (sendTime > maxSend) {
       toast.error('Send time must be before the next scheduled send.');
       return;
     }
@@ -53,13 +62,21 @@ export const ScheduleSendDialog = ({ newsletterId, nextSendTime }: Props) => {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button />}>Schedule Send</DialogTrigger>
+      <DialogTrigger
+        render={<Button variant={isReschedule ? 'outline' : 'default'} />}
+      >
+        {isReschedule ? 'Reschedule' : 'Schedule Send'}
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Schedule a one-off send</DialogTitle>
+          <DialogTitle>
+            {isReschedule
+              ? 'Reschedule one-off send'
+              : 'Schedule a one-off send'}
+          </DialogTitle>
           <DialogDescription>
             Send this newsletter once at a time before its next scheduled send (
-            {formatDateTime(nextSend)}). This does not change the regular
+            {formatDateTime(maxSend)}). This does not change the regular
             schedule.
           </DialogDescription>
         </DialogHeader>
@@ -71,7 +88,7 @@ export const ScheduleSendDialog = ({ newsletterId, nextSendTime }: Props) => {
             value={sendTime}
             onChange={setSendTime}
             minDate={new Date()}
-            maxDate={nextSend}
+            maxDate={maxSend}
           />
         </div>
 
@@ -90,7 +107,11 @@ export const ScheduleSendDialog = ({ newsletterId, nextSendTime }: Props) => {
             Cancel
           </DialogClose>
           <Button onClick={handleSubmit} disabled={scheduleSend.isPending}>
-            {scheduleSend.isPending ? 'Scheduling...' : 'Schedule'}
+            {scheduleSend.isPending
+              ? 'Saving...'
+              : isReschedule
+                ? 'Reschedule'
+                : 'Schedule'}
           </Button>
         </DialogFooter>
       </DialogContent>

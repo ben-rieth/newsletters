@@ -65,7 +65,14 @@ export const NewslettersTable = ({ newsletters, onCreateClick }: Props) => {
                 </TableCell>
                 <TableCell className="capitalize">{n.frequency}</TableCell>
                 <TableCell>{formatSchedule(n)}</TableCell>
-                <TableCell>{formatRelativeTime(n.nextSendTime)}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1.5">
+                    {formatRelativeTime(n.nextSendTime)}
+                    {n.oneOffSendTime && (
+                      <Badge variant="secondary">one-off</Badge>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>
                   {n.lastSentAt ? formatRelativeTime(n.lastSentAt) : 'Never'}
                 </TableCell>

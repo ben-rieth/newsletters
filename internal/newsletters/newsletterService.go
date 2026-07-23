@@ -12,18 +12,20 @@ import (
 )
 
 type Newsletter struct {
-	ID           string     `json:"id"`
-	Name         string     `json:"name"`
-	Frequency    string     `json:"frequency"`
-	NextSendTime time.Time  `json:"nextSendTime"`
-	SendDay      int        `json:"sendDay"`
-	SendHour     int        `json:"sendHour"`
-	SendMinute   int        `json:"sendMinute"`
-	SendTimezone string     `json:"sendTimezone"`
-	LastSentAt   *time.Time `json:"lastSentAt,omitempty"`
-	Status       string     `json:"status"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    time.Time  `json:"updatedAt"`
+	ID              string     `json:"id"`
+	Name            string     `json:"name"`
+	Frequency       string     `json:"frequency"`
+	NextSendTime    time.Time  `json:"nextSendTime"`
+	OneOffSendTime  *time.Time `json:"oneOffSendTime,omitempty"`
+	RegularSendTime *time.Time `json:"regularSendTime,omitempty"`
+	SendDay         int        `json:"sendDay"`
+	SendHour        int        `json:"sendHour"`
+	SendMinute      int        `json:"sendMinute"`
+	SendTimezone    string     `json:"sendTimezone"`
+	LastSentAt      *time.Time `json:"lastSentAt,omitempty"`
+	Status          string     `json:"status"`
+	CreatedAt       time.Time  `json:"createdAt"`
+	UpdatedAt       time.Time  `json:"updatedAt"`
 }
 
 type NewsletterService struct {

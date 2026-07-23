@@ -361,20 +361,21 @@ type IssueItem struct {
 }
 
 type Newsletter struct {
-	ID               string
-	Name             string
-	Frequency        Frequency
-	SendDay          int32
-	SendHour         int32
-	SendMinute       int32
-	SendTimezone     string
-	LastSentAt       pgtype.Timestamptz
-	NextSendTime     time.Time
-	UserID           string
-	Status           NewsletterStatus
-	UnsubscribeToken string
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
+	ID                   string
+	Name                 string
+	Frequency            Frequency
+	SendDay              int32
+	SendHour             int32
+	SendMinute           int32
+	SendTimezone         string
+	LastSentAt           pgtype.Timestamptz
+	NextSendTime         time.Time
+	UserID               string
+	Status               NewsletterStatus
+	UnsubscribeToken     string
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	OriginalNextSendTime pgtype.Timestamptz
 }
 
 type NewsletterFeed struct {

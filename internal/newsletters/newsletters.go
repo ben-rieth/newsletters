@@ -65,18 +65,28 @@ func DbNewsletterToNewsletterType(newsletter db.Newsletter) Newsletter {
 		lastSentAt = nil
 	}
 
+	var oneOffSendTime *time.Time
+	var regularSendTime *time.Time
+	if newsletter.OriginalNextSendTime.Valid {
+		oneOff := newsletter.NextSendTime
+		oneOffSendTime = &oneOff
+		regularSendTime = &newsletter.OriginalNextSendTime.Time
+	}
+
 	return Newsletter{
-		ID:           newsletter.ID,
-		Name:         newsletter.Name,
-		Frequency:    string(newsletter.Frequency),
-		SendDay:      int(newsletter.SendDay),
-		SendHour:     int(newsletter.SendHour),
-		SendMinute:   int(newsletter.SendMinute),
-		SendTimezone: newsletter.SendTimezone,
-		LastSentAt:   lastSentAt,
-		NextSendTime: newsletter.NextSendTime,
-		CreatedAt:    newsletter.CreatedAt,
-		UpdatedAt:    newsletter.UpdatedAt,
-		Status:       string(newsletter.Status),
+		ID:              newsletter.ID,
+		Name:            newsletter.Name,
+		Frequency:       string(newsletter.Frequency),
+		SendDay:         int(newsletter.SendDay),
+		SendHour:        int(newsletter.SendHour),
+		SendMinute:      int(newsletter.SendMinute),
+		SendTimezone:    newsletter.SendTimezone,
+		LastSentAt:      lastSentAt,
+		NextSendTime:    newsletter.NextSendTime,
+		OneOffSendTime:  oneOffSendTime,
+		RegularSendTime: regularSendTime,
+		CreatedAt:       newsletter.CreatedAt,
+		UpdatedAt:       newsletter.UpdatedAt,
+		Status:          string(newsletter.Status),
 	}
 }

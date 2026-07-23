@@ -51,8 +51,14 @@ export const NewslettersCards = ({ newsletters, onCreateClick }: Props) => {
             </CardHeader>
             <CardContent className="space-y-1 text-sm text-muted-foreground">
               <p>{formatSchedule(n)}</p>
-              <p>Next: {formatRelativeTime(n.nextSendTime)}</p>
-              <p>Last sent: {n.lastSentAt ? formatRelativeTime(n.lastSentAt) : 'Never'}</p>
+              <p className="flex items-center gap-1.5">
+                Next: {formatRelativeTime(n.nextSendTime)}
+                {n.oneOffSendTime && <Badge variant="secondary">one-off</Badge>}
+              </p>
+              <p>
+                Last sent:{' '}
+                {n.lastSentAt ? formatRelativeTime(n.lastSentAt) : 'Never'}
+              </p>
             </CardContent>
           </Card>
         </Link>

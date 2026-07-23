@@ -22,7 +22,14 @@ UPDATE newsletter SET
     send_hour = $4,
     send_minute = $5,
     send_timezone = $6,
-    next_send_time = $7,
+    next_send_time = CASE
+        WHEN original_next_send_time IS NULL THEN $7
+        ELSE next_send_time
+    END,
+    original_next_send_time = CASE 
+        WHEN original_next_send_time IS NULL THEN NULL
+        ELSE $7
+    END,
     updated_at = NOW()
 WHERE id = $8 AND user_id = $9;
 
@@ -36,10 +43,26 @@ INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE nl.next_send_time <= NOW() AND nl.status = 'active';
 
 -- name: UpdateNewsletterSendTime :exec
-UPDATE newsletter SET next_send_time = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3;
+UPDATE newsletter SET 
+    next_send_time = $1, 
+    original_next_send_time = COALESCE(original_next_send_time, next_send_time),
+    updated_at = NOW() 
+WHERE id = $2 AND user_id = $3;
+
+-- name: CancelAdditionalSendTime :exec
+UPDATE newsletter SET
+    next_send_time = original_next_send_time,
+    original_next_send_time = NULL,
+    updated_at = NOW()
+WHERE id = $1 AND user_id = $2;
 
 -- name: UpdateNewsletterSendTimes :exec
-UPDATE newsletter SET next_send_time = $1, last_sent_at = $2, updated_at = NOW() WHERE id = $3 AND user_id = $4;
+UPDATE newsletter SET 
+    next_send_time = $1, 
+    last_sent_at = $2, 
+    original_next_send_time = NULL,
+    updated_at = NOW() 
+WHERE id = $3 AND user_id = $4;
 
 -- name: DeleteAllNewslettersForUser :exec
 DELETE FROM newsletter WHERE user_id = $1;

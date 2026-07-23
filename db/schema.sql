@@ -1,7 +1,7 @@
-\restrict ZdRU7WdSKgptaBqaz4kO8meeRDkGVQIVEGoxvbfmj1JIXecyeHZoDoftIjIRRxg
+\restrict DzJbb8MWo6gRz3nVz0E9VJeH1SpiMjkDI20cjzXMQGgLaEvLG2T7fTRoh9UGRvQ
 
--- Dumped from database version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
--- Dumped by pg_dump version 16.13 (Ubuntu 16.13-0ubuntu0.24.04.1)
+-- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
+-- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -185,7 +185,8 @@ CREATE TABLE public.newsletter (
     status public.newsletter_status DEFAULT 'active'::public.newsletter_status NOT NULL,
     unsubscribe_token uuid DEFAULT gen_random_uuid() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    original_next_send_time timestamp with time zone
 );
 
 
@@ -575,7 +576,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ZdRU7WdSKgptaBqaz4kO8meeRDkGVQIVEGoxvbfmj1JIXecyeHZoDoftIjIRRxg
+\unrestrict DzJbb8MWo6gRz3nVz0E9VJeH1SpiMjkDI20cjzXMQGgLaEvLG2T7fTRoh9UGRvQ
 
 
 --
@@ -587,4 +588,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260421220214'),
     ('20260501141144'),
     ('20260502170343'),
-    ('20260509195259');
+    ('20260509195259'),
+    ('20260723225224');

@@ -12,6 +12,24 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const cancelAdditionalSendTime = `-- name: CancelAdditionalSendTime :exec
+UPDATE newsletter SET
+    next_send_time = original_next_send_time,
+    original_next_send_time = NULL,
+    updated_at = NOW()
+WHERE id = $1 AND user_id = $2
+`
+
+type CancelAdditionalSendTimeParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) CancelAdditionalSendTime(ctx context.Context, arg CancelAdditionalSendTimeParams) error {
+	_, err := q.db.Exec(ctx, cancelAdditionalSendTime, arg.ID, arg.UserID)
+	return err
+}
+
 const createNewsletter = `-- name: CreateNewsletter :exec
 INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time, last_sent_at, user_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -146,7 +164,7 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 }
 
 const getNewsletter = `-- name: GetNewsletter :one
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at, original_next_send_time FROM newsletter
 WHERE id = $1 AND user_id = $2
 `
 
@@ -173,6 +191,7 @@ func (q *Queries) GetNewsletter(ctx context.Context, arg GetNewsletterParams) (N
 		&i.UnsubscribeToken,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.OriginalNextSendTime,
 	)
 	return i, err
 }
@@ -203,7 +222,7 @@ func (q *Queries) GetNewsletterByUnsubscribeToken(ctx context.Context, unsubscri
 }
 
 const listNewsletters = `-- name: ListNewsletters :many
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at, original_next_send_time FROM newsletter
 WHERE user_id = $1
 ORDER BY created_at DESC
 `
@@ -232,6 +251,7 @@ func (q *Queries) ListNewsletters(ctx context.Context, userID string) ([]Newslet
 			&i.UnsubscribeToken,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.OriginalNextSendTime,
 		); err != nil {
 			return nil, err
 		}
@@ -251,7 +271,14 @@ UPDATE newsletter SET
     send_hour = $4,
     send_minute = $5,
     send_timezone = $6,
-    next_send_time = $7,
+    next_send_time = CASE
+        WHEN original_next_send_time IS NULL THEN $7
+        ELSE next_send_time
+    END,
+    original_next_send_time = CASE 
+        WHEN original_next_send_time IS NULL THEN NULL
+        ELSE $7
+    END,
     updated_at = NOW()
 WHERE id = $8 AND user_id = $9
 `
@@ -284,7 +311,11 @@ func (q *Queries) UpdateNewsletter(ctx context.Context, arg UpdateNewsletterPara
 }
 
 const updateNewsletterSendTime = `-- name: UpdateNewsletterSendTime :exec
-UPDATE newsletter SET next_send_time = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3
+UPDATE newsletter SET 
+    next_send_time = $1, 
+    original_next_send_time = COALESCE(original_next_send_time, next_send_time),
+    updated_at = NOW() 
+WHERE id = $2 AND user_id = $3
 `
 
 type UpdateNewsletterSendTimeParams struct {
@@ -299,7 +330,12 @@ func (q *Queries) UpdateNewsletterSendTime(ctx context.Context, arg UpdateNewsle
 }
 
 const updateNewsletterSendTimes = `-- name: UpdateNewsletterSendTimes :exec
-UPDATE newsletter SET next_send_time = $1, last_sent_at = $2, updated_at = NOW() WHERE id = $3 AND user_id = $4
+UPDATE newsletter SET 
+    next_send_time = $1, 
+    last_sent_at = $2, 
+    original_next_send_time = NULL,
+    updated_at = NOW() 
+WHERE id = $3 AND user_id = $4
 `
 
 type UpdateNewsletterSendTimesParams struct {

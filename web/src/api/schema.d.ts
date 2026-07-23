@@ -325,7 +325,8 @@ export interface paths {
     put?: never;
     /** @description Schedule the newsletter to send at a future date off schedule */
     post: operations['schedule-one-off'];
-    delete?: never;
+    /** @description Cancel an upcoming one off */
+    delete: operations['cancel-one-off'];
     options?: never;
     head?: never;
     patch?: never;
@@ -676,6 +677,10 @@ export interface components {
       name: string;
       /** Format: date-time */
       nextSendTime: string;
+      /** Format: date-time */
+      oneOffSendTime?: string;
+      /** Format: date-time */
+      regularSendTime?: string;
       /** Format: int64 */
       sendDay: number;
       /** Format: int64 */
@@ -1553,6 +1558,35 @@ export interface operations {
         'application/json': components['schemas']['OneOffSendInput'];
       };
     };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'cancel-one-off': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        newsletterId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
     responses: {
       /** @description No Content */
       204: {
