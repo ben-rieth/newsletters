@@ -57,3 +57,4 @@ Backend Go types → Huma generates OpenAPI spec → `pnpm api:generate` → `sr
 ## Conventions
 
 - Commits are formatted/linted on staging via `husky` + `lint-staged` (prettier + eslint on `*.{ts,tsx}`, prettier on `*.{json,css,md}`). Keep code passing `pnpm lint`.
+- Don't scatter comments through the code. Let the code speak for itself — add a comment only when it's genuinely needed (e.g. explaining non-obvious *why*, not restating *what*).
