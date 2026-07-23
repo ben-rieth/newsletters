@@ -24,15 +24,18 @@ A web application that aggregates RSS/Atom feeds into scheduled email digests. C
 
 ## Project Structure
 
+A Go backend at the repo root with a React frontend in `web/`. The built
+frontend (`web/dist`) is embedded into the Go binary (`web/embed.go`), so
+production ships as a single executable.
+
 ```
-├── api/          # Go backend (port 8080)
-│   ├── cmd/      # Entry point
-│   ├── db/       # Schema, migrations, sqlc queries
-│   └── internal/ # Handlers, services (auth, feeds, email, newsletters)
-└── web/          # React frontend (port 3000)
+├── cmd/server/   # Backend entry point (port 8080)
+├── internal/     # Handlers, services (auth, feeds, email, newsletters, jobs)
+├── db/           # migrations/ + sqlc queries/  (sqlc generates internal/db/generated)
+└── web/          # React frontend (dev port 3001), embedded into the binary
     └── src/
         ├── api/      # openapi-fetch client + generated types
-        ├── features/ # Feature modules (auth, newsletters, unsubscribe)
+        ├── features/ # Feature modules (auth, newsletters, issues, unsubscribe)
         ├── routes/   # File-based TanStack Router pages
         └── components/ui/  # shadcn/ui components
 ```
@@ -55,24 +58,25 @@ cd newsletters
 docker compose -f docker-compose.dev.yml up -d
 ```
 
-This starts a PostgreSQL 16 container on port 5432 and applies `api/db/schema.sql` automatically.
+This starts a PostgreSQL 16 container on port 5432. Migrations live in `db/migrations/`.
 
 **2. Configure the backend**
 
 ```bash
-cp api/.env.example api/.env
+cp .env.example .env
 ```
 
 ```env
-# api/.env
+# .env
 HOST=localhost
 PORT=8080
-WEB_URL=http://localhost:3000
+WEB_URL=http://localhost:3001
 ENVIRONMENT=dev
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/newsletters
 JWT_SECRET=your-secret-here
 RESEND_API_KEY=re_...
 NEWSLETTER_SENDER_EMAIL=newsletters@yourdomain.com
+JOB_QUEUE_SIZE=50
 ```
 
 **3. Install frontend dependencies**
@@ -89,7 +93,7 @@ make dev
 ```
 
 - API: http://localhost:8080
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:3001
 - OpenAPI spec: http://localhost:8080/openapi.json
 
 ## Frontend Commands
