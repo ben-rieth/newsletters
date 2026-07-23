@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
-import type {Newsletter} from '../queries/newsletters';
-import { NewsletterForm  } from './NewsletterForm';
-import type {NewsletterFormValues} from './NewsletterForm';
+import type { Newsletter } from '../queries/newsletters';
+import { NewsletterForm } from './NewsletterForm';
+import type { NewsletterFormValues } from './NewsletterForm';
 import useUpdateNewsletter from '../queries/hooks/useUpdateNewsletter';
 import useDeleteNewsletter from '../queries/hooks/useDeleteNewsletter';
-import useForceSendNewsletter from '../queries/hooks/useForceSendNewsletter';
 import useExportNewsletter from '../queries/hooks/useExportNewsletter';
 import useUpdateNewsletterStatus from '../queries/hooks/useUpdateNewsletterStatus';
 import { FeedsList } from './FeedsList';
+import { ScheduleSendDialog } from './ScheduleSendDialog';
+import { NewsletterDebugActions } from '#/features/debug/components/NewsletterDebugActions';
 import { Button } from '#/components/ui/button';
 import {
   AlertDialog,
@@ -48,10 +49,6 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
     navigate({ to: '/newsletters' });
   });
 
-  const forceSend = useForceSendNewsletter(() => {
-    toast.success('Newsletter queued to send!');
-  });
-
   const exportNewsletter = useExportNewsletter();
 
   const updateStatus = useUpdateNewsletterStatus(() => {
@@ -80,12 +77,10 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
       <section className="space-y-4">
         <h3 className="text-lg font-semibold">Actions</h3>
         <div className="flex items-center gap-2">
-          <Button
-            onClick={() => forceSend.mutate(newsletter.id)}
-            disabled={forceSend.isPending}
-          >
-            {forceSend.isPending ? 'Sending...' : 'Send Now'}
-          </Button>
+          <ScheduleSendDialog
+            newsletterId={newsletter.id}
+            nextSendTime={newsletter.nextSendTime}
+          />
           <Button
             variant="outline"
             onClick={() => exportNewsletter.mutate(newsletter.id)}
@@ -111,6 +106,9 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
           </Button>
         </div>
       </section>
+      {import.meta.env.DEV && (
+        <NewsletterDebugActions newsletterId={newsletter.id} />
+      )}
       <section className="rounded-md border border-destructive/30 bg-destructive/5 p-4 space-y-3">
         <div>
           <h3 className="text-sm font-semibold text-destructive">

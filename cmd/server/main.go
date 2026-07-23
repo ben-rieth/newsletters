@@ -90,12 +90,6 @@ func main() {
 	authHandler := handler.NewAuthHandler(queries, &cfg, emailVerifyService)
 	authHandler.RegisterRoutes(authApi)
 
-	if cfg.Environment == "dev" {
-		debugApi := huma.NewGroup(api)
-		schedulerHandler := handler.NewSchedulerHandler(scheduler, jobQueue)
-		schedulerHandler.RegisterRoutes(debugApi)
-	}
-
 	rateLimiting := auth.NewRateLimitMiddleware(ctx, api, 10, 30)
 
 	publicApi := huma.NewGroup(api)
@@ -113,6 +107,19 @@ func main() {
 
 	newsletterHandler := handler.NewNewsletterHandler(queries, newsletterService)
 	newsletterHandler.RegisterRoutes(protectedApi)
+
+	if cfg.Environment == "dev" {
+		debugApi := huma.NewGroup(api)
+		schedulerHandler := handler.NewSchedulerHandler(scheduler, jobQueue)
+		schedulerHandler.RegisterRoutes(debugApi)
+
+		// Newsletter debug routes are user-scoped, so they need auth.
+		protectedDebugApi := huma.NewGroup(api)
+		protectedDebugApi.UseMiddleware(rateLimiting)
+		protectedDebugApi.UseMiddleware(auth.AuthMiddleware(api))
+		newsletterDebugHandler := handler.NewNewsletterDebugHandler(queries)
+		newsletterDebugHandler.RegisterRoutes(protectedDebugApi)
+	}
 
 	feedsHandler := handler.NewFeedHandler(queries, feedsService)
 	feedsHandler.RegisterRoutes(protectedApi)

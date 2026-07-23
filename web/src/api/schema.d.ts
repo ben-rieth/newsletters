@@ -106,6 +106,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/debug/newsletters/{newsletterId}/send': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Immediately queue a newsletter to send - for debugging */
+    post: operations['force-send-newsletter'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/export': {
     parameters: {
       query?: never;
@@ -297,7 +314,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/newsletter/{newsletterId}/send': {
+  '/newsletter/{newsletterId}/one-off': {
     parameters: {
       query?: never;
       header?: never;
@@ -306,12 +323,12 @@ export interface paths {
     };
     get?: never;
     put?: never;
-    post?: never;
+    /** @description Schedule the newsletter to send at a future date off schedule */
+    post: operations['schedule-one-off'];
     delete?: never;
     options?: never;
     head?: never;
-    /** Updates the newsletter's next send time to the current time */
-    patch: operations['force-send-newsletter'];
+    patch?: never;
     trace?: never;
   };
   '/newsletter/{newsletterId}/status': {
@@ -670,6 +687,15 @@ export interface components {
       /** Format: date-time */
       updatedAt: string;
     };
+    OneOffSendInput: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/OneOffSendInput.json
+       */
+      readonly $schema?: string;
+      sendTime: string;
+    };
     'Resend-email-verificationRequest': {
       /**
        * Format: uri
@@ -994,6 +1020,35 @@ export interface operations {
         'application/json': components['schemas']['Resend-email-verificationRequest'];
       };
     };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'force-send-newsletter': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        newsletterId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
     responses: {
       /** @description No Content */
       204: {
@@ -1484,7 +1539,7 @@ export interface operations {
       };
     };
   };
-  'force-send-newsletter': {
+  'schedule-one-off': {
     parameters: {
       query?: never;
       header?: never;
@@ -1493,7 +1548,11 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: never;
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['OneOffSendInput'];
+      };
+    };
     responses: {
       /** @description No Content */
       204: {

@@ -90,15 +90,6 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	}, h.handleDeleteNewsletter)
 
 	huma.Register(api, huma.Operation{
-		OperationID:   "force-send-newsletter",
-		Method:        "PATCH",
-		Path:          "/newsletter/{newsletterId}/send",
-		Summary:       "Updates the newsletter's next send time to the current time",
-		DefaultStatus: http.StatusNoContent,
-		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
-	}, h.handleForceSendNewsletter)
-
-	huma.Register(api, huma.Operation{
 		OperationID:   "update-newsletter-status",
 		Path:          "/newsletter/{newsletterId}/status",
 		Method:        http.MethodPatch,
@@ -106,6 +97,15 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		DefaultStatus: http.StatusNoContent,
 		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
 	}, h.handleUpdateNewsletterStatus)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "schedule-one-off",
+		Path:          "/newsletter/{newsletterId}/one-off",
+		Method:        http.MethodPost,
+		Description:   "Schedule the newsletter to send at a future date off schedule",
+		DefaultStatus: http.StatusNoContent,
+		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
+	}, h.handleScheduleOneOffSend)
 }
 
 func (h *NewsletterHandler) handleListNewsletters(ctx context.Context, input *struct{}) (*listNewslettersOutput, error) {
@@ -253,25 +253,6 @@ func (h *NewsletterHandler) handleDeleteNewsletter(ctx context.Context, input *b
 	return nil, nil
 }
 
-func (h *NewsletterHandler) handleForceSendNewsletter(ctx context.Context, i *baseNewsletterInput) (*struct{}, error) {
-	claims, ok := auth.ClaimsFromContext(ctx)
-	if !ok || claims == nil {
-		return nil, unauthorizedError()
-	}
-
-	err := h.queries.UpdateNewsletterSendTime(ctx, db.UpdateNewsletterSendTimeParams{
-		NextSendTime: time.Now(),
-		ID:           i.NewsletterID,
-		UserID:       claims.Subject,
-	})
-
-	if err != nil {
-		return nil, internalServerError(ctx, err)
-	}
-
-	return nil, nil
-}
-
 func (h *NewsletterHandler) handleUpdateNewsletterStatus(ctx context.Context, i *struct {
 	NewsletterID string `path:"newsletterId"`
 	Body         struct {
@@ -288,6 +269,54 @@ func (h *NewsletterHandler) handleUpdateNewsletterStatus(ctx context.Context, i 
 		ID:     i.NewsletterID,
 		UserID: claims.Subject,
 	})
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
+}
+
+type oneOffSendInput struct {
+	SendTime string `json:"sendTime"`
+}
+
+func (h *NewsletterHandler) handleScheduleOneOffSend(ctx context.Context, i *struct {
+	NewsletterID string `path:"newsletterId"`
+	Body         oneOffSendInput
+}) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	sendTime, err := time.Parse(time.RFC3339, i.Body.SendTime)
+	if err != nil {
+		return nil, badRequestError("Invalid time provided")
+	}
+
+	if sendTime.Before(time.Now()) {
+		return nil, badRequestError("Cannot schedule one off send in the past")
+	}
+
+	nl, err := h.queries.GetNewsletter(ctx, db.GetNewsletterParams{
+		ID:     i.NewsletterID,
+		UserID: claims.Subject,
+	})
+
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	if sendTime.After(nl.NextSendTime) {
+		return nil, badRequestError("One off send cannot occur after the next time")
+	}
+
+	err = h.queries.UpdateNewsletterSendTime(ctx, db.UpdateNewsletterSendTimeParams{
+		ID:           i.NewsletterID,
+		UserID:       claims.Subject,
+		NextSendTime: sendTime,
+	})
+
 	if err != nil {
 		return nil, internalServerError(ctx, err)
 	}
