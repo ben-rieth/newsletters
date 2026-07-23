@@ -55,101 +55,21 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Method:      "GET",
 		Path:        "/newsletters",
 		Summary:     "List all newsletters",
-	}, func(ctx context.Context, input *struct{}) (*listNewslettersOutput, error) {
-		claims, ok := auth.ClaimsFromContext(ctx)
-		if !ok || claims == nil {
-			return nil, huma.Error401Unauthorized("Not authorized")
-		}
-
-		nls, err := h.queries.ListNewsletters(ctx, claims.Subject)
-
-		if err != nil {
-			return nil, internalServerError(ctx, err)
-		}
-
-		out := &listNewslettersOutput{}
-
-		for _, newsletter := range nls {
-			out.Body = append(out.Body, newsletters.DbNewsletterToNewsletterType(newsletter))
-		}
-
-		return out, nil
-	})
+	}, h.handleListNewsletters)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "create-newsletter",
 		Method:      "POST",
 		Path:        "/newsletters",
 		Summary:     "Create a new newsletter",
-	}, func(ctx context.Context, input *createNewsletterInput) (*struct{}, error) {
-		claims, ok := auth.ClaimsFromContext(ctx)
-		if !ok || claims == nil {
-			return nil, huma.Error401Unauthorized("Not authorized")
-		}
-
-		var sendDay int
-		if input.Body.SendDay == nil {
-			sendDay = 0
-		} else {
-			sendDay = int(*input.Body.SendDay)
-		}
-
-		nextSendTime, nextErr := newsletters.ComputeNextSendTime(
-			db.Frequency(input.Body.Frequency),
-			sendDay, int(input.Body.SendHour), int(input.Body.SendMinute),
-			input.Body.SendTimezone, time.Now(),
-		)
-
-		if nextErr != nil {
-			return nil, huma.Error400BadRequest("Invalid input")
-		}
-
-		err := h.queries.CreateNewsletter(ctx, db.CreateNewsletterParams{
-			Name:         input.Body.Name,
-			Frequency:    db.Frequency(input.Body.Frequency),
-			SendDay:      int32(sendDay),
-			SendHour:     int32(input.Body.SendHour),
-			SendMinute:   int32(input.Body.SendMinute),
-			SendTimezone: input.Body.SendTimezone,
-			NextSendTime: nextSendTime,
-			UserID:       claims.Subject,
-		})
-
-		if err != nil {
-			return nil, huma.Error500InternalServerError("Failed to create newsletter")
-		}
-
-		return nil, nil
-	})
+	}, h.handleCreateNewsletter)
 
 	huma.Register(api, huma.Operation{
 		OperationID: "get-newsletter",
 		Method:      "GET",
 		Path:        "/newsletters/{newsletterId}",
 		Summary:     "Get a single newsletter",
-	}, func(ctx context.Context, input *baseNewsletterInput) (*getNewsletterOutput, error) {
-		claims, ok := auth.ClaimsFromContext(ctx)
-		if !ok || claims == nil {
-			return nil, unauthorizedError()
-		}
-
-		newsletter, err := h.queries.GetNewsletter(ctx, db.GetNewsletterParams{
-			ID:     input.NewsletterID,
-			UserID: claims.Subject,
-		})
-
-		if err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				return nil, notFoundError("Newsletter")
-			}
-
-			return nil, internalServerError(ctx, err)
-		}
-
-		return &getNewsletterOutput{
-			Body: newsletters.DbNewsletterToNewsletterType(newsletter),
-		}, nil
-	})
+	}, h.handleGetNewsletter)
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "update-newsletter",
@@ -158,50 +78,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Summary:       "Update a single newsletter",
 		DefaultStatus: http.StatusNoContent,
 		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
-	}, func(ctx context.Context, input *struct {
-		NewsletterID string `path:"newsletterId"`
-		Body         submittableNewsletterFields
-	}) (*struct{}, error) {
-		claims, ok := auth.ClaimsFromContext(ctx)
-		if !ok || claims == nil {
-			return nil, unauthorizedError()
-		}
-
-		var sendDay int
-		if input.Body.SendDay == nil {
-			sendDay = 0
-		} else {
-			sendDay = int(*input.Body.SendDay)
-		}
-
-		nextSendTime, err := newsletters.ComputeNextSendTime(
-			db.Frequency(input.Body.Frequency),
-			sendDay, int(input.Body.SendHour), int(input.Body.SendMinute),
-			input.Body.SendTimezone, time.Now(),
-		)
-
-		if err != nil {
-			return nil, badRequestError("Cannot update newsletter")
-		}
-
-		err = h.queries.UpdateNewsletter(ctx, db.UpdateNewsletterParams{
-			Name:         input.Body.Name,
-			Frequency:    db.Frequency(input.Body.Frequency),
-			SendDay:      int32(sendDay),
-			SendHour:     int32(input.Body.SendHour),
-			SendMinute:   int32(input.Body.SendMinute),
-			SendTimezone: input.Body.SendTimezone,
-			NextSendTime: nextSendTime,
-			ID:           input.NewsletterID,
-			UserID:       claims.Subject,
-		})
-
-		if err != nil {
-			return nil, internalServerError(ctx, err)
-		}
-
-		return nil, nil
-	})
+	}, h.handleUpdateNewsletter)
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "delete-newsletter",
@@ -210,19 +87,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Summary:       "Delete a newsletter and all of its feeds",
 		DefaultStatus: http.StatusNoContent,
 		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
-	}, func(ctx context.Context, input *baseNewsletterInput) (*struct{}, error) {
-		claims, ok := auth.ClaimsFromContext(ctx)
-		if !ok || claims == nil {
-			return nil, unauthorizedError()
-		}
-
-		err := h.nlService.DeleteNewsletter(ctx, input.NewsletterID, claims.Subject)
-		if err != nil {
-			return nil, internalServerError(ctx, err)
-		}
-
-		return nil, nil
-	})
+	}, h.handleDeleteNewsletter)
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "force-send-newsletter",
@@ -231,24 +96,7 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Summary:       "Updates the newsletter's next send time to the current time",
 		DefaultStatus: http.StatusNoContent,
 		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
-	}, func(ctx context.Context, i *baseNewsletterInput) (*struct{}, error) {
-		claims, ok := auth.ClaimsFromContext(ctx)
-		if !ok || claims == nil {
-			return nil, unauthorizedError()
-		}
-
-		err := h.queries.UpdateNewsletterSendTime(ctx, db.UpdateNewsletterSendTimeParams{
-			NextSendTime: time.Now(),
-			ID:           i.NewsletterID,
-			UserID:       claims.Subject,
-		})
-
-		if err != nil {
-			return nil, internalServerError(ctx, err)
-		}
-
-		return nil, nil
-	})
+	}, h.handleForceSendNewsletter)
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "update-newsletter-status",
@@ -257,28 +105,194 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 		Description:   "Change the status of a newsletter to active or inactive",
 		DefaultStatus: http.StatusNoContent,
 		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
-	}, func(ctx context.Context, i *struct {
-		NewsletterID string `path:"newsletterId"`
-		Body         struct {
-			Status string `json:"status" enum:"active,inactive"`
-		}
-	}) (*struct{}, error) {
-		claims, ok := auth.ClaimsFromContext(ctx)
-		if !ok || claims == nil {
-			return nil, unauthorizedError()
-		}
+	}, h.handleUpdateNewsletterStatus)
+}
 
-		err := h.queries.UpdateNewsletterStatus(ctx, db.UpdateNewsletterStatusParams{
-			Status: db.NewsletterStatus(i.Body.Status),
-			ID:     i.NewsletterID,
-			UserID: claims.Subject,
-		})
-		if err != nil {
-			return nil, internalServerError(ctx, err)
-		}
+func (h *NewsletterHandler) handleListNewsletters(ctx context.Context, input *struct{}) (*listNewslettersOutput, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, huma.Error401Unauthorized("Not authorized")
+	}
 
-		return nil, nil
+	nls, err := h.queries.ListNewsletters(ctx, claims.Subject)
+
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	out := &listNewslettersOutput{}
+
+	for _, newsletter := range nls {
+		out.Body = append(out.Body, newsletters.DbNewsletterToNewsletterType(newsletter))
+	}
+
+	return out, nil
+}
+
+func (h *NewsletterHandler) handleCreateNewsletter(ctx context.Context, input *createNewsletterInput) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, huma.Error401Unauthorized("Not authorized")
+	}
+
+	var sendDay int
+	if input.Body.SendDay == nil {
+		sendDay = 0
+	} else {
+		sendDay = int(*input.Body.SendDay)
+	}
+
+	nextSendTime, nextErr := newsletters.ComputeNextSendTime(
+		db.Frequency(input.Body.Frequency),
+		sendDay, int(input.Body.SendHour), int(input.Body.SendMinute),
+		input.Body.SendTimezone, time.Now(),
+	)
+
+	if nextErr != nil {
+		return nil, huma.Error400BadRequest("Invalid input")
+	}
+
+	err := h.queries.CreateNewsletter(ctx, db.CreateNewsletterParams{
+		Name:         input.Body.Name,
+		Frequency:    db.Frequency(input.Body.Frequency),
+		SendDay:      int32(sendDay),
+		SendHour:     int32(input.Body.SendHour),
+		SendMinute:   int32(input.Body.SendMinute),
+		SendTimezone: input.Body.SendTimezone,
+		NextSendTime: nextSendTime,
+		UserID:       claims.Subject,
 	})
+
+	if err != nil {
+		return nil, huma.Error500InternalServerError("Failed to create newsletter")
+	}
+
+	return nil, nil
+}
+
+func (h *NewsletterHandler) handleGetNewsletter(ctx context.Context, input *baseNewsletterInput) (*getNewsletterOutput, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	newsletter, err := h.queries.GetNewsletter(ctx, db.GetNewsletterParams{
+		ID:     input.NewsletterID,
+		UserID: claims.Subject,
+	})
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, notFoundError("Newsletter")
+		}
+
+		return nil, internalServerError(ctx, err)
+	}
+
+	return &getNewsletterOutput{
+		Body: newsletters.DbNewsletterToNewsletterType(newsletter),
+	}, nil
+}
+
+func (h *NewsletterHandler) handleUpdateNewsletter(ctx context.Context, input *struct {
+	NewsletterID string `path:"newsletterId"`
+	Body         submittableNewsletterFields
+}) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	var sendDay int
+	if input.Body.SendDay == nil {
+		sendDay = 0
+	} else {
+		sendDay = int(*input.Body.SendDay)
+	}
+
+	nextSendTime, err := newsletters.ComputeNextSendTime(
+		db.Frequency(input.Body.Frequency),
+		sendDay, int(input.Body.SendHour), int(input.Body.SendMinute),
+		input.Body.SendTimezone, time.Now(),
+	)
+
+	if err != nil {
+		return nil, badRequestError("Cannot update newsletter")
+	}
+
+	err = h.queries.UpdateNewsletter(ctx, db.UpdateNewsletterParams{
+		Name:         input.Body.Name,
+		Frequency:    db.Frequency(input.Body.Frequency),
+		SendDay:      int32(sendDay),
+		SendHour:     int32(input.Body.SendHour),
+		SendMinute:   int32(input.Body.SendMinute),
+		SendTimezone: input.Body.SendTimezone,
+		NextSendTime: nextSendTime,
+		ID:           input.NewsletterID,
+		UserID:       claims.Subject,
+	})
+
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
+}
+
+func (h *NewsletterHandler) handleDeleteNewsletter(ctx context.Context, input *baseNewsletterInput) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	err := h.nlService.DeleteNewsletter(ctx, input.NewsletterID, claims.Subject)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
+}
+
+func (h *NewsletterHandler) handleForceSendNewsletter(ctx context.Context, i *baseNewsletterInput) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	err := h.queries.UpdateNewsletterSendTime(ctx, db.UpdateNewsletterSendTimeParams{
+		NextSendTime: time.Now(),
+		ID:           i.NewsletterID,
+		UserID:       claims.Subject,
+	})
+
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
+}
+
+func (h *NewsletterHandler) handleUpdateNewsletterStatus(ctx context.Context, i *struct {
+	NewsletterID string `path:"newsletterId"`
+	Body         struct {
+		Status string `json:"status" enum:"active,inactive"`
+	}
+}) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	err := h.queries.UpdateNewsletterStatus(ctx, db.UpdateNewsletterStatusParams{
+		Status: db.NewsletterStatus(i.Body.Status),
+		ID:     i.NewsletterID,
+		UserID: claims.Subject,
+	})
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
 }
 
 func newDoesNewsletterExistMiddleware(api huma.API, queries *db.Queries) func(ctx huma.Context, next func(huma.Context)) {
