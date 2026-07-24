@@ -61,7 +61,7 @@ export const AddFeedForm = ({
 
   return (
     <form
-      className="space-y-3"
+      className="space-y-5"
       onSubmit={(e) => {
         e.preventDefault();
         form.handleSubmit();

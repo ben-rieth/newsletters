@@ -17,7 +17,7 @@ export const ViewToggle = ({ value, onChange }: Props) => (
       }
     }}
     variant="outline"
-    size="sm"
+    size="default"
   >
     <ToggleGroupItem value="table" aria-label="Table view">
       <Table2 className="size-4" />

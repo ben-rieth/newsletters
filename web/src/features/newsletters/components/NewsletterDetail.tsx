@@ -108,7 +108,10 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
       </header>
 
       <Tabs defaultValue="feeds">
-        <TabsList variant="line" className="w-full justify-start border-b">
+        <TabsList
+          variant="line"
+          className="w-full justify-start gap-6 border-b **:data-[slot=tabs-trigger]:flex-none **:data-[slot=tabs-trigger]:px-0"
+        >
           <TabsTrigger value="feeds">Feeds</TabsTrigger>
           <TabsTrigger value="schedule">Schedule</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
@@ -175,14 +178,12 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
         </TabsContent>
 
         <TabsContent value="settings" className="pt-6">
-          <div className="max-w-sm space-y-8">
-            <div className="space-y-4">
-              <NewsletterForm
-                defaultValues={defaultValues}
-                onSubmit={async (values) => newsletterUpdate.mutate(values)}
-                submitLabel="Save Changes"
-              />
-            </div>
+          <div className="max-w-md space-y-8">
+            <NewsletterForm
+              defaultValues={defaultValues}
+              onSubmit={async (values) => newsletterUpdate.mutate(values)}
+              submitLabel="Save Changes"
+            />
 
             <div className="flex items-center gap-2">
               <Button

@@ -94,7 +94,7 @@ export const TimezoneSelect = ({ id, value, onValueChange }: Props) => {
     <SelectPrimitive.Item
       key={iana}
       value={iana}
-      className="relative flex min-h-7 w-full cursor-default items-center gap-2 rounded-md px-2 py-1 pr-7 text-xs/relaxed outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50"
+      className="relative flex min-h-8 w-full cursor-default items-center gap-2 rounded-md px-2 py-1.5 pr-8 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50"
     >
       <SelectPrimitive.ItemText className="flex flex-1 gap-1.5">
         <span>{genericName}</span>
@@ -118,7 +118,7 @@ export const TimezoneSelect = ({ id, value, onValueChange }: Props) => {
     >
       <SelectPrimitive.Trigger
         id={id}
-        className="flex h-7 w-full items-center justify-between gap-1.5 rounded-md border border-input bg-input/20 px-2 text-xs/relaxed whitespace-nowrap transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 data-placeholder:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 [&_svg]:pointer-events-none [&_svg]:shrink-0"
+        className="flex h-9 w-full items-center justify-between gap-1.5 rounded-md border border-input bg-input/20 px-3 text-sm whitespace-nowrap transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 data-placeholder:text-muted-foreground dark:bg-input/30 dark:hover:bg-input/50 [&_svg]:pointer-events-none [&_svg]:shrink-0"
       >
         <SelectPrimitive.Value placeholder="Select timezone">
           {selected && (
@@ -143,7 +143,7 @@ export const TimezoneSelect = ({ id, value, onValueChange }: Props) => {
               <div className="flex items-center gap-1.5 rounded-md bg-input/20 px-2">
                 <SearchIcon className="size-3.5 shrink-0 text-muted-foreground" />
                 <input
-                  className="h-7 flex-1 bg-transparent text-xs/relaxed outline-none placeholder:text-muted-foreground"
+                  className="h-9 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                   placeholder="Search timezone..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}

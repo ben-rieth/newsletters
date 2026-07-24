@@ -6,7 +6,6 @@ import { cn } from '#/lib/utils';
 import { Button } from '#/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '#/components/ui/sheet';
 import { newslettersOptions } from '#/features/newsletters/queries/newsletters';
-import type { Newsletter } from '#/features/newsletters/queries/newsletters';
 import { CreateNewsletterDialog } from '#/features/newsletters/components/CreateNewsletterDialog';
 import useLogout from '#/features/auth/queries/hooks/useLogout';
 
@@ -15,47 +14,6 @@ const sectionLabel =
 
 const navRow =
   'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
-
-const nextSend = (newsletters: Newsletter[]) => {
-  const upcoming = newsletters
-    .map((n) => n.nextSendTime)
-    .filter(Boolean)
-    .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-  return upcoming[0];
-};
-
-const NextSendBlock = ({ newsletters }: { newsletters: Newsletter[] }) => {
-  const next = nextSend(newsletters);
-  if (!next) return null;
-
-  const date = new Date(next);
-  const time = date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
-  const now = new Date();
-  const isToday = date.toDateString() === now.toDateString();
-  const isTomorrow =
-    date.toDateString() === new Date(now.getTime() + 86400000).toDateString();
-  const when = isToday
-    ? 'today'
-    : isTomorrow
-      ? 'tomorrow'
-      : date.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' });
-
-  return (
-    <div className="px-3 py-4">
-      <p className={cn(sectionLabel, 'px-0')}>Next send</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-primary">
-        {time}{' '}
-        <span className="text-sm font-normal text-muted-foreground">
-          {when}
-        </span>
-      </p>
-    </div>
-  );
-};
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { data } = useQuery(newslettersOptions);
@@ -92,7 +50,21 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
       </Link>
 
       <div className="flex-1 overflow-y-auto px-2">
-        <p className={cn(sectionLabel, 'mt-2 mb-2')}>Newsletters</p>
+        <p className={cn(sectionLabel, 'mt-2 mb-2')}>Read</p>
+        <nav className="space-y-0.5">
+          <Link
+            to="/issues"
+            onClick={onNavigate}
+            className={navRow}
+            activeProps={{
+              className: cn(navRow, 'bg-accent text-foreground'),
+            }}
+          >
+            Issues
+          </Link>
+        </nav>
+
+        <p className={cn(sectionLabel, 'mt-4 mb-2')}>Newsletters</p>
         <nav className="space-y-0.5">
           {sorted.map((n) => (
             <Link
@@ -143,11 +115,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
       </div>
 
       <div className="border-t border-sidebar-border">
-        <NextSendBlock newsletters={newsletters} />
-        <nav className="space-y-0.5 px-2 pb-3">
-          <Link to="/issues" onClick={onNavigate} className={navRow}>
-            Issues
-          </Link>
+        <nav className="space-y-0.5 px-2 py-3">
           <Link to="/profile" onClick={onNavigate} className={navRow}>
             Profile
           </Link>

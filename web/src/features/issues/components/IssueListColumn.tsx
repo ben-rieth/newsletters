@@ -39,9 +39,7 @@ const IssueListColumn = ({ issues }: Props) => {
 
   return (
     <div className="py-4">
-      <h1 className="px-4 pb-3 text-xl font-semibold tracking-tight">
-        All issues
-      </h1>
+      <h1 className="px-4 pb-3 text-xl font-semibold tracking-tight">Issues</h1>
 
       {sorted.length === 0 ? (
         <p className="px-4 py-8 text-sm text-muted-foreground">

@@ -1,7 +1,7 @@
 import { useForm } from '@tanstack/react-form';
 import { z } from 'zod';
 import { Button } from '#/components/ui/button';
-import { Field, FieldError, FieldLabel } from '#/components/ui/field';
+import { FieldError } from '#/components/ui/field';
 import { FormField } from '#/components/ui/form-field';
 import { Input } from '#/components/ui/input';
 import { NumberField } from '#/components/ui/number-field';
@@ -14,6 +14,7 @@ import {
 } from '#/components/ui/select';
 import { DAY_NAMES } from '../lib/format';
 import type { Frequency } from '../queries/newsletters';
+import { TimeField } from './TimeField';
 import { TimezoneSelect } from './TimezoneSelect';
 
 const VALID_TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'));
@@ -60,7 +61,7 @@ export const NewsletterForm = ({
 
   return (
     <form
-      className="space-y-3"
+      className="space-y-5"
       onSubmit={(e) => {
         e.preventDefault();
         form.handleSubmit();
@@ -188,26 +189,18 @@ export const NewsletterForm = ({
           minute: state.values.sendMinute,
         })}
       >
-        {({ hour, minute }) => {
-          const timeValue = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-          return (
-            <Field>
-              <FieldLabel htmlFor="sendTime">Send Time</FieldLabel>
-              <Input
-                id="sendTime"
-                type="time"
-                value={timeValue}
-                onChange={(e) => {
-                  const [h, m] = (e.target.value || '00:00')
-                    .split(':')
-                    .map(Number);
-                  form.setFieldValue('sendHour', isNaN(h) ? 0 : h);
-                  form.setFieldValue('sendMinute', isNaN(m) ? 0 : m);
-                }}
-              />
-            </Field>
-          );
-        }}
+        {({ hour, minute }) => (
+          <TimeField
+            id="sendTime"
+            label="Send Time"
+            hour={hour}
+            minute={minute}
+            onChange={(h, m) => {
+              form.setFieldValue('sendHour', h);
+              form.setFieldValue('sendMinute', m);
+            }}
+          />
+        )}
       </form.Subscribe>
 
       {error && <FieldError>{error}</FieldError>}
