@@ -141,7 +141,12 @@ func main() {
 	mux.Handle("/", ui.Handler())
 	mux.Handle("/api/", http.StripPrefix("/api", apiMux))
 
-	srv := &http.Server{Addr: fmt.Sprintf("%s:%s", cfg.Host, cfg.Port), Handler: mux}
+	csrf := http.NewCrossOriginProtection()
+
+	srv := &http.Server{
+		Addr:    fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
+		Handler: csrf.Handler(mux),
+	}
 
 	go func() {
 		<-ctx.Done()
