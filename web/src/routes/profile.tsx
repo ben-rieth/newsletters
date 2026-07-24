@@ -1,6 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '#/components/ui/card';
 import { Button } from '#/components/ui/button';
 import { H2 } from '#/components/ui/typography';
 import { UpdateEmailForm } from '#/features/auth/components/UpdateEmailForm';
@@ -14,7 +20,7 @@ const ProfilePage = () => {
   const logout = useLogout();
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-6 py-8 lg:px-10">
       <div className="flex items-center justify-between">
         <H2>Profile</H2>
         <Button
@@ -39,7 +45,9 @@ const ProfilePage = () => {
       <Card>
         <CardHeader>
           <CardTitle>Update Email</CardTitle>
-          <CardDescription>Change the email address on your account</CardDescription>
+          <CardDescription>
+            Change the email address on your account
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <UpdateEmailForm />
@@ -59,7 +67,9 @@ const ProfilePage = () => {
       <Card className="border-destructive">
         <CardHeader>
           <CardTitle>Danger Zone</CardTitle>
-          <CardDescription>Permanently delete your account and all data</CardDescription>
+          <CardDescription>
+            Permanently delete your account and all data
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <DeleteAccountForm />

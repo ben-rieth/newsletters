@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import IssueDetail from '#/features/issues/components/IssueDetail';
 import { issueDetailOptions } from '#/features/issues/queries/issues';
@@ -8,13 +8,7 @@ const IssuePage = () => {
   const { data: issue } = useSuspenseQuery(issueDetailOptions(issueId));
 
   return (
-    <div className="p-6 space-y-6">
-      <Link
-        to="/issues"
-        className="text-sm text-muted-foreground hover:underline"
-      >
-        ← Issues
-      </Link>
+    <div className="mx-auto max-w-3xl px-6 py-8 lg:px-10">
       <IssueDetail issue={issue} />
     </div>
   );

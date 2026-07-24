@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import type { Issue } from '#/features/newsletters/queries/issues';
+import type { Issue } from '#/features/issues/queries/issues';
 
 interface IssuesListProps {
   issues: Issue[];

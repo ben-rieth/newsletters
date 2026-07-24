@@ -4,9 +4,10 @@ import { TanStackDevtools } from '@tanstack/react-devtools';
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
 
 import '../styles.css';
-import Header from '#/components/Header';
+import AppSidebar from '#/components/AppSidebar';
 import DebugPanel from '#/features/debug/components/DebugPanel';
 import { useRefreshOnLoad } from '#/features/auth/queries/hooks/useRefreshOnLoad';
+import useIsSignedIn from '#/features/auth/queries/hooks/useIsSignedIn';
 import type { QueryClient } from '@tanstack/react-query';
 
 interface RouterContext {
@@ -31,13 +32,22 @@ function RootErrorComponent({ error }: { error: unknown }) {
 
 function RootComponent() {
   useRefreshOnLoad();
+  const isSignedIn = useIsSignedIn();
 
   return (
     <>
-      <Header />
-      <main className="px-4 max-w-4xl mx-auto w-full">
-        <Outlet />
-      </main>
+      {isSignedIn ? (
+        <div className="flex h-screen flex-col overflow-hidden md:flex-row">
+          <AppSidebar />
+          <main className="flex-1 overflow-y-auto">
+            <Outlet />
+          </main>
+        </div>
+      ) : (
+        <main className="min-h-screen">
+          <Outlet />
+        </main>
+      )}
       {import.meta.env.DEV && <DebugPanel />}
       {import.meta.env.DEV && (
         <TanStackDevtools

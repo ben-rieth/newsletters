@@ -45,7 +45,7 @@ const features = [
 
 const AboutPage = () => {
   return (
-    <div className="p-6 space-y-6">
+    <div className="mx-auto max-w-3xl space-y-6 px-6 py-8 lg:px-10">
       <H2>About</H2>
 
       <Card>

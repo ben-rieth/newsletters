@@ -11,8 +11,8 @@ import {
   DropdownMenuTrigger,
 } from '#/components/ui/dropdown-menu';
 import { H2 } from '#/components/ui/typography';
-import { ViewToggle  } from '#/components/ViewToggle';
-import type {View} from '#/components/ViewToggle';
+import { ViewToggle } from '#/components/ViewToggle';
+import type { View } from '#/components/ViewToggle';
 import { CreateNewsletterDialog } from '#/features/newsletters/components/CreateNewsletterDialog';
 import { NewslettersTable } from '#/features/newsletters/components/NewslettersTable';
 import { NewslettersCards } from '#/features/newsletters/components/NewslettersCards';
@@ -26,7 +26,7 @@ const NewslettersPage = () => {
   const exportAll = useExportNewsletters();
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="mx-auto max-w-5xl space-y-6 px-6 py-8 lg:px-10">
       <div className="flex items-center justify-between">
         <H2>Newsletters</H2>
         <div className="flex items-center gap-2">

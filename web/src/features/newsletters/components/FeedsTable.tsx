@@ -38,22 +38,31 @@ export const FeedsTable = ({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Description</TableHead>
+        <TableRow className="hover:bg-transparent">
+          <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Feed
+          </TableHead>
+          <TableHead className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Description
+          </TableHead>
           <TableHead className="w-px" />
         </TableRow>
       </TableHeader>
       <TableBody>
         {feeds.map((feed) => (
-          <TableRow key={feed.id}>
-            <TableCell className="font-medium">
+          <TableRow key={feed.id} className="group">
+            <TableCell className="py-3.5">
               <Link
                 to="/newsletters/$newsletterId/feeds/$feedId"
                 params={{ newsletterId, feedId: feed.id }}
-                className="hover:underline"
+                className="block"
               >
-                {feed.alias || feed.title}
+                <span className="font-medium group-hover:underline">
+                  {feed.alias || feed.title}
+                </span>
+                <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground">
+                  {feed.url}
+                </span>
               </Link>
             </TableCell>
             <TableCell className="text-muted-foreground">
