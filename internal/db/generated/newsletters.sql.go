@@ -110,6 +110,24 @@ func (q *Queries) DoesNewsletterExist(ctx context.Context, arg DoesNewsletterExi
 	return exists, err
 }
 
+const forceSendNewsletter = `-- name: ForceSendNewsletter :exec
+UPDATE newsletter SET
+    next_send_time = $1,
+    updated_at = NOW()
+WHERE id = $2 AND user_id = $3
+`
+
+type ForceSendNewsletterParams struct {
+	NextSendTime time.Time
+	ID           string
+	UserID       string
+}
+
+func (q *Queries) ForceSendNewsletter(ctx context.Context, arg ForceSendNewsletterParams) error {
+	_, err := q.db.Exec(ctx, forceSendNewsletter, arg.NextSendTime, arg.ID, arg.UserID)
+	return err
+}
+
 const getDueNewsletters = `-- name: GetDueNewsletters :many
 SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at, nl.unsubscribe_token
 FROM newsletter AS nl

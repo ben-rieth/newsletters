@@ -49,6 +49,12 @@ UPDATE newsletter SET
     updated_at = NOW() 
 WHERE id = $2 AND user_id = $3;
 
+-- name: ForceSendNewsletter :exec
+UPDATE newsletter SET
+    next_send_time = $1,
+    updated_at = NOW()
+WHERE id = $2 AND user_id = $3;
+
 -- name: CancelAdditionalSendTime :exec
 UPDATE newsletter SET
     next_send_time = original_next_send_time,

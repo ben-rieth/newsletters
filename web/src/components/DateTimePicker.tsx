@@ -70,7 +70,10 @@ export const DateTimePicker = ({
   const handleTextChange = (input: string) => {
     setText(input);
     const results = chrono.parse(input);
-    if (results.length === 0) return;
+    if (results.length === 0) {
+      onChange(undefined);
+      return;
+    }
     const parsed = results[0].start;
     const parsedDate = parsed.date();
     setMonth(parsedDate);
@@ -90,6 +93,7 @@ export const DateTimePicker = ({
   };
 
   const handleTimeChange = (nextTime: string) => {
+    if (!nextTime) return;
     setTime(nextTime);
     if (value) {
       onChange(combine(value, nextTime));

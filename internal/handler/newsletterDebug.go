@@ -37,7 +37,7 @@ func (h *NewsletterDebugHandler) handleForceSendNewsletter(ctx context.Context, 
 		return nil, unauthorizedError()
 	}
 
-	err := h.queries.UpdateNewsletterSendTime(ctx, db.UpdateNewsletterSendTimeParams{
+	err := h.queries.ForceSendNewsletter(ctx, db.ForceSendNewsletterParams{
 		NextSendTime: time.Now(),
 		ID:           i.NewsletterID,
 		UserID:       claims.Subject,

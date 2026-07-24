@@ -37,6 +37,13 @@ export const ScheduleSendDialog = ({
 
   const maxSend = new Date(maxSendTime);
 
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next) {
+      setSendTime(initialSendTime ? new Date(initialSendTime) : undefined);
+    }
+  };
+
   const scheduleSend = useScheduleOneOffSend(() => {
     toast.success(
       isReschedule ? 'One-off send rescheduled!' : 'One-off send scheduled!',
@@ -61,7 +68,7 @@ export const ScheduleSendDialog = ({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         render={<Button variant={isReschedule ? 'outline' : 'default'} />}
       >

@@ -117,10 +117,25 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	}, h.handleCancelOneOffSend)
 }
 
+func computeSendSchedule(body submittableNewsletterFields) (int, time.Time, error) {
+	sendDay := 0
+	if body.SendDay != nil {
+		sendDay = *body.SendDay
+	}
+
+	nextSendTime, err := newsletters.ComputeNextSendTime(
+		db.Frequency(body.Frequency),
+		sendDay, body.SendHour, body.SendMinute,
+		body.SendTimezone, time.Now(),
+	)
+
+	return sendDay, nextSendTime, err
+}
+
 func (h *NewsletterHandler) handleListNewsletters(ctx context.Context, input *struct{}) (*listNewslettersOutput, error) {
 	claims, ok := auth.ClaimsFromContext(ctx)
 	if !ok || claims == nil {
-		return nil, huma.Error401Unauthorized("Not authorized")
+		return nil, unauthorizedError()
 	}
 
 	nls, err := h.queries.ListNewsletters(ctx, claims.Subject)
@@ -141,22 +156,10 @@ func (h *NewsletterHandler) handleListNewsletters(ctx context.Context, input *st
 func (h *NewsletterHandler) handleCreateNewsletter(ctx context.Context, input *createNewsletterInput) (*struct{}, error) {
 	claims, ok := auth.ClaimsFromContext(ctx)
 	if !ok || claims == nil {
-		return nil, huma.Error401Unauthorized("Not authorized")
+		return nil, unauthorizedError()
 	}
 
-	var sendDay int
-	if input.Body.SendDay == nil {
-		sendDay = 0
-	} else {
-		sendDay = int(*input.Body.SendDay)
-	}
-
-	nextSendTime, nextErr := newsletters.ComputeNextSendTime(
-		db.Frequency(input.Body.Frequency),
-		sendDay, int(input.Body.SendHour), int(input.Body.SendMinute),
-		input.Body.SendTimezone, time.Now(),
-	)
-
+	sendDay, nextSendTime, nextErr := computeSendSchedule(input.Body)
 	if nextErr != nil {
 		return nil, huma.Error400BadRequest("Invalid input")
 	}
@@ -212,19 +215,7 @@ func (h *NewsletterHandler) handleUpdateNewsletter(ctx context.Context, input *s
 		return nil, unauthorizedError()
 	}
 
-	var sendDay int
-	if input.Body.SendDay == nil {
-		sendDay = 0
-	} else {
-		sendDay = int(*input.Body.SendDay)
-	}
-
-	nextSendTime, err := newsletters.ComputeNextSendTime(
-		db.Frequency(input.Body.Frequency),
-		sendDay, int(input.Body.SendHour), int(input.Body.SendMinute),
-		input.Body.SendTimezone, time.Now(),
-	)
-
+	sendDay, nextSendTime, err := computeSendSchedule(input.Body)
 	if err != nil {
 		return nil, badRequestError("Cannot update newsletter")
 	}

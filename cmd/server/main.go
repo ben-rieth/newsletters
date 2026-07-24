@@ -110,6 +110,7 @@ func main() {
 
 	if cfg.Environment == "dev" {
 		debugApi := huma.NewGroup(api)
+		debugApi.UseMiddleware(rateLimiting)
 		schedulerHandler := handler.NewSchedulerHandler(scheduler, jobQueue)
 		schedulerHandler.RegisterRoutes(debugApi)
 
