@@ -24,10 +24,12 @@ UPDATE newsletter SET
     send_timezone = $6,
     next_send_time = CASE
         WHEN original_next_send_time IS NULL THEN $7
+        WHEN $7 < next_send_time THEN $7
         ELSE next_send_time
     END,
-    original_next_send_time = CASE 
+    original_next_send_time = CASE
         WHEN original_next_send_time IS NULL THEN NULL
+        WHEN $7 < next_send_time THEN NULL
         ELSE $7
     END,
     updated_at = NOW()
