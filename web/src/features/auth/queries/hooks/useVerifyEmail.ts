@@ -20,7 +20,7 @@ const useVerifyEmail = () => {
     onSuccess: () => {
       localStorage.removeItem('pendingVerificationEmail');
       dispatchAuthChange();
-      navigate({ to: '/newsletters' });
+      navigate({ to: '/issues' });
     },
   });
 };

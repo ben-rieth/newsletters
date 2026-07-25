@@ -24,7 +24,7 @@ const useAuth = (path: AuthPath) => {
         return;
       }
       dispatchAuthChange();
-      navigate({ to: '/newsletters' });
+      navigate({ to: '/issues' });
     },
   });
 };

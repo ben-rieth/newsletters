@@ -69,7 +69,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
 
   const newsletterDelete = useDeleteNewsletter(() => {
     toast.success('Newsletter deleted!');
-    navigate({ to: '/newsletters' });
+    navigate({ to: '/issues' });
   });
 
   const exportNewsletter = useExportNewsletter();

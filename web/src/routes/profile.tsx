@@ -7,10 +7,12 @@ import { UpdatePasswordForm } from '#/features/auth/components/UpdatePasswordFor
 import { DeleteAccountForm } from '#/features/auth/components/DeleteAccountForm';
 import { userOptions } from '#/features/auth/queries/user';
 import useLogout from '#/features/auth/queries/hooks/useLogout';
+import useExportNewsletters from '#/features/newsletters/queries/hooks/useExportNewsletters';
 
 const ProfilePage = () => {
   const { data: user } = useSuspenseQuery(userOptions);
   const logout = useLogout();
+  const exportAll = useExportNewsletters();
 
   return (
     <div className="mx-auto max-w-3xl space-y-10 px-6 py-8 lg:px-10">
@@ -41,6 +43,21 @@ const ProfilePage = () => {
           description="Choose a new password for your account."
         >
           <UpdatePasswordForm />
+        </SettingsRow>
+      </SettingsSection>
+
+      <SettingsSection>
+        <SettingsRow
+          title="Export newsletters"
+          description="Download all of your newsletters and their feeds as a JSON file."
+        >
+          <Button
+            variant="outline"
+            onClick={() => exportAll.mutate()}
+            disabled={exportAll.isPending}
+          >
+            {exportAll.isPending ? 'Exporting…' : 'Export all newsletters'}
+          </Button>
         </SettingsRow>
       </SettingsSection>
 
