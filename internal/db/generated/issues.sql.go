@@ -39,17 +39,17 @@ func (q *Queries) DeleteItemsForIssue(ctx context.Context, arg DeleteItemsForIss
 }
 
 const getAllUserIssues = `-- name: GetAllUserIssues :many
-SELECT i.id, nl.id, nl.name, i.sent_at FROM newsletter_issue AS i 
+SELECT i.id, nl.id AS newsletter_id, nl.name, i.sent_at FROM newsletter_issue AS i 
 INNER JOIN newsletter AS nl ON i.newsletter_id = nl.id
 WHERE i.user_id = $1
 ORDER BY sent_at DESC
 `
 
 type GetAllUserIssuesRow struct {
-	ID     string
-	ID_2   string
-	Name   string
-	SentAt time.Time
+	ID           string
+	NewsletterID string
+	Name         string
+	SentAt       time.Time
 }
 
 func (q *Queries) GetAllUserIssues(ctx context.Context, userID string) ([]GetAllUserIssuesRow, error) {
@@ -63,7 +63,7 @@ func (q *Queries) GetAllUserIssues(ctx context.Context, userID string) ([]GetAll
 		var i GetAllUserIssuesRow
 		if err := rows.Scan(
 			&i.ID,
-			&i.ID_2,
+			&i.NewsletterID,
 			&i.Name,
 			&i.SentAt,
 		); err != nil {
@@ -78,7 +78,7 @@ func (q *Queries) GetAllUserIssues(ctx context.Context, userID string) ([]GetAll
 }
 
 const getIssue = `-- name: GetIssue :one
-SELECT i.id, nl.name, i.sent_at FROM newsletter_issue AS i 
+SELECT i.id, nl.id AS newsletter_id, nl.name, i.sent_at FROM newsletter_issue AS i 
 INNER JOIN newsletter AS nl ON i.newsletter_id = nl.id
 WHERE i.user_id = $1 AND i.id = $2
 `
@@ -89,15 +89,21 @@ type GetIssueParams struct {
 }
 
 type GetIssueRow struct {
-	ID     string
-	Name   string
-	SentAt time.Time
+	ID           string
+	NewsletterID string
+	Name         string
+	SentAt       time.Time
 }
 
 func (q *Queries) GetIssue(ctx context.Context, arg GetIssueParams) (GetIssueRow, error) {
 	row := q.db.QueryRow(ctx, getIssue, arg.UserID, arg.ID)
 	var i GetIssueRow
-	err := row.Scan(&i.ID, &i.Name, &i.SentAt)
+	err := row.Scan(
+		&i.ID,
+		&i.NewsletterID,
+		&i.Name,
+		&i.SentAt,
+	)
 	return i, err
 }
 

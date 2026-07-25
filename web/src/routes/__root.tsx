@@ -34,7 +34,16 @@ function RootErrorComponent({ error }: { error: unknown }) {
   );
 }
 
-const AUTH_ROUTES = ['/sign-in', '/sign-up'];
+const CHROMELESS_ROUTES = [
+  '/',
+  '/sign-in',
+  '/sign-up',
+  '/verify-email',
+  '/bad-link',
+];
+
+const isChromeless = (pathname: string) =>
+  CHROMELESS_ROUTES.includes(pathname) || pathname.startsWith('/unsubscribe');
 
 function RootComponent() {
   useRefreshOnLoad();
@@ -42,7 +51,7 @@ function RootComponent() {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   });
-  const showSidebar = isSignedIn && !AUTH_ROUTES.includes(pathname);
+  const showSidebar = isSignedIn && !isChromeless(pathname);
 
   return (
     <>

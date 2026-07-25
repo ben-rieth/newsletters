@@ -56,14 +56,6 @@ export const EditFeedForm = ({
           <div className="space-y-4">
             <FeedLinkDisplay label="Feed URL" url={feed.url} />
             <FeedLinkDisplay label="Web URL" url={feed.htmlUrl} />
-            <div className="space-y-1 rounded-lg border bg-muted/40 p-4">
-              <p className="text-sm font-medium">{feed.title}</p>
-              {feed.description && (
-                <p className="text-xs text-muted-foreground">
-                  {feed.description}
-                </p>
-              )}
-            </div>
           </div>
         </SettingsRow>
 
@@ -71,27 +63,27 @@ export const EditFeedForm = ({
           title="Display name"
           description="Shown in place of the feed's title in your newsletter."
         >
-          <form.Field name="alias">
-            {(field) => (
-              <FormField field={field} label="Custom name (optional)">
-                <Input
-                  id={field.name}
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  onBlur={field.handleBlur}
-                  placeholder={feed.title}
-                />
-              </FormField>
-            )}
-          </form.Field>
+          <div className="space-y-4">
+            <form.Field name="alias">
+              {(field) => (
+                <FormField field={field} label="Custom name (optional)">
+                  <Input
+                    id={field.name}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    onBlur={field.handleBlur}
+                    placeholder={feed.title}
+                  />
+                </FormField>
+              )}
+            </form.Field>
+            {error && <FieldError>{error}</FieldError>}
+            <Button type="submit" disabled={isPending}>
+              {isPending ? 'Saving…' : 'Save changes'}
+            </Button>
+          </div>
         </SettingsRow>
       </SettingsSection>
-
-      {error && <FieldError>{error}</FieldError>}
-
-      <Button type="submit" disabled={isPending}>
-        {isPending ? 'Saving…' : 'Save changes'}
-      </Button>
     </form>
   );
 };

@@ -60,12 +60,15 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight">
+        <h1 className="text-2xl font-semibold tracking-tight">
           {feed.alias || feed.title}
-        </h2>
+        </h1>
         <p className="truncate font-mono text-sm text-muted-foreground">
           {feed.url}
         </p>
+        {feed.description && (
+          <p className="text-sm text-muted-foreground">{feed.description}</p>
+        )}
       </header>
 
       <Tabs defaultValue="details">
@@ -84,7 +87,7 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="details" className="pt-6">
+        <TabsContent value="details" className="pt-6" keepMounted>
           <div className="space-y-10">
             <EditFeedForm
               feed={feed}

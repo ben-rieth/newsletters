@@ -547,6 +547,7 @@ export interface components {
       readonly $schema?: string;
       feeds: components['schemas']['IssueFeed'][] | null;
       issueId: string;
+      newsletterId: string;
       newsletterName: string;
       /** Format: date-time */
       sentAt: string;
@@ -638,6 +639,7 @@ export interface components {
     };
     Issue: {
       issueId: string;
+      newsletterId: string;
       newsletterName: string;
       /** Format: date-time */
       sentAt: string;

@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '#/components/ui/select';
+import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
 import { DAY_NAMES } from '../lib/format';
 import type { Frequency } from '../queries/newsletters';
 import { TimeField } from './TimeField';
@@ -44,6 +45,7 @@ type Props = {
   isPending?: boolean;
   submitLabel?: string;
   error?: string;
+  layout?: 'stacked' | 'settings';
 };
 
 export const NewsletterForm = ({
@@ -52,6 +54,7 @@ export const NewsletterForm = ({
   isPending = false,
   submitLabel = 'Save',
   error,
+  layout = 'stacked',
 }: Props) => {
   const form = useForm({
     defaultValues,
@@ -59,15 +62,8 @@ export const NewsletterForm = ({
     onSubmit: async ({ value }) => onSubmit(value),
   });
 
-  return (
-    <form
-      className="space-y-5"
-      onSubmit={(e) => {
-        e.preventDefault();
-        form.handleSubmit();
-      }}
-    >
-      {/* Name */}
+  const fields = (
+    <>
       <form.Field name="name">
         {(field) => (
           <FormField field={field} label="Name">
@@ -84,8 +80,6 @@ export const NewsletterForm = ({
           </FormField>
         )}
       </form.Field>
-
-      {/* Frequency */}
       <form.Field name="frequency">
         {(field) => (
           <FormField field={field} label="Frequency">
@@ -112,7 +106,6 @@ export const NewsletterForm = ({
         )}
       </form.Field>
 
-      {/* Send day (conditional on frequency) */}
       <form.Subscribe selector={(state) => state.values.frequency}>
         {(frequency) =>
           frequency !== 'daily' && (
@@ -169,7 +162,6 @@ export const NewsletterForm = ({
         }
       </form.Subscribe>
 
-      {/* Timezone */}
       <form.Field name="sendTimezone">
         {(field) => (
           <FormField field={field} label="Timezone">
@@ -182,7 +174,6 @@ export const NewsletterForm = ({
         )}
       </form.Field>
 
-      {/* Send time */}
       <form.Subscribe
         selector={(state) => ({
           hour: state.values.sendHour,
@@ -202,12 +193,44 @@ export const NewsletterForm = ({
           />
         )}
       </form.Subscribe>
+    </>
+  );
 
+  const submitBlock = (
+    <div className="space-y-3">
       {error && <FieldError>{error}</FieldError>}
-
       <Button type="submit" disabled={isPending}>
         {isPending ? `${submitLabel}…` : submitLabel}
       </Button>
+    </div>
+  );
+
+  return (
+    <form
+      className="space-y-5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        form.handleSubmit();
+      }}
+    >
+      {layout === 'settings' ? (
+        <SettingsSection>
+          <SettingsRow
+            title="Newsletter"
+            description="Newsletter name and sending schedule."
+          >
+            <div className="space-y-5">
+              {fields}
+              {submitBlock}
+            </div>
+          </SettingsRow>
+        </SettingsSection>
+      ) : (
+        <>
+          {fields}
+          {submitBlock}
+        </>
+      )}
     </form>
   );
 };

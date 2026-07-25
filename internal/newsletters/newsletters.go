@@ -32,12 +32,14 @@ type NewslettersExport struct {
 
 type Issue struct {
 	IssueID        string    `json:"issueId"`
+	NewsletterID   string    `json:"newsletterId"`
 	NewsletterName string    `json:"newsletterName"`
 	SentAt         time.Time `json:"sentAt"`
 }
 
 type DetailedIssue struct {
 	IssueID        string      `json:"issueId"`
+	NewsletterID   string      `json:"newsletterId"`
 	NewsletterName string      `json:"newsletterName"`
 	SentAt         time.Time   `json:"sentAt"`
 	Feeds          []IssueFeed `json:"feeds"`

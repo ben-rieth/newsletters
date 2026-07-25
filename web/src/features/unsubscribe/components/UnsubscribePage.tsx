@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Button } from '#/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '#/components/ui/card';
 import useUnsubscribe from '../queries/hooks/useUnsubscribe';
 
 interface UnsubscribePageProps {
@@ -13,12 +19,13 @@ const UnsubscribePage = ({ token }: UnsubscribePageProps) => {
 
   if (unsubscribed) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="flex min-h-[60vh] items-center justify-center px-4">
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <CardTitle>You&apos;ve been unsubscribed</CardTitle>
             <CardDescription>
-              You will no longer receive emails from this newsletter. A receipt has been sent to your email.
+              You will no longer receive emails from this newsletter. A receipt
+              has been sent to your email.
             </CardDescription>
           </CardHeader>
         </Card>

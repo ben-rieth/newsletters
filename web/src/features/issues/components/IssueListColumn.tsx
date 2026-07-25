@@ -9,7 +9,8 @@ type Props = {
 const bucketLabel = (date: Date): string => {
   const now = new Date();
   if (date.toDateString() === now.toDateString()) return 'Today';
-  const yesterday = new Date(now.getTime() - 86400000);
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
   if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
   return date.toLocaleDateString('en-US', {
     weekday: 'long',
@@ -39,7 +40,7 @@ const IssueListColumn = ({ issues }: Props) => {
 
   return (
     <div className="py-4">
-      <h1 className="px-4 pb-3 text-xl font-semibold tracking-tight">Issues</h1>
+      <h2 className="px-4 pb-3 text-xl font-semibold tracking-tight">Issues</h2>
 
       {sorted.length === 0 ? (
         <p className="px-4 py-8 text-sm text-muted-foreground">
@@ -48,7 +49,7 @@ const IssueListColumn = ({ issues }: Props) => {
       ) : (
         groups.map((group) => (
           <div key={group.label} className="mb-2">
-            <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground/60">
+            <p className="px-4 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {group.label}
             </p>
             {group.items.map((issue) => {

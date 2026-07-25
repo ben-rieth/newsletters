@@ -104,20 +104,18 @@ export const FeedsList = ({ newsletterId }: Props) => {
               </Link>
 
               <div className="flex shrink-0 items-center gap-0.5 text-muted-foreground">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
+                <a
+                  href={feed.htmlUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label="Visit feed website"
-                  render={
-                    <a
-                      href={feed.htmlUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    />
-                  }
+                  className={buttonVariants({
+                    variant: 'ghost',
+                    size: 'icon-sm',
+                  })}
                 >
                   <ExternalLink />
-                </Button>
+                </a>
                 <Link
                   to="/newsletters/$newsletterId/feeds/$feedId"
                   params={{ newsletterId, feedId: feed.id }}

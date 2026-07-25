@@ -5,13 +5,13 @@ INSERT INTO newsletter_issue (newsletter_id, user_id, sent_at) VALUES ($1, $2, $
 INSERT INTO issue_item (issue_id, item_id, user_id, token) VALUES ($1, $2, $3, $4);
 
 -- name: GetAllUserIssues :many
-SELECT i.id, nl.id, nl.name, i.sent_at FROM newsletter_issue AS i 
+SELECT i.id, nl.id AS newsletter_id, nl.name, i.sent_at FROM newsletter_issue AS i 
 INNER JOIN newsletter AS nl ON i.newsletter_id = nl.id
 WHERE i.user_id = $1
 ORDER BY sent_at DESC;
 
 -- name: GetIssue :one
-SELECT i.id, nl.name, i.sent_at FROM newsletter_issue AS i 
+SELECT i.id, nl.id AS newsletter_id, nl.name, i.sent_at FROM newsletter_issue AS i 
 INNER JOIN newsletter AS nl ON i.newsletter_id = nl.id
 WHERE i.user_id = $1 AND i.id = $2;
 

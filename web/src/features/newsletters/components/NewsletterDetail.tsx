@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { useSuspenseQuery, useQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { Newsletter } from '../queries/newsletters';
 import { feedsOptions } from '../queries/feeds';
 import { formatSchedule } from '../lib/format';
-import { NewsletterSettingsForm } from './NewsletterSettingsForm';
+import { NewsletterForm } from './NewsletterForm';
 import type { NewsletterFormValues } from './NewsletterForm';
 import useUpdateNewsletter from '../queries/hooks/useUpdateNewsletter';
 import useDeleteNewsletter from '../queries/hooks/useDeleteNewsletter';
@@ -31,6 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog';
+import { getErrorMessage } from '#/lib/errors';
 
 type Props = {
   newsletter: Newsletter;
@@ -47,9 +48,9 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
   const navigate = useNavigate();
 
   const { data: feeds } = useSuspenseQuery(feedsOptions(newsletter.id));
-  const { data: issuesData } = useQuery(issuesOptions);
+  const { data: issuesData } = useSuspenseQuery(issuesOptions);
   const newsletterIssues = (issuesData ?? []).filter(
-    (i) => i.newsletterName === newsletter.name,
+    (i) => i.newsletterId === newsletter.id,
   );
 
   const isActive = newsletter.status === 'active';
@@ -88,9 +89,9 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
     <div className="space-y-6">
       <header className="space-y-2">
         <div className="flex items-center gap-3">
-          <h2 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-2xl font-semibold tracking-tight">
             {newsletter.name}
-          </h2>
+          </h1>
           <Badge
             variant="outline"
             className={
@@ -128,11 +129,21 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
           <IssuesList issues={newsletterIssues} />
         </TabsContent>
 
-        <TabsContent value="settings" className="pt-6">
+        <TabsContent value="settings" className="pt-6" keepMounted>
           <div className="space-y-10">
-            <NewsletterSettingsForm
+            <NewsletterForm
+              layout="settings"
+              submitLabel="Save changes"
               defaultValues={defaultValues}
-              onSubmit={async (values) => newsletterUpdate.mutate(values)}
+              onSubmit={async (values) => {
+                await newsletterUpdate.mutateAsync(values);
+              }}
+              isPending={newsletterUpdate.isPending}
+              error={
+                newsletterUpdate.isError
+                  ? getErrorMessage(newsletterUpdate.error)
+                  : undefined
+              }
             />
 
             <SettingsSection>

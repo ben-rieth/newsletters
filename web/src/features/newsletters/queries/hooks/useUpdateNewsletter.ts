@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { newslettersKeys } from '../newsletters';
+import { issueKeys } from '#/features/issues/queries/issues';
 import type { components } from '#/api/schema';
 import { getErrorMessage } from '#/lib/errors';
 
@@ -22,7 +23,10 @@ const useUpdateNewsletter = (newsletterId: string, onSuccess?: () => void) => {
       }
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: newslettersKeys.all });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: newslettersKeys.all }),
+        queryClient.invalidateQueries({ queryKey: issueKeys.all }),
+      ]);
       onSuccess?.();
     },
     onError: (error) => {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
-import { Button } from '#/components/ui/button';
+import { Button, buttonVariants } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
 import useIsSignedIn from '#/features/auth/queries/hooks/useIsSignedIn';
 
@@ -93,17 +93,23 @@ const LandingPage = () => {
 
           <div className="flex items-center gap-2">
             {isSignedIn ? (
-              <Button render={<Link to="/issues" />}>Go to Issues</Button>
+              <Link to="/issues" className={buttonVariants()}>
+                Go to Issues
+              </Link>
             ) : (
               <>
-                <Button
-                  variant="ghost"
-                  className="hidden sm:inline-flex"
-                  render={<Link to="/sign-in" />}
+                <Link
+                  to="/sign-in"
+                  className={buttonVariants({
+                    variant: 'ghost',
+                    className: 'hidden sm:inline-flex',
+                  })}
                 >
                   Sign in
-                </Button>
-                <Button render={<Link to="/sign-up" />}>Start reading</Button>
+                </Link>
+                <Link to="/sign-up" className={buttonVariants()}>
+                  Start reading
+                </Link>
               </>
             )}
           </div>
@@ -222,9 +228,9 @@ const LandingPage = () => {
               Start a newsletter you’ll actually finish.
             </h2>
             {!isSignedIn && (
-              <Button size="lg" render={<Link to="/sign-up" />}>
+              <Link to="/sign-up" className={buttonVariants({ size: 'lg' })}>
                 Start reading
-              </Button>
+              </Link>
             )}
           </div>
         </section>

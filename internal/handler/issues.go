@@ -57,6 +57,7 @@ func (h *IssuesHandler) handleGetAllIssues(
 	for _, issueRow := range issueRows {
 		issues = append(issues, newsletters.Issue{
 			IssueID:        issueRow.ID,
+			NewsletterID:   issueRow.NewsletterID,
 			NewsletterName: issueRow.Name,
 			SentAt:         issueRow.SentAt,
 		})

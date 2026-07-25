@@ -1,16 +1,21 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { Menu, Plus, Rss } from 'lucide-react';
 import { cn } from '#/lib/utils';
 import { Button } from '#/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '#/components/ui/sheet';
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+} from '#/components/ui/sheet';
 import { newslettersOptions } from '#/features/newsletters/queries/newsletters';
 import { CreateNewsletterDialog } from '#/features/newsletters/components/CreateNewsletterDialog';
 import useLogout from '#/features/auth/queries/hooks/useLogout';
 
 const sectionLabel =
-  'px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70';
+  'px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground';
 
 const navRow =
   'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
@@ -19,7 +24,6 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { data } = useQuery(newslettersOptions);
   const newsletters = data ?? [];
   const [createOpen, setCreateOpen] = useState(false);
-  const navigate = useNavigate();
   const logout = useLogout();
 
   const sorted = useMemo(
@@ -31,7 +35,6 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
     logout.mutate(undefined, {
       onSuccess: () => {
         onNavigate?.();
-        navigate({ to: '/' });
       },
     });
   };
@@ -39,7 +42,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   return (
     <div className="flex h-full flex-col">
       <Link
-        to="/newsletters"
+        to="/issues"
         onClick={onNavigate}
         className="flex items-center gap-2.5 px-5 py-5"
       >
@@ -51,7 +54,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 
       <div className="flex-1 overflow-y-auto px-2">
         <p className={cn(sectionLabel, 'mt-2 mb-2')}>Read</p>
-        <nav className="space-y-0.5">
+        <nav aria-label="Reading" className="space-y-0.5">
           <Link
             to="/issues"
             onClick={onNavigate}
@@ -65,7 +68,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
         </nav>
 
         <p className={cn(sectionLabel, 'mt-4 mb-2')}>Newsletters</p>
-        <nav className="space-y-0.5">
+        <nav aria-label="Newsletters" className="space-y-0.5">
           {sorted.map((n) => (
             <Link
               key={n.id}
@@ -93,7 +96,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
                 <span className="truncate">{n.name}</span>
               </span>
               {n.status !== 'active' && (
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground/60">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
                   Paused
                 </span>
               )}
@@ -115,7 +118,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
       </div>
 
       <div className="border-t border-sidebar-border">
-        <nav className="space-y-0.5 px-2 py-3">
+        <nav aria-label="Account" className="space-y-0.5 px-2 py-3">
           <Link to="/profile" onClick={onNavigate} className={navRow}>
             Profile
           </Link>
@@ -148,10 +151,7 @@ const AppSidebar = () => {
       </aside>
 
       <header className="flex items-center justify-between border-b border-sidebar-border bg-sidebar px-4 py-3 md:hidden">
-        <Link
-          to="/newsletters"
-          className="flex items-center gap-2 font-semibold"
-        >
+        <Link to="/issues" className="flex items-center gap-2 font-semibold">
           <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Rss className="size-3.5" />
           </span>
@@ -164,7 +164,11 @@ const AppSidebar = () => {
           >
             <Menu />
           </SheetTrigger>
-          <SheetContent side="left" className="w-72 bg-sidebar p-0">
+          <SheetContent
+            side="left"
+            className="bg-sidebar p-0 data-[side=left]:w-72"
+          >
+            <SheetTitle className="sr-only">Navigation</SheetTitle>
             <SidebarContent onNavigate={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>

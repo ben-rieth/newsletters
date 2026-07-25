@@ -68,6 +68,7 @@ func (s *IssuesService) GetIssue(ctx context.Context, issueID, userID string) (*
 
 	return &DetailedIssue{
 		IssueID:        issueID,
+		NewsletterID:   issue.NewsletterID,
 		NewsletterName: issue.Name,
 		SentAt:         issue.SentAt,
 		Feeds:          feedViews,

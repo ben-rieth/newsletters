@@ -9,7 +9,7 @@ function BadLinkPage() {
   const isSignedIn = useIsSignedIn();
 
   return (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 text-center">
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-4 text-center">
       <p className="text-lg font-semibold">Link not found</p>
       <p className="text-sm text-muted-foreground">
         This link is invalid or has expired.
