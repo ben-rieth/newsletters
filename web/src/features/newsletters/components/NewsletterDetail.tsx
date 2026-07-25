@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import type { Newsletter } from '../queries/newsletters';
 import { feedsOptions } from '../queries/feeds';
 import { formatSchedule } from '../lib/format';
-import { NewsletterForm } from './NewsletterForm';
+import { NewsletterSettingsForm } from './NewsletterSettingsForm';
 import type { NewsletterFormValues } from './NewsletterForm';
 import useUpdateNewsletter from '../queries/hooks/useUpdateNewsletter';
 import useDeleteNewsletter from '../queries/hooks/useDeleteNewsletter';
@@ -20,6 +20,7 @@ import { issuesOptions } from '#/features/issues/queries/issues';
 import { Button } from '#/components/ui/button';
 import { Badge } from '#/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs';
+import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -113,7 +114,6 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
           className="w-full justify-start gap-6 border-b **:data-[slot=tabs-trigger]:flex-none **:data-[slot=tabs-trigger]:px-0"
         >
           <TabsTrigger value="feeds">Feeds</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -124,113 +124,119 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
           </div>
         </TabsContent>
 
-        <TabsContent value="schedule" className="pt-6">
-          <div className="max-w-lg space-y-6">
-            <div className="rounded-lg border p-4">
-              <p className="text-sm text-muted-foreground">Regular schedule</p>
-              <p className="mt-1 font-medium">{formatSchedule(newsletter)}</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Next send {formatDateTime(newsletter.nextSendTime)}
-              </p>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="text-sm font-semibold">One-off send</h3>
-              {newsletter.oneOffSendTime ? (
-                <div className="space-y-2 rounded-lg border p-4">
-                  <p className="text-sm">
-                    Scheduled for{' '}
-                    <span className="font-medium">
-                      {formatDateTime(newsletter.oneOffSendTime)}
-                    </span>
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <ScheduleSendDialog
-                      newsletterId={newsletter.id}
-                      maxSendTime={
-                        newsletter.regularSendTime ?? newsletter.nextSendTime
-                      }
-                      initialSendTime={newsletter.oneOffSendTime}
-                    />
-                    <Button
-                      variant="outline"
-                      onClick={() => cancelOneOff.mutate(newsletter.id)}
-                      disabled={cancelOneOff.isPending}
-                    >
-                      {cancelOneOff.isPending
-                        ? 'Cancelling...'
-                        : 'Cancel one-off'}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <ScheduleSendDialog
-                  newsletterId={newsletter.id}
-                  maxSendTime={newsletter.nextSendTime}
-                />
-              )}
-            </div>
-          </div>
-        </TabsContent>
-
         <TabsContent value="history" className="pt-6">
           <IssuesList issues={newsletterIssues} />
         </TabsContent>
 
         <TabsContent value="settings" className="pt-6">
-          <div className="max-w-md space-y-8">
-            <NewsletterForm
+          <div className="space-y-10">
+            <NewsletterSettingsForm
               defaultValues={defaultValues}
               onSubmit={async (values) => newsletterUpdate.mutate(values)}
-              submitLabel="Save Changes"
             />
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => exportNewsletter.mutate(newsletter.id)}
-                disabled={exportNewsletter.isPending}
+            <SettingsSection>
+              <SettingsRow
+                title="One-off send"
+                description={`Schedule an extra issue before your next regular send on ${formatDateTime(
+                  newsletter.nextSendTime,
+                )}.`}
               >
-                {exportNewsletter.isPending ? 'Exporting...' : 'Export'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() =>
-                  updateStatus.mutate({
-                    newsletterId: newsletter.id,
-                    status: isActive ? 'inactive' : 'active',
-                  })
+                {newsletter.oneOffSendTime ? (
+                  <div className="space-y-3">
+                    <p className="text-sm">
+                      Scheduled for{' '}
+                      <span className="font-medium">
+                        {formatDateTime(newsletter.oneOffSendTime)}
+                      </span>
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <ScheduleSendDialog
+                        newsletterId={newsletter.id}
+                        maxSendTime={
+                          newsletter.regularSendTime ?? newsletter.nextSendTime
+                        }
+                        initialSendTime={newsletter.oneOffSendTime}
+                      />
+                      <Button
+                        variant="outline"
+                        onClick={() => cancelOneOff.mutate(newsletter.id)}
+                        disabled={cancelOneOff.isPending}
+                      >
+                        {cancelOneOff.isPending
+                          ? 'Cancelling…'
+                          : 'Cancel one-off'}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <ScheduleSendDialog
+                    newsletterId={newsletter.id}
+                    maxSendTime={newsletter.nextSendTime}
+                  />
+                )}
+              </SettingsRow>
+
+              <SettingsRow
+                title="Delivery status"
+                description={
+                  isActive
+                    ? 'This newsletter is active and sending on schedule.'
+                    : 'This newsletter is paused. Activate it to resume sending.'
                 }
-                disabled={updateStatus.isPending}
               >
-                {updateStatus.isPending
-                  ? '...'
-                  : isActive
-                    ? 'Deactivate'
-                    : 'Activate'}
-              </Button>
-            </div>
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    updateStatus.mutate({
+                      newsletterId: newsletter.id,
+                      status: isActive ? 'inactive' : 'active',
+                    })
+                  }
+                  disabled={updateStatus.isPending}
+                >
+                  {updateStatus.isPending
+                    ? '…'
+                    : isActive
+                      ? 'Deactivate'
+                      : 'Activate'}
+                </Button>
+              </SettingsRow>
+
+              <SettingsRow
+                title="Export feeds"
+                description={`Download this newsletter's data and ${feeds.length} ${
+                  feeds.length === 1 ? 'feed' : 'feeds'
+                } as a JSON file.`}
+              >
+                <Button
+                  variant="outline"
+                  onClick={() => exportNewsletter.mutate(newsletter.id)}
+                  disabled={exportNewsletter.isPending}
+                >
+                  {exportNewsletter.isPending ? 'Exporting…' : 'Export as JSON'}
+                </Button>
+              </SettingsRow>
+            </SettingsSection>
+
+            <SettingsSection>
+              <SettingsRow
+                title="Delete newsletter"
+                description="Permanently removes this newsletter and all of its feeds. This cannot be undone."
+              >
+                <Button
+                  variant="outline"
+                  className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setDeleteDialogOpen(true)}
+                >
+                  Delete newsletter
+                </Button>
+              </SettingsRow>
+            </SettingsSection>
 
             {import.meta.env.DEV && (
               <NewsletterDebugActions newsletterId={newsletter.id} />
             )}
-
-            <section className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-              <div>
-                <h3 className="text-sm font-semibold text-destructive">
-                  Danger Zone
-                </h3>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Permanently deletes this newsletter and all of its feeds.
-                </p>
-              </div>
-              <Button
-                variant="destructive"
-                onClick={() => setDeleteDialogOpen(true)}
-              >
-                Delete Newsletter
-              </Button>
-            </section>
           </div>
         </TabsContent>
       </Tabs>

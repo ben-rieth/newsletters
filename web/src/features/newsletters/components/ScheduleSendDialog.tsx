@@ -88,7 +88,7 @@ export const ScheduleSendDialog = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           <Label htmlFor="one-off-send-date">Send date &amp; time</Label>
           <DateTimePicker
             id="one-off-send-date"
@@ -97,17 +97,16 @@ export const ScheduleSendDialog = ({
             minDate={new Date()}
             maxDate={maxSend}
           />
+          {sendTime && (
+            <p className="text-sm text-muted-foreground">
+              Will send on{' '}
+              <span className="font-medium text-foreground">
+                {formatDateTime(sendTime)}
+              </span>
+              .
+            </p>
+          )}
         </div>
-
-        {sendTime && (
-          <p className="text-xs text-muted-foreground">
-            Will send on{' '}
-            <span className="font-medium text-foreground">
-              {formatDateTime(sendTime)}
-            </span>
-            .
-          </p>
-        )}
 
         <DialogFooter>
           <DialogClose render={<Button variant="outline" />}>

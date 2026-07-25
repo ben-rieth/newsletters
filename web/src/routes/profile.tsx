@@ -1,14 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '#/components/ui/card';
 import { Button } from '#/components/ui/button';
-import { H2 } from '#/components/ui/typography';
+import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
 import { UpdateEmailForm } from '#/features/auth/components/UpdateEmailForm';
 import { UpdatePasswordForm } from '#/features/auth/components/UpdatePasswordForm';
 import { DeleteAccountForm } from '#/features/auth/components/DeleteAccountForm';
@@ -20,61 +13,58 @@ const ProfilePage = () => {
   const logout = useLogout();
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-6 py-8 lg:px-10">
-      <div className="flex items-center justify-between">
-        <H2>Profile</H2>
-        <Button
-          variant="destructive"
-          onClick={() => logout.mutate()}
-          disabled={logout.isPending}
+    <div className="mx-auto max-w-3xl space-y-10 px-6 py-8 lg:px-10">
+      <header className="space-y-2">
+        <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage your account details and security.
+        </p>
+      </header>
+
+      <SettingsSection>
+        <SettingsRow
+          title="Email address"
+          description="The email address associated with your account."
         >
-          {logout.isPending ? 'Logging out…' : 'Log out'}
-        </Button>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Account</CardTitle>
-          <CardDescription>Your email address</CardDescription>
-        </CardHeader>
-        <CardContent>
           <p className="text-sm font-medium">{user.email}</p>
-        </CardContent>
-      </Card>
+        </SettingsRow>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Update Email</CardTitle>
-          <CardDescription>
-            Change the email address on your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+        <SettingsRow
+          title="Update email"
+          description="Change the email address on your account. You'll confirm the new address with a code."
+        >
           <UpdateEmailForm />
-        </CardContent>
-      </Card>
+        </SettingsRow>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Update Password</CardTitle>
-          <CardDescription>Change your account password</CardDescription>
-        </CardHeader>
-        <CardContent>
+        <SettingsRow
+          title="Update password"
+          description="Choose a new password for your account."
+        >
           <UpdatePasswordForm />
-        </CardContent>
-      </Card>
+        </SettingsRow>
+      </SettingsSection>
 
-      <Card className="border-destructive">
-        <CardHeader>
-          <CardTitle>Danger Zone</CardTitle>
-          <CardDescription>
-            Permanently delete your account and all data
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <SettingsSection>
+        <SettingsRow
+          title="Log out"
+          description="Sign out of your account on this device."
+        >
+          <Button
+            variant="outline"
+            onClick={() => logout.mutate()}
+            disabled={logout.isPending}
+          >
+            {logout.isPending ? 'Logging out…' : 'Log out'}
+          </Button>
+        </SettingsRow>
+
+        <SettingsRow
+          title="Delete account"
+          description="Permanently delete your account and all of your data. This cannot be undone."
+        >
           <DeleteAccountForm />
-        </CardContent>
-      </Card>
+        </SettingsRow>
+      </SettingsSection>
     </div>
   );
 };

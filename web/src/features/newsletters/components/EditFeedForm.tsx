@@ -4,6 +4,7 @@ import { Button } from '#/components/ui/button';
 import { FieldError } from '#/components/ui/field';
 import { FormField } from '#/components/ui/form-field';
 import { Input } from '#/components/ui/input';
+import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
 import FeedLinkDisplay from './FeedLinkDisplay';
 
 const editFeedSchema = z.object({
@@ -41,40 +42,55 @@ export const EditFeedForm = ({
 
   return (
     <form
-      className="space-y-3"
+      className="space-y-6"
       onSubmit={(e) => {
         e.preventDefault();
         form.handleSubmit();
       }}
     >
-      <FeedLinkDisplay label="Feed URL" url={feed.url} />
-      <FeedLinkDisplay label="Web URL" url={feed.htmlUrl} />
+      <SettingsSection>
+        <SettingsRow
+          title="Feed source"
+          description="Where this feed's articles are pulled from."
+        >
+          <div className="space-y-4">
+            <FeedLinkDisplay label="Feed URL" url={feed.url} />
+            <FeedLinkDisplay label="Web URL" url={feed.htmlUrl} />
+            <div className="space-y-1 rounded-lg border bg-muted/40 p-4">
+              <p className="text-sm font-medium">{feed.title}</p>
+              {feed.description && (
+                <p className="text-xs text-muted-foreground">
+                  {feed.description}
+                </p>
+              )}
+            </div>
+          </div>
+        </SettingsRow>
 
-      <div className="rounded-md border bg-muted/40 p-3 space-y-1">
-        <p className="text-sm font-medium">{feed.title}</p>
-        {feed.description && (
-          <p className="text-xs text-muted-foreground">{feed.description}</p>
-        )}
-      </div>
-
-      <form.Field name="alias">
-        {(field) => (
-          <FormField field={field} label="Custom name (optional)">
-            <Input
-              id={field.name}
-              value={field.state.value}
-              onChange={(e) => field.handleChange(e.target.value)}
-              onBlur={field.handleBlur}
-              placeholder={feed.title}
-            />
-          </FormField>
-        )}
-      </form.Field>
+        <SettingsRow
+          title="Display name"
+          description="Shown in place of the feed's title in your newsletter."
+        >
+          <form.Field name="alias">
+            {(field) => (
+              <FormField field={field} label="Custom name (optional)">
+                <Input
+                  id={field.name}
+                  value={field.state.value}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  onBlur={field.handleBlur}
+                  placeholder={feed.title}
+                />
+              </FormField>
+            )}
+          </form.Field>
+        </SettingsRow>
+      </SettingsSection>
 
       {error && <FieldError>{error}</FieldError>}
 
       <Button type="submit" disabled={isPending}>
-        {isPending ? 'Saving…' : 'Save Changes'}
+        {isPending ? 'Saving…' : 'Save changes'}
       </Button>
     </form>
   );

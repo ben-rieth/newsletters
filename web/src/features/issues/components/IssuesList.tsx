@@ -1,4 +1,7 @@
 import { Link } from '@tanstack/react-router';
+import { ChevronRight } from 'lucide-react';
+import { ListPanel, listRowClass } from '#/components/ListPanel';
+import { cn } from '#/lib/utils';
 import type { Issue } from '#/features/issues/queries/issues';
 
 interface IssuesListProps {
@@ -8,9 +11,11 @@ interface IssuesListProps {
 const IssuesList = ({ issues }: IssuesListProps) => {
   if (issues.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground py-8 text-center">
-        No issues yet — newsletters will appear here after they're first sent.
-      </p>
+      <div className="rounded-lg border border-dashed py-12 text-center">
+        <p className="text-sm text-muted-foreground">
+          No issues yet — sent issues will appear here.
+        </p>
+      </div>
     );
   }
 
@@ -19,25 +24,39 @@ const IssuesList = ({ issues }: IssuesListProps) => {
   );
 
   return (
-    <div className="divide-y border rounded-md">
-      {sorted.map((issue) => (
-        <Link
-          key={issue.issueId}
-          to="/issues/$issueId"
-          params={{ issueId: issue.issueId }}
-          className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors"
-        >
-          <span className="font-medium text-sm">{issue.newsletterName}</span>
-          <span className="text-sm text-muted-foreground">
-            {new Date(issue.sentAt).toLocaleDateString(undefined, {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-            })}
-          </span>
-        </Link>
-      ))}
-    </div>
+    <ListPanel header="Issue">
+      {sorted.map((issue) => {
+        const date = new Date(issue.sentAt);
+        return (
+          <Link
+            key={issue.issueId}
+            to="/issues/$issueId"
+            params={{ issueId: issue.issueId }}
+            className={cn('group', listRowClass)}
+          >
+            <div className="min-w-0">
+              <p className="truncate font-medium group-hover:underline">
+                {date.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </p>
+              <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                {issue.newsletterName} ·{' '}
+                {date.toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false,
+                })}
+              </p>
+            </div>
+            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+          </Link>
+        );
+      })}
+    </ListPanel>
   );
 };
 

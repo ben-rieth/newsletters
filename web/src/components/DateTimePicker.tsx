@@ -152,7 +152,7 @@ export const DateTimePicker = ({
         aria-label="Time"
         value={time}
         onChange={(e) => handleTimeChange(e.target.value)}
-        className="h-7 w-28 rounded-md border border-input bg-input/20 px-2 py-0.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 dark:bg-input/30 [&::-webkit-calendar-picker-indicator]:hidden"
+        className="h-9 w-32 rounded-md border border-input bg-input/20 px-3 py-1 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 dark:bg-input/30 [&::-webkit-calendar-picker-indicator]:hidden"
       />
     </div>
   );

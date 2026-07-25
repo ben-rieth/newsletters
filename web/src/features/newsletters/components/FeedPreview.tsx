@@ -4,6 +4,7 @@ import { feedPreviewOptions } from '../queries/feeds';
 import type { ItemPreview } from '../queries/feeds';
 import { Button } from '#/components/ui/button';
 import { Badge } from '#/components/ui/badge';
+import { ListPanel } from '#/components/ListPanel';
 import { cn } from '#/lib/utils';
 
 type Props = {
@@ -29,9 +30,9 @@ const PreviewItem = ({ item }: { item: ItemPreview }) => {
   const isFiltered = !!item.matchedFilter;
 
   return (
-    <li
+    <div
       className={cn(
-        'flex items-start gap-3 py-2 text-sm',
+        'flex items-start gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-accent/40',
         isFiltered && 'opacity-50',
       )}
     >
@@ -47,6 +48,9 @@ const PreviewItem = ({ item }: { item: ItemPreview }) => {
         >
           {item.title}
         </a>
+        <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+          {item.url}
+        </p>
         {isFiltered && item.matchedFilter && (
           <div className="mt-1 flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground">filtered by</span>
@@ -58,7 +62,7 @@ const PreviewItem = ({ item }: { item: ItemPreview }) => {
           </div>
         )}
       </div>
-    </li>
+    </div>
   );
 };
 
@@ -86,17 +90,12 @@ export const FeedPreview = ({ newsletterId, feedId }: Props) => {
             filtered out.
           </p>
           {hasRequested && !isFetching && data && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {passCount} passing · {filteredCount} filtered
             </p>
           )}
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={handlePreview}
-          disabled={isFetching}
-        >
+        <Button variant="outline" onClick={handlePreview} disabled={isFetching}>
           {isFetching ? 'Loading…' : 'Preview Filters'}
         </Button>
       </div>
@@ -112,11 +111,11 @@ export const FeedPreview = ({ newsletterId, feedId }: Props) => {
       )}
 
       {hasRequested && !isFetching && data && data.length > 0 && (
-        <ul className="divide-y rounded-md border px-3">
+        <ListPanel header="Item">
           {data.map((item) => (
             <PreviewItem key={item.id} item={item} />
           ))}
-        </ul>
+        </ListPanel>
       )}
     </div>
   );

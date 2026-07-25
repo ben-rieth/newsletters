@@ -66,13 +66,13 @@ export const FeedFilterForm = ({
 
   return (
     <form
-      className="space-y-3"
+      className="space-y-5"
       onSubmit={(e) => {
         e.preventDefault();
         form.handleSubmit();
       }}
     >
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-4">
         <form.Field name="field">
           {(field) => (
             <FormField field={field} label="Field">
@@ -144,7 +144,7 @@ export const FeedFilterForm = ({
       {error && <FieldError>{error}</FieldError>}
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={isPending} size="sm">
+        <Button type="submit" disabled={isPending}>
           {isPending
             ? isEditing
               ? 'Saving…'
@@ -157,7 +157,6 @@ export const FeedFilterForm = ({
           <Button
             type="button"
             variant="ghost"
-            size="sm"
             onClick={onCancel}
             disabled={isPending}
           >

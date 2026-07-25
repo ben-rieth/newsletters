@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '#/components/ui/button';
+import { ListPanel, listRowClass } from '#/components/ListPanel';
 import type { components } from '#/api/schema';
 import useDeleteFeedFilter from '../queries/hooks/useDeleteFeedFilter';
 import useUpdateFeedFilter from '../queries/hooks/useUpdateFeedFilter';
@@ -40,79 +41,70 @@ export const FeedFiltersList = ({ newsletterId, feedId, filters }: Props) => {
 
   if (filters.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">No filters added yet.</p>
+      <div className="rounded-lg border border-dashed py-12 text-center">
+        <p className="text-sm text-muted-foreground">No filters added yet.</p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-1">
-      {filters.map((filter, index) => (
-        <div key={filter.id}>
-          {index > 0 && (
-            <div className="flex items-center gap-2 py-1">
-              <div className="flex-1 border-t" />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                OR
+    <ListPanel header="Filter">
+      {filters.map((filter) =>
+        editingId === filter.id ? (
+          <div key={filter.id} className="px-5 py-4">
+            <FeedFilterForm
+              filter={filter}
+              onSubmit={async (values) => {
+                await updateFilter.mutateAsync({
+                  filterId: filter.id,
+                  body: values,
+                });
+              }}
+              onCancel={() => setEditingId(null)}
+              isPending={updateFilter.isPending}
+              error={
+                updateFilter.isError
+                  ? getErrorMessage(updateFilter.error)
+                  : undefined
+              }
+            />
+          </div>
+        ) : (
+          <div key={filter.id} className={listRowClass}>
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-medium">
+                {FIELD_LABELS[filter.field] ?? filter.field}
               </span>
-              <div className="flex-1 border-t" />
+              <span className="text-muted-foreground">
+                {OPERATOR_LABELS[filter.operator] ?? filter.operator}
+              </span>
+              <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                {filter.pattern}
+              </span>
             </div>
-          )}
-          {editingId === filter.id ? (
-            <div className="rounded-md border px-3 py-3">
-              <FeedFilterForm
-                filter={filter}
-                onSubmit={async (values) => {
-                  await updateFilter.mutateAsync({
-                    filterId: filter.id,
-                    body: values,
-                  });
-                }}
-                onCancel={() => setEditingId(null)}
-                isPending={updateFilter.isPending}
-                error={
-                  updateFilter.isError
-                    ? getErrorMessage(updateFilter.error)
-                    : undefined
-                }
-              />
+            <div className="flex shrink-0 items-center gap-0.5 text-muted-foreground">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Edit filter"
+                disabled={deleteFilter.isPending}
+                onClick={() => setEditingId(filter.id)}
+              >
+                <Pencil />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Delete filter"
+                disabled={deleteFilter.isPending}
+                onClick={() => deleteFilter.mutate(filter.id)}
+              >
+                <Trash2 />
+              </Button>
             </div>
-          ) : (
-            <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">
-                  {FIELD_LABELS[filter.field] ?? filter.field}
-                </span>
-                <span className="text-muted-foreground">
-                  {OPERATOR_LABELS[filter.operator] ?? filter.operator}
-                </span>
-                <span className="font-mono text-xs bg-muted rounded px-1.5 py-0.5">
-                  {filter.pattern}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Edit filter"
-                  disabled={deleteFilter.isPending}
-                  onClick={() => setEditingId(filter.id)}
-                >
-                  <Pencil className="size-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label="Delete filter"
-                  disabled={deleteFilter.isPending}
-                  onClick={() => deleteFilter.mutate(filter.id)}
-                >
-                  <Trash2 className="size-3.5" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-      ))}
-    </div>
+          </div>
+        ),
+      )}
+    </ListPanel>
   );
 };
