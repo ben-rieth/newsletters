@@ -1,4 +1,8 @@
-import { Outlet, createRootRouteWithContext } from '@tanstack/react-router';
+import {
+  Outlet,
+  createRootRouteWithContext,
+  useRouterState,
+} from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import { TanStackDevtools } from '@tanstack/react-devtools';
 import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
@@ -30,13 +34,19 @@ function RootErrorComponent({ error }: { error: unknown }) {
   );
 }
 
+const AUTH_ROUTES = ['/sign-in', '/sign-up'];
+
 function RootComponent() {
   useRefreshOnLoad();
   const isSignedIn = useIsSignedIn();
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  });
+  const showSidebar = isSignedIn && !AUTH_ROUTES.includes(pathname);
 
   return (
     <>
-      {isSignedIn ? (
+      {showSidebar ? (
         <div className="flex h-screen flex-col overflow-hidden md:flex-row">
           <AppSidebar />
           <main className="flex-1 overflow-y-auto">
