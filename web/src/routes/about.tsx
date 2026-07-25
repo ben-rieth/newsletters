@@ -1,147 +1,47 @@
 import { createFileRoute } from '@tanstack/react-router';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '#/components/ui/card';
-import { H2 } from '#/components/ui/typography';
-import {
-  Rss,
-  CalendarClock,
-  Mail,
-  Layers,
-  Globe,
-  GitBranch,
-} from 'lucide-react';
+import { Globe, GitBranch } from 'lucide-react';
+import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
 
-const features = [
+const STACK = [
   {
-    icon: Rss,
-    title: 'RSS Feed Aggregation',
-    description:
-      'Add any RSS or Atom feed as a source for your newsletter content.',
+    heading: 'Backend',
+    items: ['Go', 'Huma (OpenAPI framework)', 'sqlc + PostgreSQL'],
   },
   {
-    icon: Layers,
-    title: 'Multiple Newsletters',
-    description:
-      'Organize content into separate newsletters, each with its own feeds and schedule.',
-  },
-  {
-    icon: CalendarClock,
-    title: 'Flexible Scheduling',
-    description:
-      'Send daily, weekly, or monthly — pick the day and time that works for you.',
-  },
-  {
-    icon: Mail,
-    title: 'Email Delivery',
-    description:
-      'Compiled digests are delivered straight to your inbox on schedule.',
+    heading: 'Frontend',
+    items: [
+      'React 19 + TanStack Start',
+      'TanStack Router & Query',
+      'Tailwind CSS v4 + shadcn/ui',
+      'openapi-fetch',
+    ],
   },
 ];
 
 const AboutPage = () => {
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-6 py-8 lg:px-10">
-      <H2>About</H2>
+    <div className="mx-auto max-w-3xl space-y-10 px-6 py-8 lg:px-10">
+      <header className="space-y-2">
+        <h1 className="text-2xl font-semibold tracking-tight">
+          About Slowfeed
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          A personal RSS-to-email digest tool. This page covers who builds it,
+          what it runs on, and the work it stands on.
+        </p>
+      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>What is Custom Newsletters?</CardTitle>
-          <CardDescription>A personal RSS-to-email digest tool</CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-2">
-          <p>
-            Custom Newsletters lets you curate content from any RSS or Atom feed
-            and receive it as a scheduled email digest. Instead of checking
-            feeds manually, your reading lands in your inbox on a schedule you
-            control.
-          </p>
-          <p>
-            Create multiple newsletters to keep topics separate — tech news,
-            blogs, podcasts, or whatever you follow — each with its own sources
-            and delivery schedule.
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Features</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="grid sm:grid-cols-2 gap-4">
-            {features.map(({ icon: Icon, title, description }) => (
-              <li key={title} className="flex gap-3">
-                <Icon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <div className="space-y-0.5">
-                  <p className="text-sm font-medium">{title}</p>
-                  <p className="text-sm text-muted-foreground">{description}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>How It Works</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ol className="space-y-3 text-sm text-muted-foreground list-decimal list-inside">
-            <li>Create a newsletter and give it a name.</li>
-            <li>Add one or more RSS feed URLs as content sources.</li>
-            <li>Set a delivery schedule — daily, weekly, or monthly.</li>
-            <li>Receive a compiled digest in your inbox at the chosen time.</li>
-          </ol>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Attribution</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          <p>
-            Favicon: &ldquo;Newspaper&rdquo; emoji (U+1F4F0) by Twitter, Inc and
-            other contributors.{' '}
-            <a
-              href="https://github.com/twitter/twemoji/blob/master/assets/svg/1f4f0.svg"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-foreground transition-colors"
-            >
-              Source
-            </a>
-            . Licensed under{' '}
-            <a
-              href="https://creativecommons.org/licenses/by/4.0/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-foreground transition-colors"
-            >
-              CC BY 4.0
-            </a>
-            .
-          </p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Built by Ben Riethmeier</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground space-y-4">
-          <div className="flex flex-wrap gap-4">
+      <SettingsSection>
+        <SettingsRow
+          title="Maker"
+          description="Slowfeed is built and maintained by Ben Riethmeier."
+        >
+          <div className="flex flex-wrap gap-4 text-sm">
             <a
               href="https://benriethmeier.dev"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
             >
               <Globe className="size-4" />
               Website
@@ -150,37 +50,62 @@ const AboutPage = () => {
               href="https://github.com/ben-rieth"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 hover:text-foreground transition-colors"
+              className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
             >
               <GitBranch className="size-4" />
               GitHub
             </a>
           </div>
-          <div className="grid sm:grid-cols-2 gap-x-6 gap-y-4">
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                Backend
-              </p>
-              <ul className="space-y-1 text-muted-foreground">
-                <li>Go</li>
-                <li>Huma (OpenAPI framework)</li>
-                <li>sqlc + PostgreSQL</li>
-              </ul>
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
-                Frontend
-              </p>
-              <ul className="space-y-1 text-muted-foreground">
-                <li>React 19 + TanStack Start</li>
-                <li>TanStack Router &amp; Query</li>
-                <li>Tailwind CSS v4 + shadcn/ui</li>
-                <li>openapi-fetch</li>
-              </ul>
-            </div>
+        </SettingsRow>
+
+        <SettingsRow
+          title="Tech stack"
+          description="The tools Slowfeed is built with."
+        >
+          <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            {STACK.map((group) => (
+              <div key={group.heading} className="space-y-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wide text-foreground">
+                  {group.heading}
+                </p>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  {group.items.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        </SettingsRow>
+
+        <SettingsRow
+          title="Attribution"
+          description="Assets used under open licenses."
+        >
+          <p className="text-sm text-muted-foreground">
+            Favicon: &ldquo;Newspaper&rdquo; emoji (U+1F4F0) by Twitter, Inc and
+            other contributors.{' '}
+            <a
+              href="https://github.com/twitter/twemoji/blob/master/assets/svg/1f4f0.svg"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4 transition-colors hover:text-foreground"
+            >
+              Source
+            </a>
+            . Licensed under{' '}
+            <a
+              href="https://creativecommons.org/licenses/by/4.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-4 transition-colors hover:text-foreground"
+            >
+              CC BY 4.0
+            </a>
+            .
+          </p>
+        </SettingsRow>
+      </SettingsSection>
     </div>
   );
 };

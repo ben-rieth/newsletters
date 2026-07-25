@@ -22,11 +22,15 @@ const signUpSchema = z
     path: ['confirmPassword'],
   });
 
-export const SignUpForm = () => {
+export const SignUpForm = ({
+  initialEmail = '',
+}: {
+  initialEmail?: string;
+}) => {
   const { mutateAsync, isPending, error } = useAuth('/auth/sign-up');
 
   const form = useForm({
-    defaultValues: { email: '', password: '', confirmPassword: '' },
+    defaultValues: { email: initialEmail, password: '', confirmPassword: '' },
     validators: { onChange: signUpSchema },
     onSubmit: async ({ value }) => {
       await mutateAsync({ email: value.email, password: value.password });
@@ -51,7 +55,9 @@ export const SignUpForm = () => {
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
               placeholder="you@example.com"
-              aria-invalid={field.state.meta.isBlurred && field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isBlurred && field.state.meta.errors.length > 0
+              }
             />
           </FormField>
         )}
@@ -66,7 +72,9 @@ export const SignUpForm = () => {
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
-              aria-invalid={field.state.meta.isBlurred && field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isBlurred && field.state.meta.errors.length > 0
+              }
             />
           </FormField>
         )}
@@ -81,7 +89,9 @@ export const SignUpForm = () => {
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
-              aria-invalid={field.state.meta.isBlurred && field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isBlurred && field.state.meta.errors.length > 0
+              }
             />
           </FormField>
         )}
