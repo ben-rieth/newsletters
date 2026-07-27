@@ -377,7 +377,7 @@ type Feed struct {
 
 type FeedFetchFailure struct {
 	ID         string
-	FeedID     pgtype.UUID
+	FeedID     string
 	Url        string
 	Kind       FeedFetchFailureKind
 	StatusCode pgtype.Int4

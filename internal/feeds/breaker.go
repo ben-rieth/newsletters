@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	dbutil "github.com/ben-rieth/newsletter-api/internal/db"
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/utils"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
@@ -37,7 +36,15 @@ func disableDurationFor(priorDisables int32) time.Duration {
 }
 
 func (s *FeedService) fetchFeed(ctx context.Context, feedId, url string) (*FetchFeedResult, error) {
-	priorDisables, err := s.checkBreaker(ctx, feedId, url)
+	// A URL that is only being looked up has no feed row yet, so there is nothing
+	// to pause and nobody subscribed to protect. Fetch it directly: tracking those
+	// failures by URL would let one account's bad attempts block every other
+	// account from ever adding that feed.
+	if feedId == "" {
+		return s.rssService.FetchFeed(ctx, url)
+	}
+
+	priorDisables, err := s.checkBreaker(ctx, feedId)
 	if err != nil {
 		return nil, err
 	}
@@ -53,34 +60,14 @@ func (s *FeedService) fetchFeed(ctx context.Context, feedId, url string) (*Fetch
 		return nil, err
 	}
 
-	if feedId != "" {
-		if resetErr := s.queries.ResetFeedBreaker(ctx, feedId); resetErr != nil {
-			wideLog.AddErrorField(ctx, resetErr)
-		}
+	if resetErr := s.queries.ResetFeedBreaker(ctx, feedId); resetErr != nil {
+		wideLog.AddErrorField(ctx, resetErr)
 	}
 
 	return result, nil
 }
 
-func (s *FeedService) checkBreaker(ctx context.Context, feedId, url string) (int32, error) {
-	if feedId == "" {
-		count, err := s.queries.CountRecentUrlFailures(ctx, db.CountRecentUrlFailuresParams{
-			Url:        url,
-			OccurredAt: time.Now().Add(-failureWindow),
-		})
-
-		if err != nil {
-			wideLog.AddErrorField(ctx, err)
-			return 0, nil
-		}
-
-		if count >= failureThreshold {
-			return 0, ErrFeedDisabled
-		}
-
-		return 0, nil
-	}
-
+func (s *FeedService) checkBreaker(ctx context.Context, feedId string) (int32, error) {
 	state, err := s.queries.GetFeedBreakerState(ctx, feedId)
 	if err != nil {
 		wideLog.AddErrorField(ctx, err)
@@ -106,29 +93,8 @@ func (s *FeedService) recordFailure(
 		Valid: fetchErr.StatusCode > 0,
 	}
 
-	if feedId == "" {
-		err := s.queries.RecordUnknownFeedFetchFailure(ctx, db.RecordUnknownFeedFetchFailureParams{
-			Url:        url,
-			Kind:       fetchErr.Kind,
-			StatusCode: statusCode,
-			Message:    fetchErr.Message,
-		})
-
-		if err != nil {
-			wideLog.AddErrorField(ctx, err)
-		}
-
-		return
-	}
-
-	feedUUID, err := dbutil.ToUUID(feedId)
-	if err != nil {
-		wideLog.AddErrorField(ctx, err)
-		return
-	}
-
-	err = s.queries.RecordFeedFetchFailure(ctx, db.RecordFeedFetchFailureParams{
-		FeedID:     feedUUID,
+	err := s.queries.RecordFeedFetchFailure(ctx, db.RecordFeedFetchFailureParams{
+		FeedID:     feedId,
 		Url:        url,
 		Kind:       fetchErr.Kind,
 		StatusCode: statusCode,
@@ -142,7 +108,7 @@ func (s *FeedService) recordFailure(
 
 	if priorDisables == 0 {
 		count, err := s.queries.CountRecentFeedFailures(ctx, db.CountRecentFeedFailuresParams{
-			FeedID:     feedUUID,
+			FeedID:     feedId,
 			OccurredAt: time.Now().Add(-failureWindow),
 		})
 

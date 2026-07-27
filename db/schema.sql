@@ -1,4 +1,4 @@
-\restrict Jx4P0GeJFvLkXahvebhfX5Mif3om1Vaxkto5rvcvN4EJLPFlIj7tHDQysE0qefQ
+\restrict yhivKLczdryF1OxaoOzORRBcav1NNEzGkfaFLLbcKoF6oprZhFLF7i0oLpR2zxg
 
 -- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
@@ -141,7 +141,7 @@ CREATE TABLE public.feed (
 
 CREATE TABLE public.feed_fetch_failure (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    feed_id uuid,
+    feed_id uuid NOT NULL,
     url text NOT NULL,
     kind public.feed_fetch_failure_kind NOT NULL,
     status_code integer,
@@ -497,13 +497,6 @@ CREATE INDEX feed_fetch_failure_feed_occurred_idx ON public.feed_fetch_failure U
 
 
 --
--- Name: feed_fetch_failure_url_occurred_idx; Type: INDEX; Schema: public; Owner: -
---
-
-CREATE INDEX feed_fetch_failure_url_occurred_idx ON public.feed_fetch_failure USING btree (url, occurred_at DESC);
-
-
---
 -- Name: feed_fetch_failure feed_fetch_failure_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -635,7 +628,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Jx4P0GeJFvLkXahvebhfX5Mif3om1Vaxkto5rvcvN4EJLPFlIj7tHDQysE0qefQ
+\unrestrict yhivKLczdryF1OxaoOzORRBcav1NNEzGkfaFLLbcKoF6oprZhFLF7i0oLpR2zxg
 
 
 --

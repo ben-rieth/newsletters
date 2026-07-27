@@ -19,9 +19,3 @@ func FromTimestamp(t pgtype.Timestamptz) *time.Time {
 	}
 	return &t.Time
 }
-
-func ToUUID(id string) (pgtype.UUID, error) {
-	var uuid pgtype.UUID
-	err := uuid.Scan(id)
-	return uuid, err
-}

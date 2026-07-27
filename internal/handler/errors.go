@@ -37,12 +37,6 @@ func internalServerError(ctx context.Context, err error) huma.StatusError {
 }
 
 func feedFetchError(ctx context.Context, err error) huma.StatusError {
-	if errors.Is(err, feeds.ErrFeedDisabled) {
-		return badRequestError(
-			"This feed has failed too many times recently, so we have stopped fetching it. Try again later or use a different URL.",
-		)
-	}
-
 	// Every fetch failure is about the feed the caller asked for, not about us,
 	// so report the specific reason rather than a 500 — even for the kinds that
 	// wrap SystemError.

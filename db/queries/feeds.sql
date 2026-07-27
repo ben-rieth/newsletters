@@ -143,17 +143,9 @@ ORDER BY nlf.id, ff.occurred_at DESC;
 INSERT INTO feed_fetch_failure (feed_id, url, kind, status_code, message)
 VALUES ($1, $2, $3, $4, $5);
 
--- name: RecordUnknownFeedFetchFailure :exec
-INSERT INTO feed_fetch_failure (url, kind, status_code, message)
-VALUES ($1, $2, $3, $4);
-
 -- name: CountRecentFeedFailures :one
 SELECT COUNT(*) FROM feed_fetch_failure
 WHERE feed_id = $1 AND occurred_at > $2;
-
--- name: CountRecentUrlFailures :one
-SELECT COUNT(*) FROM feed_fetch_failure
-WHERE url = $1 AND occurred_at > $2;
 
 -- name: GetFeedBreakerState :one
 SELECT disabled_until, disable_count, last_retrieved_at FROM feed WHERE id = $1;

@@ -39,29 +39,12 @@ WHERE feed_id = $1 AND occurred_at > $2
 `
 
 type CountRecentFeedFailuresParams struct {
-	FeedID     pgtype.UUID
+	FeedID     string
 	OccurredAt time.Time
 }
 
 func (q *Queries) CountRecentFeedFailures(ctx context.Context, arg CountRecentFeedFailuresParams) (int64, error) {
 	row := q.db.QueryRow(ctx, countRecentFeedFailures, arg.FeedID, arg.OccurredAt)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countRecentUrlFailures = `-- name: CountRecentUrlFailures :one
-SELECT COUNT(*) FROM feed_fetch_failure
-WHERE url = $1 AND occurred_at > $2
-`
-
-type CountRecentUrlFailuresParams struct {
-	Url        string
-	OccurredAt time.Time
-}
-
-func (q *Queries) CountRecentUrlFailures(ctx context.Context, arg CountRecentUrlFailuresParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countRecentUrlFailures, arg.Url, arg.OccurredAt)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -568,7 +551,7 @@ VALUES ($1, $2, $3, $4, $5)
 `
 
 type RecordFeedFetchFailureParams struct {
-	FeedID     pgtype.UUID
+	FeedID     string
 	Url        string
 	Kind       FeedFetchFailureKind
 	StatusCode pgtype.Int4
@@ -578,28 +561,6 @@ type RecordFeedFetchFailureParams struct {
 func (q *Queries) RecordFeedFetchFailure(ctx context.Context, arg RecordFeedFetchFailureParams) error {
 	_, err := q.db.Exec(ctx, recordFeedFetchFailure,
 		arg.FeedID,
-		arg.Url,
-		arg.Kind,
-		arg.StatusCode,
-		arg.Message,
-	)
-	return err
-}
-
-const recordUnknownFeedFetchFailure = `-- name: RecordUnknownFeedFetchFailure :exec
-INSERT INTO feed_fetch_failure (url, kind, status_code, message)
-VALUES ($1, $2, $3, $4)
-`
-
-type RecordUnknownFeedFetchFailureParams struct {
-	Url        string
-	Kind       FeedFetchFailureKind
-	StatusCode pgtype.Int4
-	Message    string
-}
-
-func (q *Queries) RecordUnknownFeedFetchFailure(ctx context.Context, arg RecordUnknownFeedFetchFailureParams) error {
-	_, err := q.db.Exec(ctx, recordUnknownFeedFetchFailure,
 		arg.Url,
 		arg.Kind,
 		arg.StatusCode,
