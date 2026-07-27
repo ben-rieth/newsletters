@@ -36,7 +36,7 @@ type feedIdPath struct {
 func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	type submittableFeedFields struct {
 		Alias string `json:"alias"`
-		Url   string `json:"url"`
+		Url   string `json:"url" maxLength:"2048"`
 	}
 
 	type addFeedInput struct {
@@ -173,7 +173,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		OperationID:   "update-feed",
 		Method:        "PUT",
 		Path:          "/newsletter/{newsletterId}/feed/{feedId}",
-		Summary:       "Update the name and URL of a feed",
+		Summary:       "Update the alias of a feed",
 		DefaultStatus: http.StatusNoContent,
 		Middlewares:   huma.Middlewares{doesFeedExistMiddleware},
 	}, func(ctx context.Context, input *updateFeedInput) (*struct{}, error) {
@@ -334,7 +334,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		ctx context.Context,
 		i *struct {
 			Body struct {
-				URL string `json:"url"`
+				URL string `json:"url" maxLength:"2048"`
 			}
 		},
 	) (*getFeedMetaDataOutput, error) {

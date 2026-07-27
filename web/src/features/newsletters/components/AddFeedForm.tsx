@@ -14,6 +14,7 @@ const feedUrlSchema = z.object({
   url: z
     .string()
     .min(1, 'URL is required')
+    .max(2048, 'URL is too long')
     .url('Must be a valid URL')
     .startsWith('https://', 'Must be an HTTPS URL'),
   alias: z.string(),
