@@ -72,18 +72,10 @@ func (wl *WideLog) AddArrayField(key string, value any) {
 	wl.mu.Lock()
 	defer wl.mu.Unlock()
 
-	arrayLogValue := wl.fields[key]
-	typedValue, ok := arrayLogValue.value.([]any)
-	if !ok {
-		wl.fields[key] = logValue{
-			value:     value,
-			timestamp: time.Now(),
-		}
-		return
-	}
+	existing, _ := wl.fields[key].value.([]any)
 
 	wl.fields[key] = logValue{
-		value:     append(typedValue, value),
+		value:     append(existing, value),
 		timestamp: time.Now(),
 	}
 }

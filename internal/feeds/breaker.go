@@ -9,6 +9,7 @@ import (
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/utils"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
@@ -75,9 +76,13 @@ func (s *FeedService) fetchFeed(ctx context.Context, feedId, url string) (*Fetch
 
 func (s *FeedService) checkBreaker(ctx context.Context, feedId string) (int32, error) {
 	state, err := s.queries.GetFeedBreakerState(ctx, feedId)
-	if err != nil {
-		wideLog.AddErrorField(ctx, err)
+	if errors.Is(err, pgx.ErrNoRows) {
 		return 0, nil
+	} else if err != nil {
+		// Failing open here would also report priorDisables as 0, pushing recordFailure
+		// into the threshold branch instead of the half-open one.
+		wideLog.AddErrorField(ctx, err)
+		return 0, err
 	}
 
 	if state.DisabledUntil.Valid && state.DisabledUntil.Time.After(time.Now()) {

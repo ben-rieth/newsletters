@@ -114,6 +114,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 			ctx,
 			db.GetLastFeedFailuresForNewsletterParams{
 				NewsletterID: input.NewsletterID,
+				UserID:       claims.Subject,
 				OccurredAt:   feeds.FailureDisplayCutoff(),
 			},
 		)
@@ -280,6 +281,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		var lastFailure *feeds.FeedFailure
 		failure, err := h.queries.GetLastFeedFailure(ctx, db.GetLastFeedFailureParams{
 			ID:         i.FeedID,
+			UserID:     claims.Subject,
 			OccurredAt: feeds.FailureDisplayCutoff(),
 		})
 		if err == nil {
@@ -352,7 +354,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		}
 
 		if metadata == nil {
-			return nil, internalServerError(ctx, errors.New("Feed metadata was empty"))
+			return nil, internalServerError(ctx, errors.New("feed metadata was empty"))
 		}
 
 		existingUserFeedsResult, err := h.queries.DoesUserAlreadyRecieveFeed(ctx, db.DoesUserAlreadyRecieveFeedParams{

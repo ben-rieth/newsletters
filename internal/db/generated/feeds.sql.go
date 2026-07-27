@@ -431,13 +431,14 @@ func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string
 const getLastFeedFailure = `-- name: GetLastFeedFailure :one
 SELECT ff.occurred_at, ff.message FROM newsletter_feed AS nlf
 INNER JOIN feed_fetch_failure AS ff ON ff.feed_id = nlf.feed_id
-WHERE nlf.id = $1 AND ff.occurred_at > $2
+WHERE nlf.id = $1 AND nlf.user_id = $2 AND ff.occurred_at > $3
 ORDER BY ff.occurred_at DESC
 LIMIT 1
 `
 
 type GetLastFeedFailureParams struct {
 	ID         string
+	UserID     string
 	OccurredAt time.Time
 }
 
@@ -447,7 +448,7 @@ type GetLastFeedFailureRow struct {
 }
 
 func (q *Queries) GetLastFeedFailure(ctx context.Context, arg GetLastFeedFailureParams) (GetLastFeedFailureRow, error) {
-	row := q.db.QueryRow(ctx, getLastFeedFailure, arg.ID, arg.OccurredAt)
+	row := q.db.QueryRow(ctx, getLastFeedFailure, arg.ID, arg.UserID, arg.OccurredAt)
 	var i GetLastFeedFailureRow
 	err := row.Scan(&i.OccurredAt, &i.Message)
 	return i, err
@@ -458,12 +459,13 @@ SELECT DISTINCT ON (nlf.id)
     nlf.id AS newsletter_feed_id, ff.occurred_at, ff.message
 FROM newsletter_feed AS nlf
 INNER JOIN feed_fetch_failure AS ff ON ff.feed_id = nlf.feed_id
-WHERE nlf.newsletter_id = $1 AND ff.occurred_at > $2
+WHERE nlf.newsletter_id = $1 AND nlf.user_id = $2 AND ff.occurred_at > $3
 ORDER BY nlf.id, ff.occurred_at DESC
 `
 
 type GetLastFeedFailuresForNewsletterParams struct {
 	NewsletterID string
+	UserID       string
 	OccurredAt   time.Time
 }
 
@@ -474,7 +476,7 @@ type GetLastFeedFailuresForNewsletterRow struct {
 }
 
 func (q *Queries) GetLastFeedFailuresForNewsletter(ctx context.Context, arg GetLastFeedFailuresForNewsletterParams) ([]GetLastFeedFailuresForNewsletterRow, error) {
-	rows, err := q.db.Query(ctx, getLastFeedFailuresForNewsletter, arg.NewsletterID, arg.OccurredAt)
+	rows, err := q.db.Query(ctx, getLastFeedFailuresForNewsletter, arg.NewsletterID, arg.UserID, arg.OccurredAt)
 	if err != nil {
 		return nil, err
 	}
