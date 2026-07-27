@@ -127,7 +127,7 @@ WHERE nlf.id = $1 AND nlf.user_id = $2;
 -- name: GetLastFeedFailure :one
 SELECT ff.occurred_at, ff.message FROM newsletter_feed AS nlf
 INNER JOIN feed_fetch_failure AS ff ON ff.feed_id = nlf.feed_id
-WHERE nlf.id = $1
+WHERE nlf.id = $1 AND ff.occurred_at > $2
 ORDER BY ff.occurred_at DESC
 LIMIT 1;
 
@@ -136,12 +136,15 @@ SELECT DISTINCT ON (nlf.id)
     nlf.id AS newsletter_feed_id, ff.occurred_at, ff.message
 FROM newsletter_feed AS nlf
 INNER JOIN feed_fetch_failure AS ff ON ff.feed_id = nlf.feed_id
-WHERE nlf.newsletter_id = $1
+WHERE nlf.newsletter_id = $1 AND ff.occurred_at > $2
 ORDER BY nlf.id, ff.occurred_at DESC;
 
 -- name: RecordFeedFetchFailure :exec
 INSERT INTO feed_fetch_failure (feed_id, url, kind, status_code, message)
 VALUES ($1, $2, $3, $4, $5);
+
+-- name: DeleteFeedFetchFailuresBefore :execrows
+DELETE FROM feed_fetch_failure WHERE occurred_at < $1;
 
 -- name: CountRecentFeedFailures :one
 SELECT COUNT(*) FROM feed_fetch_failure

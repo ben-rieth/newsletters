@@ -110,7 +110,13 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 			return nil, internalServerError(ctx, err)
 		}
 
-		lastFailures, err := h.queries.GetLastFeedFailuresForNewsletter(ctx, input.NewsletterID)
+		lastFailures, err := h.queries.GetLastFeedFailuresForNewsletter(
+			ctx,
+			db.GetLastFeedFailuresForNewsletterParams{
+				NewsletterID: input.NewsletterID,
+				OccurredAt:   feeds.FailureDisplayCutoff(),
+			},
+		)
 		if err != nil {
 			return nil, internalServerError(ctx, err)
 		}
@@ -272,7 +278,10 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		}
 
 		var lastFailure *feeds.FeedFailure
-		failure, err := h.queries.GetLastFeedFailure(ctx, i.FeedID)
+		failure, err := h.queries.GetLastFeedFailure(ctx, db.GetLastFeedFailureParams{
+			ID:         i.FeedID,
+			OccurredAt: feeds.FailureDisplayCutoff(),
+		})
 		if err == nil {
 			lastFailure = &feeds.FeedFailure{
 				OccurredAt: failure.OccurredAt,

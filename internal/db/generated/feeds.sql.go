@@ -68,6 +68,18 @@ func (q *Queries) DeleteAllNewsletterFeedsForUser(ctx context.Context, userID st
 	return err
 }
 
+const deleteFeedFetchFailuresBefore = `-- name: DeleteFeedFetchFailuresBefore :execrows
+DELETE FROM feed_fetch_failure WHERE occurred_at < $1
+`
+
+func (q *Queries) DeleteFeedFetchFailuresBefore(ctx context.Context, occurredAt time.Time) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteFeedFetchFailuresBefore, occurredAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteNewsletterFeed = `-- name: DeleteNewsletterFeed :exec
 DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2 AND user_id = $3
 `
@@ -419,18 +431,23 @@ func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string
 const getLastFeedFailure = `-- name: GetLastFeedFailure :one
 SELECT ff.occurred_at, ff.message FROM newsletter_feed AS nlf
 INNER JOIN feed_fetch_failure AS ff ON ff.feed_id = nlf.feed_id
-WHERE nlf.id = $1
+WHERE nlf.id = $1 AND ff.occurred_at > $2
 ORDER BY ff.occurred_at DESC
 LIMIT 1
 `
+
+type GetLastFeedFailureParams struct {
+	ID         string
+	OccurredAt time.Time
+}
 
 type GetLastFeedFailureRow struct {
 	OccurredAt time.Time
 	Message    string
 }
 
-func (q *Queries) GetLastFeedFailure(ctx context.Context, id string) (GetLastFeedFailureRow, error) {
-	row := q.db.QueryRow(ctx, getLastFeedFailure, id)
+func (q *Queries) GetLastFeedFailure(ctx context.Context, arg GetLastFeedFailureParams) (GetLastFeedFailureRow, error) {
+	row := q.db.QueryRow(ctx, getLastFeedFailure, arg.ID, arg.OccurredAt)
 	var i GetLastFeedFailureRow
 	err := row.Scan(&i.OccurredAt, &i.Message)
 	return i, err
@@ -441,9 +458,14 @@ SELECT DISTINCT ON (nlf.id)
     nlf.id AS newsletter_feed_id, ff.occurred_at, ff.message
 FROM newsletter_feed AS nlf
 INNER JOIN feed_fetch_failure AS ff ON ff.feed_id = nlf.feed_id
-WHERE nlf.newsletter_id = $1
+WHERE nlf.newsletter_id = $1 AND ff.occurred_at > $2
 ORDER BY nlf.id, ff.occurred_at DESC
 `
+
+type GetLastFeedFailuresForNewsletterParams struct {
+	NewsletterID string
+	OccurredAt   time.Time
+}
 
 type GetLastFeedFailuresForNewsletterRow struct {
 	NewsletterFeedID string
@@ -451,8 +473,8 @@ type GetLastFeedFailuresForNewsletterRow struct {
 	Message          string
 }
 
-func (q *Queries) GetLastFeedFailuresForNewsletter(ctx context.Context, newsletterID string) ([]GetLastFeedFailuresForNewsletterRow, error) {
-	rows, err := q.db.Query(ctx, getLastFeedFailuresForNewsletter, newsletterID)
+func (q *Queries) GetLastFeedFailuresForNewsletter(ctx context.Context, arg GetLastFeedFailuresForNewsletterParams) ([]GetLastFeedFailuresForNewsletterRow, error) {
+	rows, err := q.db.Query(ctx, getLastFeedFailuresForNewsletter, arg.NewsletterID, arg.OccurredAt)
 	if err != nil {
 		return nil, err
 	}

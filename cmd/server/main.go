@@ -77,6 +77,8 @@ func main() {
 		go scheduler.KickOff(ctx)
 	}
 
+	feeds.NewFailurePruner(queries, pool).KickOff(ctx)
+
 	apiMux := http.NewServeMux()
 
 	humaConfig := huma.DefaultConfig("Newsletter API", "1.0.0")

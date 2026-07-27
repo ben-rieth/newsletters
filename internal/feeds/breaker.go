@@ -18,6 +18,12 @@ const (
 	baseDisableDuration = 24 * time.Hour
 	maxDisableDuration  = 30 * 24 * time.Hour
 	maxBackoffDoublings = 10
+
+	// Both windows have to outlast maxDisableDuration: a feed paused that long
+	// still needs to show why, so its failure must stay readable and unpruned
+	// until the pause lifts.
+	failureDisplayWindow = maxDisableDuration + baseDisableDuration
+	failureRetention     = 90 * 24 * time.Hour
 )
 
 var ErrFeedDisabled = fmt.Errorf(

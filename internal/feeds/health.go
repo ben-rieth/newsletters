@@ -23,6 +23,13 @@ type FeedHealth struct {
 	LastFailureMessage string           `json:"lastFailureMessage,omitempty"`
 }
 
+// FailureDisplayCutoff bounds the failure lookups that feed BuildFeedHealth, so a
+// feed that recovered long ago stops reporting an ancient failure and the reads
+// stop scanning the feed's whole history.
+func FailureDisplayCutoff() time.Time {
+	return time.Now().Add(-failureDisplayWindow)
+}
+
 func BuildFeedHealth(
 	disabledUntil *time.Time,
 	lastSuccessAt time.Time,
