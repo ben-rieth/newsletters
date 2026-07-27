@@ -24,6 +24,7 @@ import {
 import { feedsOptions } from '../queries/feeds';
 import type { Feed } from '../queries/feeds';
 import { AddFeedDialog } from './AddFeedDialog';
+import { FeedHealthBadge } from './FeedHealth';
 import useDeleteFeed from '../queries/hooks/useDeleteFeed';
 
 type Props = {
@@ -95,8 +96,11 @@ export const FeedsList = ({ newsletterId }: Props) => {
                 params={{ newsletterId, feedId: feed.id }}
                 className="min-w-0 flex-1"
               >
-                <p className="truncate font-medium group-hover:underline">
-                  {feed.alias || feed.title}
+                <p className="flex items-center gap-2">
+                  <span className="truncate font-medium group-hover:underline">
+                    {feed.alias || feed.title}
+                  </span>
+                  <FeedHealthBadge health={feed.health} />
                 </p>
                 <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
                   {feed.url}

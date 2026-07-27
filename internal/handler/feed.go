@@ -7,11 +7,12 @@ import (
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
+	dbutil "github.com/ben-rieth/newsletter-api/internal/db"
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
-	"github.com/ben-rieth/newsletter-api/internal/utils"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/jackc/pgx/v5"
 )
 
 type FeedHandler struct {
@@ -35,7 +36,7 @@ type feedIdPath struct {
 func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	type submittableFeedFields struct {
 		Alias string `json:"alias"`
-		Url   string `json:"url"`
+		Url   string `json:"url" maxLength:"2048"`
 	}
 
 	type addFeedInput struct {
@@ -61,10 +62,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 
 		feed, err := h.feedService.GetFeedMetaData(ctx, input.Body.Url, true)
 		if err != nil {
-			if errors.Is(err, utils.UserError) {
-				return nil, badRequestError("URL is invalid")
-			}
-			return nil, internalServerError(ctx, err)
+			return nil, feedFetchError(ctx, err)
 		}
 
 		err = h.queries.AddNewsletterFeed(ctx, db.AddNewsletterFeedParams{
@@ -82,12 +80,13 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 	})
 
 	type uiFeed struct {
-		Id          string `json:"id"`
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Url         string `json:"url"`
-		HtmlURL     string `json:"htmlUrl"`
-		Alias       string `json:"alias"`
+		Id          string           `json:"id"`
+		Title       string           `json:"title"`
+		Description string           `json:"description"`
+		Url         string           `json:"url"`
+		HtmlURL     string           `json:"htmlUrl"`
+		Alias       string           `json:"alias"`
+		Health      feeds.FeedHealth `json:"health"`
 	}
 
 	type listFeedsOutput struct {
@@ -111,8 +110,33 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 			return nil, internalServerError(ctx, err)
 		}
 
+		lastFailures, err := h.queries.GetLastFeedFailuresForNewsletter(
+			ctx,
+			db.GetLastFeedFailuresForNewsletterParams{
+				NewsletterID: input.NewsletterID,
+				UserID:       claims.Subject,
+				OccurredAt:   feeds.FailureDisplayCutoff(),
+			},
+		)
+		if err != nil {
+			return nil, internalServerError(ctx, err)
+		}
+
+		failureByFeed := make(map[string]feeds.FeedFailure, len(lastFailures))
+		for _, failure := range lastFailures {
+			failureByFeed[failure.NewsletterFeedID] = feeds.FeedFailure{
+				OccurredAt: failure.OccurredAt,
+				Message:    failure.Message,
+			}
+		}
+
 		uiFeeds := make([]uiFeed, 0, len(nlFeeds))
 		for _, nlFeed := range nlFeeds {
+			var lastFailure *feeds.FeedFailure
+			if failure, ok := failureByFeed[nlFeed.ID]; ok {
+				lastFailure = &failure
+			}
+
 			uiFeeds = append(uiFeeds, uiFeed{
 				Id:          nlFeed.ID,
 				Title:       nlFeed.Title,
@@ -120,6 +144,11 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 				Url:         nlFeed.Url,
 				HtmlURL:     nlFeed.HtmlUrl,
 				Alias:       nlFeed.Alias,
+				Health: feeds.BuildFeedHealth(
+					dbutil.FromTimestamp(nlFeed.DisabledUntil),
+					nlFeed.LastRetrievedAt,
+					lastFailure,
+				),
 			})
 		}
 
@@ -144,7 +173,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		OperationID:   "update-feed",
 		Method:        "PUT",
 		Path:          "/newsletter/{newsletterId}/feed/{feedId}",
-		Summary:       "Update the name and URL of a feed",
+		Summary:       "Update the alias of a feed",
 		DefaultStatus: http.StatusNoContent,
 		Middlewares:   huma.Middlewares{doesFeedExistMiddleware},
 	}, func(ctx context.Context, input *updateFeedInput) (*struct{}, error) {
@@ -203,6 +232,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		HtmlUrl     string             `json:"htmlUrl"`
 		Description string             `json:"description"`
 		Filters     []feeds.FeedFilter `json:"filters"`
+		Health      feeds.FeedHealth   `json:"health"`
 	}
 
 	type getFeedOutput struct {
@@ -248,6 +278,21 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 			return nil, internalServerError(ctx, err)
 		}
 
+		var lastFailure *feeds.FeedFailure
+		failure, err := h.queries.GetLastFeedFailure(ctx, db.GetLastFeedFailureParams{
+			ID:         i.FeedID,
+			UserID:     claims.Subject,
+			OccurredAt: feeds.FailureDisplayCutoff(),
+		})
+		if err == nil {
+			lastFailure = &feeds.FeedFailure{
+				OccurredAt: failure.OccurredAt,
+				Message:    failure.Message,
+			}
+		} else if !errors.Is(err, pgx.ErrNoRows) {
+			return nil, internalServerError(ctx, err)
+		}
+
 		return &getFeedOutput{
 			Body: uiDetailedFeed{
 				Id:          i.FeedID,
@@ -257,6 +302,11 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 				HtmlUrl:     feed.HtmlUrl,
 				Description: feed.Description,
 				Filters:     feedFilters,
+				Health: feeds.BuildFeedHealth(
+					dbutil.FromTimestamp(feed.DisabledUntil),
+					feed.LastRetrievedAt,
+					lastFailure,
+				),
 			},
 		}, nil
 	})
@@ -284,7 +334,7 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		ctx context.Context,
 		i *struct {
 			Body struct {
-				URL string `json:"url"`
+				URL string `json:"url" maxLength:"2048"`
 			}
 		},
 	) (*getFeedMetaDataOutput, error) {
@@ -299,8 +349,12 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		}
 
 		metadata, err := h.feedService.GetFeedMetaData(ctx, i.Body.URL, false)
-		if err != nil || metadata == nil {
-			return nil, internalServerError(ctx, err)
+		if err != nil {
+			return nil, feedFetchError(ctx, err)
+		}
+
+		if metadata == nil {
+			return nil, internalServerError(ctx, errors.New("feed metadata was empty"))
 		}
 
 		existingUserFeedsResult, err := h.queries.DoesUserAlreadyRecieveFeed(ctx, db.DoesUserAlreadyRecieveFeedParams{

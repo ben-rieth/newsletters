@@ -10,6 +10,7 @@ import { EditFeedForm } from './EditFeedForm';
 import { FeedFilterForm } from './FeedFilterForm';
 import { FeedFiltersList } from './FeedFiltersList';
 import { FeedPreview } from './FeedPreview';
+import { FeedHealthAlert, FeedHealthBadge } from './FeedHealth';
 import { Button } from '#/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs';
 import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
@@ -60,9 +61,12 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {feed.alias || feed.title}
-        </h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {feed.alias || feed.title}
+          </h1>
+          <FeedHealthBadge health={feed.health} />
+        </div>
         <p className="truncate font-mono text-sm text-muted-foreground">
           {feed.url}
         </p>
@@ -70,6 +74,8 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
           <p className="text-sm text-muted-foreground">{feed.description}</p>
         )}
       </header>
+
+      <FeedHealthAlert health={feed.health} />
 
       <Tabs defaultValue="details">
         <TabsList

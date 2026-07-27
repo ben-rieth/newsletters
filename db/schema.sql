@@ -1,4 +1,4 @@
-\restrict DzJbb8MWo6gRz3nVz0E9VJeH1SpiMjkDI20cjzXMQGgLaEvLG2T7fTRoh9UGRvQ
+\restrict yhivKLczdryF1OxaoOzORRBcav1NNEzGkfaFLLbcKoF6oprZhFLF7i0oLpR2zxg
 
 -- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
@@ -13,6 +13,18 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+
+--
+-- Name: feed_fetch_failure_kind; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.feed_fetch_failure_kind AS ENUM (
+    'http_status',
+    'transport',
+    'parse',
+    'unsafe_url'
+);
+
 
 --
 -- Name: feed_url_source; Type: TYPE; Schema: public; Owner: -
@@ -117,7 +129,24 @@ CREATE TABLE public.feed (
     last_retrieved_at timestamp with time zone NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    html_url text DEFAULT ''::text NOT NULL
+    html_url text DEFAULT ''::text NOT NULL,
+    disabled_until timestamp with time zone,
+    disable_count integer DEFAULT 0 NOT NULL
+);
+
+
+--
+-- Name: feed_fetch_failure; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.feed_fetch_failure (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    feed_id uuid NOT NULL,
+    url text NOT NULL,
+    kind public.feed_fetch_failure_kind NOT NULL,
+    status_code integer,
+    message text NOT NULL,
+    occurred_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -325,6 +354,14 @@ ALTER TABLE ONLY public.app_user
 
 
 --
+-- Name: feed_fetch_failure feed_fetch_failure_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.feed_fetch_failure
+    ADD CONSTRAINT feed_fetch_failure_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: feed_item feed_item_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -453,6 +490,21 @@ ALTER TABLE ONLY public.white_listed_email
 
 
 --
+-- Name: feed_fetch_failure_feed_occurred_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX feed_fetch_failure_feed_occurred_idx ON public.feed_fetch_failure USING btree (feed_id, occurred_at DESC);
+
+
+--
+-- Name: feed_fetch_failure feed_fetch_failure_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.feed_fetch_failure
+    ADD CONSTRAINT feed_fetch_failure_feed_id_fkey FOREIGN KEY (feed_id) REFERENCES public.feed(id) ON UPDATE RESTRICT ON DELETE CASCADE;
+
+
+--
 -- Name: feed_item feed_item_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -576,7 +628,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict DzJbb8MWo6gRz3nVz0E9VJeH1SpiMjkDI20cjzXMQGgLaEvLG2T7fTRoh9UGRvQ
+\unrestrict yhivKLczdryF1OxaoOzORRBcav1NNEzGkfaFLLbcKoF6oprZhFLF7i0oLpR2zxg
 
 
 --
@@ -589,4 +641,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260501141144'),
     ('20260502170343'),
     ('20260509195259'),
-    ('20260723225224');
+    ('20260723225224'),
+    ('20260726143000');

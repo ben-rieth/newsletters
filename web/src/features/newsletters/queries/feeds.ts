@@ -7,6 +7,7 @@ export type FeedDetail = components['schemas']['UiDetailedFeed'];
 export type FeedMetaData = components['schemas']['FeedMetaData'];
 export type ItemPreview = components['schemas']['ItemPreview'];
 export type FeedFilter = components['schemas']['FeedFilter'];
+export type FeedHealth = components['schemas']['FeedHealth'];
 
 export const feedsKeys = {
   list: (newsletterId: string) => ['feeds', newsletterId] as const,

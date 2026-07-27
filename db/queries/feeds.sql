@@ -26,7 +26,10 @@ INSERT INTO feed_item (feed_id, title, url, publish_date, retrieved_at) VALUES (
 INSERT INTO feed_url (feed_id, url, source) VALUES ($1, $2, $3);
 
 -- name: GetFeedsForNewsletter :many
-SELECT f.title, f.description, f.url, f.html_url, nf.alias, nf.id FROM newsletter_feed AS nf
+SELECT
+    f.title, f.description, f.url, f.html_url, nf.alias, nf.id,
+    f.disabled_until, f.last_retrieved_at
+FROM newsletter_feed AS nf
 INNER JOIN feed AS f ON nf.feed_id = f.id
 WHERE newsletter_id = $1;
 
@@ -49,9 +52,9 @@ WHERE newsletter_id = $2 AND id = $3 AND user_id = $4;
 DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2 AND user_id = $3;
 
 -- name: GetFeedsForManyNewsletters :many
-SELECT 
-    f.id AS global_feed_id, nlf.id AS newsletter_feed_id, 
-    f.title, f.url, f.html_url, f.last_retrieved_at, 
+SELECT
+    f.id AS global_feed_id, nlf.id AS newsletter_feed_id,
+    f.title, f.url, f.html_url, f.last_retrieved_at,
     nlf.newsletter_id, nlf.alias
 FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
@@ -114,6 +117,47 @@ WHERE nlf.newsletter_id = @newsletter_id
 UPDATE feed SET last_retrieved_at = $1, updated_at = NOW() WHERE id = $2;
 
 -- name: GetFeedById :one
-SELECT nlf.id, f.title, f.description, f.url, f.html_url, nlf.alias FROM newsletter_feed AS nlf
+SELECT
+    nlf.id, f.title, f.description, f.url, f.html_url, nlf.alias,
+    f.disabled_until, f.last_retrieved_at
+FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.id = $1 AND nlf.user_id = $2;
+
+-- name: GetLastFeedFailure :one
+SELECT ff.occurred_at, ff.message FROM newsletter_feed AS nlf
+INNER JOIN feed_fetch_failure AS ff ON ff.feed_id = nlf.feed_id
+WHERE nlf.id = $1 AND nlf.user_id = $2 AND ff.occurred_at > $3
+ORDER BY ff.occurred_at DESC
+LIMIT 1;
+
+-- name: GetLastFeedFailuresForNewsletter :many
+SELECT DISTINCT ON (nlf.id)
+    nlf.id AS newsletter_feed_id, ff.occurred_at, ff.message
+FROM newsletter_feed AS nlf
+INNER JOIN feed_fetch_failure AS ff ON ff.feed_id = nlf.feed_id
+WHERE nlf.newsletter_id = $1 AND nlf.user_id = $2 AND ff.occurred_at > $3
+ORDER BY nlf.id, ff.occurred_at DESC;
+
+-- name: RecordFeedFetchFailure :exec
+INSERT INTO feed_fetch_failure (feed_id, url, kind, status_code, message)
+VALUES ($1, $2, $3, $4, $5);
+
+-- name: DeleteFeedFetchFailuresBefore :execrows
+DELETE FROM feed_fetch_failure WHERE occurred_at < $1;
+
+-- name: CountRecentFeedFailures :one
+SELECT COUNT(*) FROM feed_fetch_failure
+WHERE feed_id = $1 AND occurred_at > $2;
+
+-- name: GetFeedBreakerState :one
+SELECT disabled_until, disable_count, last_retrieved_at FROM feed WHERE id = $1;
+
+-- name: DisableFeedUntil :exec
+UPDATE feed
+SET disabled_until = $1, disable_count = disable_count + 1, updated_at = NOW()
+WHERE id = $2 AND (disabled_until IS NULL OR disabled_until <= NOW());
+
+-- name: ResetFeedBreaker :exec
+UPDATE feed SET disabled_until = NULL, disable_count = 0, updated_at = NOW()
+WHERE id = $1 AND (disabled_until IS NOT NULL OR disable_count > 0);

@@ -609,6 +609,17 @@ export interface components {
       operator: string;
       pattern: string;
     };
+    FeedHealth: {
+      /** Format: date-time */
+      disabledUntil?: string;
+      /** Format: date-time */
+      lastFailureAt?: string;
+      lastFailureMessage?: string;
+      /** Format: date-time */
+      lastSuccessAt: string;
+      /** @enum {string} */
+      status: 'ok' | 'failing' | 'disabled';
+    };
     FeedMetaData: {
       Description: string;
       HtmlURL: string;
@@ -761,6 +772,7 @@ export interface components {
       alias: string;
       description: string;
       filters: components['schemas']['FeedFilter'][] | null;
+      health: components['schemas']['FeedHealth'];
       htmlUrl: string;
       id: string;
       title: string;
@@ -769,6 +781,7 @@ export interface components {
     UiFeed: {
       alias: string;
       description: string;
+      health: components['schemas']['FeedHealth'];
       htmlUrl: string;
       id: string;
       title: string;

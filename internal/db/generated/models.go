@@ -12,6 +12,50 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type FeedFetchFailureKind string
+
+const (
+	FeedFetchFailureKindHttpStatus FeedFetchFailureKind = "http_status"
+	FeedFetchFailureKindTransport  FeedFetchFailureKind = "transport"
+	FeedFetchFailureKindParse      FeedFetchFailureKind = "parse"
+	FeedFetchFailureKindUnsafeUrl  FeedFetchFailureKind = "unsafe_url"
+)
+
+func (e *FeedFetchFailureKind) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = FeedFetchFailureKind(s)
+	case string:
+		*e = FeedFetchFailureKind(s)
+	default:
+		return fmt.Errorf("unsupported scan type for FeedFetchFailureKind: %T", src)
+	}
+	return nil
+}
+
+type NullFeedFetchFailureKind struct {
+	FeedFetchFailureKind FeedFetchFailureKind
+	Valid                bool // Valid is true if FeedFetchFailureKind is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullFeedFetchFailureKind) Scan(value interface{}) error {
+	if value == nil {
+		ns.FeedFetchFailureKind, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.FeedFetchFailureKind.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullFeedFetchFailureKind) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.FeedFetchFailureKind), nil
+}
+
 type FeedUrlSource string
 
 const (
@@ -327,6 +371,18 @@ type Feed struct {
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 	HtmlUrl         string
+	DisabledUntil   pgtype.Timestamptz
+	DisableCount    int32
+}
+
+type FeedFetchFailure struct {
+	ID         string
+	FeedID     string
+	Url        string
+	Kind       FeedFetchFailureKind
+	StatusCode pgtype.Int4
+	Message    string
+	OccurredAt time.Time
 }
 
 type FeedItem struct {
