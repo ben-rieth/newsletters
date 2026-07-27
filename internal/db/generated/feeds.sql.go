@@ -112,7 +112,7 @@ func (q *Queries) DeleteNewsletterFeedItemStatuses(ctx context.Context, userID s
 const disableFeedUntil = `-- name: DisableFeedUntil :exec
 UPDATE feed
 SET disabled_until = $1, disable_count = disable_count + 1, updated_at = NOW()
-WHERE id = $2
+WHERE id = $2 AND (disabled_until IS NULL OR disabled_until <= NOW())
 `
 
 type DisableFeedUntilParams struct {

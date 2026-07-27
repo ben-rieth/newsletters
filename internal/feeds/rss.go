@@ -81,7 +81,13 @@ func NewRssService() *RssService {
 
 func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResult, error) {
 	err := IsSafeFeedUrl(url)
-	if err != nil {
+	if errors.Is(err, hostResolutionError) {
+		return nil, &FetchError{
+			Kind:    db.FeedFetchFailureKindTransport,
+			Message: "Feed could not be reached",
+			err:     utils.UserError,
+		}
+	} else if err != nil {
 		return nil, &FetchError{
 			Kind:    db.FeedFetchFailureKindUnsafeUrl,
 			Message: "Feed URL is not allowed",
@@ -91,7 +97,11 @@ func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResul
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return nil, utils.SystemError
+		return nil, &FetchError{
+			Kind:    db.FeedFetchFailureKindTransport,
+			Message: "Feed URL could not be requested",
+			err:     utils.UserError,
+		}
 	}
 
 	res, err := s.httpClient.Do(req)

@@ -18,6 +18,7 @@ const (
 	failureThreshold    = 5
 	baseDisableDuration = 24 * time.Hour
 	maxDisableDuration  = 30 * 24 * time.Hour
+	maxBackoffDoublings = 10
 )
 
 var ErrFeedDisabled = fmt.Errorf(
@@ -25,11 +26,9 @@ var ErrFeedDisabled = fmt.Errorf(
 )
 
 func disableDurationFor(priorDisables int32) time.Duration {
-	if priorDisables < 0 || priorDisables >= 5 {
-		return maxDisableDuration
-	}
+	doublings := min(max(priorDisables, 0), maxBackoffDoublings)
 
-	duration := baseDisableDuration << priorDisables
+	duration := baseDisableDuration << doublings
 	if duration > maxDisableDuration {
 		return maxDisableDuration
 	}

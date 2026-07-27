@@ -91,23 +91,32 @@ func (s *FeedService) GetFeedDataSince(
 	needToFetchLiveFeed := feed.LastRetrievedAt.Before(oneHourAgo)
 	logData["mustFetchLiveFeed"] = needToFetchLiveFeed
 
+	breakerOpen := false
+
 	if needToFetchLiveFeed {
 		logData["feedUrl"] = feed.URL
 		feedResult, err := s.fetchFeed(ctx, feed.GlobalFeedId, feed.URL)
-		if err != nil {
-			return nil, err
-		}
 
-		logData["fetchedItems"] = len(feedResult.Feed.Items)
-		feedResult.Feed = pruneFeedItemsBeforeTime(feedResult.Feed, feed.LastRetrievedAt)
-		logData["prunedItems"] = len(feedResult.Feed.Items)
-
-		if err = s.updateFeedCache(
-			ctx,
-			feed.GlobalFeedId,
-			feedResult,
-		); err != nil {
+		// A paused feed can stay paused for weeks, so keep delivering whatever is
+		// already cached instead of skipping the feed until the breaker closes —
+		// last_send_time advances either way and those items would be lost.
+		if errors.Is(err, ErrFeedDisabled) {
+			breakerOpen = true
+			logData["feedBreakerOpen"] = true
+		} else if err != nil {
 			return nil, err
+		} else {
+			logData["fetchedItems"] = len(feedResult.Feed.Items)
+			feedResult.Feed = pruneFeedItemsBeforeTime(feedResult.Feed, feed.LastRetrievedAt)
+			logData["prunedItems"] = len(feedResult.Feed.Items)
+
+			if err = s.updateFeedCache(
+				ctx,
+				feed.GlobalFeedId,
+				feedResult,
+			); err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -123,6 +132,11 @@ func (s *FeedService) GetFeedDataSince(
 	}
 
 	logData["itemsForNewsletter"] = len(items)
+
+	// Nothing cached to fall back on, so surface the pause to the reader.
+	if breakerOpen && len(items) == 0 {
+		return nil, ErrFeedDisabled
+	}
 
 	finalItems = make([]FeedItemView, 0, len(items))
 	for _, item := range items {

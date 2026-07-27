@@ -161,7 +161,7 @@ SELECT disabled_until, disable_count, last_retrieved_at FROM feed WHERE id = $1;
 -- name: DisableFeedUntil :exec
 UPDATE feed
 SET disabled_until = $1, disable_count = disable_count + 1, updated_at = NOW()
-WHERE id = $2;
+WHERE id = $2 AND (disabled_until IS NULL OR disabled_until <= NOW());
 
 -- name: ResetFeedBreaker :exec
 UPDATE feed SET disabled_until = NULL, disable_count = 0, updated_at = NOW()

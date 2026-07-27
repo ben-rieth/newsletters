@@ -4,13 +4,15 @@ import { Badge } from '#/components/ui/badge';
 import { formatRelativeTime } from '#/utils/format';
 import type { FeedHealth } from '../queries/feeds';
 
+const warningClasses =
+  'border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400';
+
 const describeLastFailure = (health: FeedHealth) => {
-  if (!health.lastFailureAt) {
+  if (!health.lastFailureAt || !health.lastFailureMessage) {
     return null;
   }
 
-  const message = health.lastFailureMessage || 'Could not be retrieved';
-  return `${message} (${formatRelativeTime(health.lastFailureAt)})`;
+  return `${health.lastFailureMessage} (${formatRelativeTime(health.lastFailureAt)})`;
 };
 
 export const FeedHealthBadge = ({ health }: { health: FeedHealth }) => {
@@ -19,14 +21,17 @@ export const FeedHealthBadge = ({ health }: { health: FeedHealth }) => {
   }
 
   const paused = health.status === 'disabled';
+  const lastFailure = describeLastFailure(health);
 
   return (
     <Badge
       variant={paused ? 'destructive' : 'outline'}
-      title={describeLastFailure(health) ?? undefined}
+      className={cn(!paused && warningClasses)}
+      title={lastFailure ?? undefined}
     >
       {paused ? <PauseCircle /> : <CircleAlert />}
       {paused ? 'Paused' : 'Failing'}
+      {lastFailure && <span className="sr-only">: {lastFailure}</span>}
     </Badge>
   );
 };
@@ -45,7 +50,7 @@ export const FeedHealthAlert = ({ health }: { health: FeedHealth }) => {
         'flex gap-2.5 rounded-md border p-3 text-sm',
         paused
           ? 'border-destructive/40 bg-destructive/10 text-destructive'
-          : 'border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400',
+          : warningClasses,
       )}
     >
       <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
@@ -55,15 +60,16 @@ export const FeedHealthAlert = ({ health }: { health: FeedHealth }) => {
             ? 'We stopped fetching this feed'
             : 'This feed failed to update'}
         </p>
-        <ul className="space-y-0.5 text-xs">
+        <ul className="list-disc space-y-0.5 pl-4 text-xs">
           {lastFailure && <li>Last error: {lastFailure}</li>}
           <li>
             Last successful update {formatRelativeTime(health.lastSuccessAt)}
           </li>
           {paused && health.disabledUntil && (
             <li>
-              Fetching resumes {formatRelativeTime(health.disabledUntil)}. Fix
-              the URL or remove the feed if it is gone for good.
+              Fetching resumes {formatRelativeTime(health.disabledUntil)}.
+              Remove this feed and re-add it with a working URL, or delete it if
+              it is gone for good.
             </li>
           )}
         </ul>

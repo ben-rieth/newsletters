@@ -28,10 +28,15 @@ func BuildFeedHealth(
 	lastSuccessAt time.Time,
 	lastFailure *FeedFailure,
 ) FeedHealth {
+	stillDisabled := disabledUntil != nil && disabledUntil.After(time.Now())
+
 	health := FeedHealth{
 		Status:        FeedHealthOk,
-		DisabledUntil: disabledUntil,
 		LastSuccessAt: lastSuccessAt,
+	}
+
+	if stillDisabled {
+		health.DisabledUntil = disabledUntil
 	}
 
 	if lastFailure != nil {
@@ -43,7 +48,7 @@ func BuildFeedHealth(
 		}
 	}
 
-	if disabledUntil != nil && disabledUntil.After(time.Now()) {
+	if stillDisabled {
 		health.Status = FeedHealthDisabled
 	}
 

@@ -43,6 +43,15 @@ func feedFetchError(ctx context.Context, err error) huma.StatusError {
 		)
 	}
 
+	// Every fetch failure is about the feed the caller asked for, not about us,
+	// so report the specific reason rather than a 500 — even for the kinds that
+	// wrap SystemError.
+	var fetchErr *feeds.FetchError
+	if errors.As(err, &fetchErr) {
+		wideLog.AddErrorField(ctx, err)
+		return badRequestError(feeds.DescribeFetchError(err))
+	}
+
 	if errors.Is(err, utils.UserError) {
 		return badRequestError(feeds.DescribeFetchError(err))
 	}

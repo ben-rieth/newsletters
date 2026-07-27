@@ -6,6 +6,7 @@ import { Button } from '#/components/ui/button';
 import { Badge } from '#/components/ui/badge';
 import { ListPanel } from '#/components/ListPanel';
 import { cn } from '#/lib/utils';
+import { getErrorMessage } from '#/lib/errors';
 
 type Props = {
   newsletterId: string;
@@ -101,7 +102,7 @@ export const FeedPreview = ({ newsletterId, feedId }: Props) => {
       </div>
 
       {hasRequested && isError && (
-        <p className="text-sm text-destructive">{error.message}</p>
+        <p className="text-sm text-destructive">{getErrorMessage(error)}</p>
       )}
 
       {hasRequested && !isFetching && data && data.length === 0 && (

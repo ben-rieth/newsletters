@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"sort"
+	"sync"
 	"time"
 )
 
@@ -21,72 +22,85 @@ type logValue struct {
 	timestamp time.Time
 }
 
-type WideLog map[string]logValue
+// A single WideLog is shared by every goroutine working on one request, tick or
+// job, so all access to fields must go through mu.
+type WideLog struct {
+	mu     sync.Mutex
+	fields map[string]logValue
+}
 
 func NewWideLog() *WideLog {
-	return &WideLog{}
+	return &WideLog{fields: make(map[string]logValue)}
 }
 
 func (wl *WideLog) AddLogField(key string, value any) {
-	(*wl)[key] = logValue{
+	wl.mu.Lock()
+	defer wl.mu.Unlock()
+
+	wl.fields[key] = logValue{
 		value:     value,
 		timestamp: time.Now(),
 	}
 }
 
 func (wl *WideLog) AddErrorField(errs ...error) {
-	errLogValue, ok := (*wl)["error"]
-	typedErrs, ok := errLogValue.value.([]string)
+	wl.mu.Lock()
+	defer wl.mu.Unlock()
 
 	errorStrings := make([]string, 0, len(errs))
 	for _, err := range errs {
 		errorStrings = append(errorStrings, err.Error())
 	}
 
+	errLogValue := wl.fields["error"]
+	typedErrs, ok := errLogValue.value.([]string)
 	if !ok {
-		(*wl)["error"] = logValue{
+		wl.fields["error"] = logValue{
 			value:     errorStrings,
 			timestamp: time.Now(),
 		}
 		return
 	}
 
-	newErrs := append(typedErrs, errorStrings...)
-	(*wl)["error"] = logValue{
-		value:     newErrs,
+	wl.fields["error"] = logValue{
+		value:     append(typedErrs, errorStrings...),
 		timestamp: time.Now(),
 	}
 }
 
 func (wl *WideLog) AddArrayField(key string, value any) {
-	arrayLogValue, ok := (*wl)[key]
+	wl.mu.Lock()
+	defer wl.mu.Unlock()
+
+	arrayLogValue := wl.fields[key]
 	typedValue, ok := arrayLogValue.value.([]any)
 	if !ok {
-		(*wl)[key] = logValue{
+		wl.fields[key] = logValue{
 			value:     value,
 			timestamp: time.Now(),
 		}
 		return
 	}
 
-	newValues := append(typedValue, value)
-	(*wl)[key] = logValue{
-		value:     newValues,
+	wl.fields[key] = logValue{
+		value:     append(typedValue, value),
 		timestamp: time.Now(),
 	}
 }
 
 func (wl *WideLog) Slog(ctx context.Context, level slog.Level) {
-	entries := make([]logEntry, 0, len(*wl))
-	for k, v := range *wl {
+	wl.mu.Lock()
+	entries := make([]logEntry, 0, len(wl.fields))
+	for k, v := range wl.fields {
 		entries = append(entries, logEntry{k, v})
 	}
+	wl.mu.Unlock()
 
 	sort.Slice(entries, func(a, b int) bool {
 		return entries[a].Value.timestamp.Before(entries[b].Value.timestamp)
 	})
 
-	args := make([]any, 0, len(*wl)*2)
+	args := make([]any, 0, len(entries)*2)
 	for _, entry := range entries {
 		args = append(args, entry.Key, entry.Value.value)
 	}
@@ -95,12 +109,18 @@ func (wl *WideLog) Slog(ctx context.Context, level slog.Level) {
 }
 
 func (wl *WideLog) HasError() bool {
-	_, ok := (*wl)["error"]
+	wl.mu.Lock()
+	defer wl.mu.Unlock()
+
+	_, ok := wl.fields["error"]
 	return ok
 }
 
 func GetField[T any](wl *WideLog, key string) (T, bool) {
-	val, ok := (*wl)[key]
+	wl.mu.Lock()
+	defer wl.mu.Unlock()
+
+	val, ok := wl.fields[key]
 	if !ok {
 		var zero T
 		return zero, false
