@@ -51,7 +51,7 @@ func (s *FeedService) GetFeedMetaData(ctx context.Context, url string, returnId 
 	now := time.Now()
 	itemLookBack := now.AddDate(0, -2, 0)
 
-	fetchFeedRes, err := s.rssService.FetchFeed(ctx, url)
+	fetchFeedRes, err := s.fetchFeed(ctx, "", url)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +93,7 @@ func (s *FeedService) GetFeedDataSince(
 
 	if needToFetchLiveFeed {
 		logData["feedUrl"] = feed.URL
-		feedResult, err := s.rssService.FetchFeed(ctx, feed.URL)
+		feedResult, err := s.fetchFeed(ctx, feed.GlobalFeedId, feed.URL)
 		if err != nil {
 			return nil, err
 		}

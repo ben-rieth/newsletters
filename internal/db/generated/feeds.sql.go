@@ -33,6 +33,40 @@ func (q *Queries) AddNewsletterFeed(ctx context.Context, arg AddNewsletterFeedPa
 	return err
 }
 
+const countRecentFeedFailures = `-- name: CountRecentFeedFailures :one
+SELECT COUNT(*) FROM feed_fetch_failure
+WHERE feed_id = $1 AND occurred_at > $2
+`
+
+type CountRecentFeedFailuresParams struct {
+	FeedID     pgtype.UUID
+	OccurredAt time.Time
+}
+
+func (q *Queries) CountRecentFeedFailures(ctx context.Context, arg CountRecentFeedFailuresParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countRecentFeedFailures, arg.FeedID, arg.OccurredAt)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countRecentUrlFailures = `-- name: CountRecentUrlFailures :one
+SELECT COUNT(*) FROM feed_fetch_failure
+WHERE url = $1 AND occurred_at > $2
+`
+
+type CountRecentUrlFailuresParams struct {
+	Url        string
+	OccurredAt time.Time
+}
+
+func (q *Queries) CountRecentUrlFailures(ctx context.Context, arg CountRecentUrlFailuresParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countRecentUrlFailures, arg.Url, arg.OccurredAt)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const deleteAllFeedsInNewsletter = `-- name: DeleteAllFeedsInNewsletter :exec
 DELETE FROM newsletter_feed WHERE newsletter_id = $1
 `
@@ -72,6 +106,22 @@ DELETE FROM issue_item WHERE user_id = $1
 
 func (q *Queries) DeleteNewsletterFeedItemStatuses(ctx context.Context, userID string) error {
 	_, err := q.db.Exec(ctx, deleteNewsletterFeedItemStatuses, userID)
+	return err
+}
+
+const disableFeedUntil = `-- name: DisableFeedUntil :exec
+UPDATE feed
+SET disabled_until = $1, disable_count = disable_count + 1, updated_at = NOW()
+WHERE id = $2
+`
+
+type DisableFeedUntilParams struct {
+	DisabledUntil pgtype.Timestamptz
+	ID            string
+}
+
+func (q *Queries) DisableFeedUntil(ctx context.Context, arg DisableFeedUntilParams) error {
+	_, err := q.db.Exec(ctx, disableFeedUntil, arg.DisabledUntil, arg.ID)
 	return err
 }
 
@@ -160,8 +210,28 @@ func (q *Queries) GetCachedFeedDetails(ctx context.Context, url string) (GetCach
 	return i, err
 }
 
+const getFeedBreakerState = `-- name: GetFeedBreakerState :one
+SELECT disabled_until, disable_count, last_retrieved_at FROM feed WHERE id = $1
+`
+
+type GetFeedBreakerStateRow struct {
+	DisabledUntil   pgtype.Timestamptz
+	DisableCount    int32
+	LastRetrievedAt time.Time
+}
+
+func (q *Queries) GetFeedBreakerState(ctx context.Context, id string) (GetFeedBreakerStateRow, error) {
+	row := q.db.QueryRow(ctx, getFeedBreakerState, id)
+	var i GetFeedBreakerStateRow
+	err := row.Scan(&i.DisabledUntil, &i.DisableCount, &i.LastRetrievedAt)
+	return i, err
+}
+
 const getFeedById = `-- name: GetFeedById :one
-SELECT nlf.id, f.title, f.description, f.url, f.html_url, nlf.alias FROM newsletter_feed AS nlf
+SELECT
+    nlf.id, f.title, f.description, f.url, f.html_url, nlf.alias,
+    f.disabled_until, f.last_retrieved_at
+FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.id = $1 AND nlf.user_id = $2
 `
@@ -172,12 +242,14 @@ type GetFeedByIdParams struct {
 }
 
 type GetFeedByIdRow struct {
-	ID          string
-	Title       string
-	Description string
-	Url         string
-	HtmlUrl     string
-	Alias       string
+	ID              string
+	Title           string
+	Description     string
+	Url             string
+	HtmlUrl         string
+	Alias           string
+	DisabledUntil   pgtype.Timestamptz
+	LastRetrievedAt time.Time
 }
 
 func (q *Queries) GetFeedById(ctx context.Context, arg GetFeedByIdParams) (GetFeedByIdRow, error) {
@@ -190,6 +262,8 @@ func (q *Queries) GetFeedById(ctx context.Context, arg GetFeedByIdParams) (GetFe
 		&i.Url,
 		&i.HtmlUrl,
 		&i.Alias,
+		&i.DisabledUntil,
+		&i.LastRetrievedAt,
 	)
 	return i, err
 }
@@ -261,9 +335,9 @@ func (q *Queries) GetFeedItemsPublishedAfter(ctx context.Context, arg GetFeedIte
 }
 
 const getFeedsForManyNewsletters = `-- name: GetFeedsForManyNewsletters :many
-SELECT 
-    f.id AS global_feed_id, nlf.id AS newsletter_feed_id, 
-    f.title, f.url, f.html_url, f.last_retrieved_at, 
+SELECT
+    f.id AS global_feed_id, nlf.id AS newsletter_feed_id,
+    f.title, f.url, f.html_url, f.last_retrieved_at,
     nlf.newsletter_id, nlf.alias
 FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
@@ -311,18 +385,23 @@ func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []str
 }
 
 const getFeedsForNewsletter = `-- name: GetFeedsForNewsletter :many
-SELECT f.title, f.description, f.url, f.html_url, nf.alias, nf.id FROM newsletter_feed AS nf
+SELECT
+    f.title, f.description, f.url, f.html_url, nf.alias, nf.id,
+    f.disabled_until, f.last_retrieved_at
+FROM newsletter_feed AS nf
 INNER JOIN feed AS f ON nf.feed_id = f.id
 WHERE newsletter_id = $1
 `
 
 type GetFeedsForNewsletterRow struct {
-	Title       string
-	Description string
-	Url         string
-	HtmlUrl     string
-	Alias       string
-	ID          string
+	Title           string
+	Description     string
+	Url             string
+	HtmlUrl         string
+	Alias           string
+	ID              string
+	DisabledUntil   pgtype.Timestamptz
+	LastRetrievedAt time.Time
 }
 
 func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string) ([]GetFeedsForNewsletterRow, error) {
@@ -341,7 +420,64 @@ func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string
 			&i.HtmlUrl,
 			&i.Alias,
 			&i.ID,
+			&i.DisabledUntil,
+			&i.LastRetrievedAt,
 		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getLastFeedFailure = `-- name: GetLastFeedFailure :one
+SELECT ff.occurred_at, ff.message FROM newsletter_feed AS nlf
+INNER JOIN feed_fetch_failure AS ff ON ff.feed_id = nlf.feed_id
+WHERE nlf.id = $1
+ORDER BY ff.occurred_at DESC
+LIMIT 1
+`
+
+type GetLastFeedFailureRow struct {
+	OccurredAt time.Time
+	Message    string
+}
+
+func (q *Queries) GetLastFeedFailure(ctx context.Context, id string) (GetLastFeedFailureRow, error) {
+	row := q.db.QueryRow(ctx, getLastFeedFailure, id)
+	var i GetLastFeedFailureRow
+	err := row.Scan(&i.OccurredAt, &i.Message)
+	return i, err
+}
+
+const getLastFeedFailuresForNewsletter = `-- name: GetLastFeedFailuresForNewsletter :many
+SELECT DISTINCT ON (nlf.id)
+    nlf.id AS newsletter_feed_id, ff.occurred_at, ff.message
+FROM newsletter_feed AS nlf
+INNER JOIN feed_fetch_failure AS ff ON ff.feed_id = nlf.feed_id
+WHERE nlf.newsletter_id = $1
+ORDER BY nlf.id, ff.occurred_at DESC
+`
+
+type GetLastFeedFailuresForNewsletterRow struct {
+	NewsletterFeedID string
+	OccurredAt       time.Time
+	Message          string
+}
+
+func (q *Queries) GetLastFeedFailuresForNewsletter(ctx context.Context, newsletterID string) ([]GetLastFeedFailuresForNewsletterRow, error) {
+	rows, err := q.db.Query(ctx, getLastFeedFailuresForNewsletter, newsletterID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetLastFeedFailuresForNewsletterRow
+	for rows.Next() {
+		var i GetLastFeedFailuresForNewsletterRow
+		if err := rows.Scan(&i.NewsletterFeedID, &i.OccurredAt, &i.Message); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -424,6 +560,62 @@ func (q *Queries) PreviewFeed(ctx context.Context, arg PreviewFeedParams) ([]Pre
 		return nil, err
 	}
 	return items, nil
+}
+
+const recordFeedFetchFailure = `-- name: RecordFeedFetchFailure :exec
+INSERT INTO feed_fetch_failure (feed_id, url, kind, status_code, message)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type RecordFeedFetchFailureParams struct {
+	FeedID     pgtype.UUID
+	Url        string
+	Kind       FeedFetchFailureKind
+	StatusCode pgtype.Int4
+	Message    string
+}
+
+func (q *Queries) RecordFeedFetchFailure(ctx context.Context, arg RecordFeedFetchFailureParams) error {
+	_, err := q.db.Exec(ctx, recordFeedFetchFailure,
+		arg.FeedID,
+		arg.Url,
+		arg.Kind,
+		arg.StatusCode,
+		arg.Message,
+	)
+	return err
+}
+
+const recordUnknownFeedFetchFailure = `-- name: RecordUnknownFeedFetchFailure :exec
+INSERT INTO feed_fetch_failure (url, kind, status_code, message)
+VALUES ($1, $2, $3, $4)
+`
+
+type RecordUnknownFeedFetchFailureParams struct {
+	Url        string
+	Kind       FeedFetchFailureKind
+	StatusCode pgtype.Int4
+	Message    string
+}
+
+func (q *Queries) RecordUnknownFeedFetchFailure(ctx context.Context, arg RecordUnknownFeedFetchFailureParams) error {
+	_, err := q.db.Exec(ctx, recordUnknownFeedFetchFailure,
+		arg.Url,
+		arg.Kind,
+		arg.StatusCode,
+		arg.Message,
+	)
+	return err
+}
+
+const resetFeedBreaker = `-- name: ResetFeedBreaker :exec
+UPDATE feed SET disabled_until = NULL, disable_count = 0, updated_at = NOW()
+WHERE id = $1 AND (disabled_until IS NOT NULL OR disable_count > 0)
+`
+
+func (q *Queries) ResetFeedBreaker(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, resetFeedBreaker, id)
+	return err
 }
 
 const saveFeedDetails = `-- name: SaveFeedDetails :one

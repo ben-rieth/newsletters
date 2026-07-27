@@ -7,6 +7,7 @@ import { Button } from '#/components/ui/button';
 import { FieldError } from '#/components/ui/field';
 import { FormField } from '#/components/ui/form-field';
 import { Input } from '#/components/ui/input';
+import { getErrorMessage } from '#/lib/errors';
 import { feedMetadataOptions } from '../queries/feeds';
 
 const feedUrlSchema = z.object({
@@ -100,9 +101,7 @@ export const AddFeedForm = ({
       )}
 
       {metadataQuery.isError && !metadataQuery.isFetching && (
-        <FieldError>
-          Could not fetch feed info. Check the URL and try again.
-        </FieldError>
+        <FieldError>{getErrorMessage(metadataQuery.error)}</FieldError>
       )}
 
       {metadataQuery.data && (

@@ -196,10 +196,15 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 	return nil
 }
 
+type failedFeed struct {
+	Feed   feeds.BaseFeed
+	Reason string
+}
+
 type newsletterFetchFeedResult struct {
 	Succeeded        []feeds.FeedView
 	SucceededNoItems []feeds.FeedView
-	Failed           []feeds.BaseFeed
+	Failed           []failedFeed
 }
 
 func (sch *Scheduler) fetchFeedsForNewsletter(
@@ -234,10 +239,13 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 
 	wg.Wait()
 
-	var failed []feeds.BaseFeed
+	var failed []failedFeed
 	for i, err := range feedErrors {
 		if err != nil {
-			failed = append(failed, nl.Feeds[i])
+			failed = append(failed, failedFeed{
+				Feed:   nl.Feeds[i],
+				Reason: feeds.DescribeFetchError(err),
+			})
 			wideLog.AddErrorField(ctx, err)
 		}
 	}

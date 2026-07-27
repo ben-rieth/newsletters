@@ -108,7 +108,7 @@ func (q *Queries) GetIssue(ctx context.Context, arg GetIssueParams) (GetIssueRow
 }
 
 const getIssueFeeds = `-- name: GetIssueFeeds :many
-SELECT DISTINCT f.id, f.title, f.description, f.url, f.last_retrieved_at, f.created_at, f.updated_at, f.html_url 
+SELECT DISTINCT f.id, f.title, f.description, f.url, f.last_retrieved_at, f.created_at, f.updated_at, f.html_url, f.disabled_until, f.disable_count 
 FROM feed AS f
 INNER JOIN feed_item AS item ON item.feed_id = f.id
 INNER JOIN issue_item AS issue_item ON item.id = issue_item.item_id
@@ -138,6 +138,8 @@ func (q *Queries) GetIssueFeeds(ctx context.Context, arg GetIssueFeedsParams) ([
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.HtmlUrl,
+			&i.DisabledUntil,
+			&i.DisableCount,
 		); err != nil {
 			return nil, err
 		}
