@@ -38,8 +38,45 @@ func (q *Queries) DeleteItemsForIssue(ctx context.Context, arg DeleteItemsForIss
 	return err
 }
 
+const doesIssueExist = `-- name: DoesIssueExist :one
+SELECT EXISTS(SELECT 1 FROM newsletter_issue WHERE id = $1 AND user_id = $2)
+`
+
+type DoesIssueExistParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) DoesIssueExist(ctx context.Context, arg DoesIssueExistParams) (bool, error) {
+	row := q.db.QueryRow(ctx, doesIssueExist, arg.ID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const doesIssueItemExist = `-- name: DoesIssueItemExist :one
+SELECT EXISTS(SELECT 1 FROM issue_item WHERE item_id = $1 AND issue_id = $2 AND user_id = $3)
+`
+
+type DoesIssueItemExistParams struct {
+	ItemID  string
+	IssueID string
+	UserID  string
+}
+
+func (q *Queries) DoesIssueItemExist(ctx context.Context, arg DoesIssueItemExistParams) (bool, error) {
+	row := q.db.QueryRow(ctx, doesIssueItemExist, arg.ItemID, arg.IssueID, arg.UserID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const getAllUserIssues = `-- name: GetAllUserIssues :many
-SELECT i.id, nl.id AS newsletter_id, nl.name, i.sent_at FROM newsletter_issue AS i 
+SELECT i.id, nl.id AS newsletter_id, nl.name, i.sent_at,
+    CASE WHEN EXISTS (
+        SELECT 1 FROM issue_item AS ii WHERE ii.issue_id = i.id AND ii.state = 'unread'
+    ) THEN 'unread' ELSE 'read' END::item_state AS state
+FROM newsletter_issue AS i
 INNER JOIN newsletter AS nl ON i.newsletter_id = nl.id
 WHERE i.user_id = $1
 ORDER BY sent_at DESC
@@ -50,6 +87,7 @@ type GetAllUserIssuesRow struct {
 	NewsletterID string
 	Name         string
 	SentAt       time.Time
+	State        ItemState
 }
 
 func (q *Queries) GetAllUserIssues(ctx context.Context, userID string) ([]GetAllUserIssuesRow, error) {
@@ -66,6 +104,7 @@ func (q *Queries) GetAllUserIssues(ctx context.Context, userID string) ([]GetAll
 			&i.NewsletterID,
 			&i.Name,
 			&i.SentAt,
+			&i.State,
 		); err != nil {
 			return nil, err
 		}
@@ -78,7 +117,11 @@ func (q *Queries) GetAllUserIssues(ctx context.Context, userID string) ([]GetAll
 }
 
 const getIssue = `-- name: GetIssue :one
-SELECT i.id, nl.id AS newsletter_id, nl.name, i.sent_at FROM newsletter_issue AS i 
+SELECT i.id, nl.id AS newsletter_id, nl.name, i.sent_at,
+    CASE WHEN EXISTS (
+        SELECT 1 FROM issue_item AS ii WHERE ii.issue_id = i.id AND ii.state = 'unread'
+    ) THEN 'unread' ELSE 'read' END::item_state AS state
+FROM newsletter_issue AS i
 INNER JOIN newsletter AS nl ON i.newsletter_id = nl.id
 WHERE i.user_id = $1 AND i.id = $2
 `
@@ -93,6 +136,7 @@ type GetIssueRow struct {
 	NewsletterID string
 	Name         string
 	SentAt       time.Time
+	State        ItemState
 }
 
 func (q *Queries) GetIssue(ctx context.Context, arg GetIssueParams) (GetIssueRow, error) {
@@ -103,16 +147,19 @@ func (q *Queries) GetIssue(ctx context.Context, arg GetIssueParams) (GetIssueRow
 		&i.NewsletterID,
 		&i.Name,
 		&i.SentAt,
+		&i.State,
 	)
 	return i, err
 }
 
 const getIssueFeeds = `-- name: GetIssueFeeds :many
-SELECT DISTINCT f.id, f.title, f.description, f.url, f.last_retrieved_at, f.created_at, f.updated_at, f.html_url, f.disabled_until, f.disable_count 
+SELECT f.id, f.title, f.description, f.url, f.last_retrieved_at, f.created_at, f.updated_at, f.html_url, f.disabled_until, f.disable_count
 FROM feed AS f
 INNER JOIN feed_item AS item ON item.feed_id = f.id
 INNER JOIN issue_item AS issue_item ON item.id = issue_item.item_id
-WHERE issue_item.issue_id = $1 AND user_id = $2
+WHERE issue_item.issue_id = $1 AND issue_item.user_id = $2
+GROUP BY f.id
+ORDER BY bool_and(issue_item.state = 'read'), f.title
 `
 
 type GetIssueFeedsParams struct {
@@ -169,6 +216,7 @@ SELECT ii.state, ii.item_id, ii.token, i.title, i.publish_date, i.feed_id
 FROM issue_item AS ii
 INNER JOIN feed_item AS i ON ii.item_id = i.id
 WHERE issue_id = $1 AND user_id = $2
+ORDER BY ii.state = 'read', i.publish_date DESC, i.title
 `
 
 type GetIssueItemsParams struct {
@@ -212,14 +260,14 @@ func (q *Queries) GetIssueItems(ctx context.Context, arg GetIssueItemsParams) ([
 	return items, nil
 }
 
-const markIssueItemAsRead = `-- name: MarkIssueItemAsRead :exec
+const markIssueItemAsReadWithToken = `-- name: MarkIssueItemAsReadWithToken :exec
 UPDATE issue_item AS ii
-SET state = 'read'
+SET state = 'read', updated_at = NOW()
 WHERE token = $1
 `
 
-func (q *Queries) MarkIssueItemAsRead(ctx context.Context, token string) error {
-	_, err := q.db.Exec(ctx, markIssueItemAsRead, token)
+func (q *Queries) MarkIssueItemAsReadWithToken(ctx context.Context, token string) error {
+	_, err := q.db.Exec(ctx, markIssueItemAsReadWithToken, token)
 	return err
 }
 
@@ -245,4 +293,44 @@ type StoreNewsletterIssueItemsParams struct {
 	ItemID  string
 	UserID  string
 	Token   string
+}
+
+const updateAllIssueItemsState = `-- name: UpdateAllIssueItemsState :exec
+UPDATE issue_item
+SET state = $1, updated_at = NOW()
+WHERE issue_id = $2 AND user_id = $3
+`
+
+type UpdateAllIssueItemsStateParams struct {
+	State   ItemState
+	IssueID string
+	UserID  string
+}
+
+func (q *Queries) UpdateAllIssueItemsState(ctx context.Context, arg UpdateAllIssueItemsStateParams) error {
+	_, err := q.db.Exec(ctx, updateAllIssueItemsState, arg.State, arg.IssueID, arg.UserID)
+	return err
+}
+
+const updateIssueItemState = `-- name: UpdateIssueItemState :exec
+UPDATE issue_item
+SET state = $1, updated_at = NOW()
+WHERE item_id = $2 AND issue_id = $3 AND user_id = $4
+`
+
+type UpdateIssueItemStateParams struct {
+	State   ItemState
+	ItemID  string
+	IssueID string
+	UserID  string
+}
+
+func (q *Queries) UpdateIssueItemState(ctx context.Context, arg UpdateIssueItemStateParams) error {
+	_, err := q.db.Exec(ctx, updateIssueItemState,
+		arg.State,
+		arg.ItemID,
+		arg.IssueID,
+		arg.UserID,
+	)
+	return err
 }

@@ -1,4 +1,4 @@
-\restrict yhivKLczdryF1OxaoOzORRBcav1NNEzGkfaFLLbcKoF6oprZhFLF7i0oLpR2zxg
+\restrict oFhB1vPGbkp5RqTdk3pNvopwv7v3rPc3TLEp4uT8YD13gKR9mBJkGEbAAPRHgEd
 
 -- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
@@ -497,6 +497,13 @@ CREATE INDEX feed_fetch_failure_feed_occurred_idx ON public.feed_fetch_failure U
 
 
 --
+-- Name: issue_item_issue_id_state_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX issue_item_issue_id_state_idx ON public.issue_item USING btree (issue_id, state);
+
+
+--
 -- Name: feed_fetch_failure feed_fetch_failure_feed_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -628,7 +635,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict yhivKLczdryF1OxaoOzORRBcav1NNEzGkfaFLLbcKoF6oprZhFLF7i0oLpR2zxg
+\unrestrict oFhB1vPGbkp5RqTdk3pNvopwv7v3rPc3TLEp4uT8YD13gKR9mBJkGEbAAPRHgEd
 
 
 --
@@ -642,4 +649,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260502170343'),
     ('20260509195259'),
     ('20260723225224'),
-    ('20260726143000');
+    ('20260726143000'),
+    ('20260727233615');

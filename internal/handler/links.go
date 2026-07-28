@@ -60,7 +60,7 @@ func (h *LinksHandler) handleLinkRedirect(
 		return nil, internalServerError(ctx, err)
 	}
 
-	if err = h.queries.MarkIssueItemAsRead(ctx, i.Token); err != nil {
+	if err = h.queries.MarkIssueItemAsReadWithToken(ctx, i.Token); err != nil {
 		wideLog.AddErrorField(ctx, fmt.Errorf("failed to mark item as read: %w", err))
 	}
 

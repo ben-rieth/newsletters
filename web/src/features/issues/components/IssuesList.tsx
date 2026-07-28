@@ -27,6 +27,7 @@ const IssuesList = ({ issues }: IssuesListProps) => {
     <ListPanel header="Issue">
       {sorted.map((issue) => {
         const date = new Date(issue.sentAt);
+        const unread = issue.state === 'unread';
         return (
           <Link
             key={issue.issueId}
@@ -35,13 +36,29 @@ const IssuesList = ({ issues }: IssuesListProps) => {
             className={cn('group', listRowClass)}
           >
             <div className="min-w-0">
-              <p className="truncate font-medium group-hover:underline">
-                {date.toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
-                })}
+              <p
+                className={cn(
+                  'flex min-w-0 items-center gap-2 group-hover:underline',
+                  unread ? 'font-semibold' : 'font-medium',
+                )}
+              >
+                {unread && (
+                  <>
+                    <span
+                      className="size-1.5 shrink-0 rounded-full bg-primary"
+                      aria-hidden="true"
+                    />
+                    <span className="sr-only">Unread</span>
+                  </>
+                )}
+                <span className="truncate">
+                  {date.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </span>
               </p>
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
                 {issue.newsletterName} ·{' '}

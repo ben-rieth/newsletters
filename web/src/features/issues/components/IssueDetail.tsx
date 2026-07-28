@@ -1,15 +1,23 @@
+import { Check, Circle, CircleCheck } from 'lucide-react';
 import { formatRelativeTime } from '#/utils/format';
+import { Button } from '#/components/ui/button';
+import { cn } from '#/lib/utils';
 import type {
   DetailedIssue,
   IssueFeed,
   IssueItem,
 } from '#/features/issues/queries/issues';
+import useUpdateIssueState from '#/features/issues/queries/hooks/useUpdateIssueState';
+import useUpdateIssueItemState from '#/features/issues/queries/hooks/useUpdateIssueItemState';
 
 interface IssueDetailProps {
   issue: DetailedIssue;
 }
 
 const IssueDetail = ({ issue }: IssueDetailProps) => {
+  const updateIssueState = useUpdateIssueState(issue.issueId);
+  const updateItemState = useUpdateIssueItemState(issue.issueId);
+
   const feeds = issue.feeds ?? [];
   const feedCount = feeds.length;
   const itemCount = feeds.reduce(
@@ -17,29 +25,74 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
     0,
   );
 
+  const issueRead = issue.state === 'read';
+  const pendingItemId = updateItemState.isPending
+    ? updateItemState.variables.itemId
+    : undefined;
+
   const sentDate = new Date(issue.sentAt).toLocaleDateString('en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
   });
 
-  const sortedFeeds = [...feeds].sort((a: IssueFeed, b: IssueFeed) => {
-    const aRead = (a.items ?? []).every((i) => i.state === 'read');
-    const bRead = (b.items ?? []).every((i) => i.state === 'read');
+  const unreadFirst = (a: IssueItem, b: IssueItem) => {
+    const aRead = a.state === 'read';
+    const bRead = b.state === 'read';
     if (aRead !== bRead) return aRead ? 1 : -1;
+
+    const byDate =
+      new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
+    if (byDate !== 0) return byDate;
+
     return a.title.localeCompare(b.title);
-  });
+  };
+
+  const sortedFeeds = feeds
+    .map((feed: IssueFeed, feedIdx: number) => ({
+      feed,
+      feedIdx,
+      items: [...(feed.items ?? [])].sort(unreadFirst),
+    }))
+    .sort((a, b) => {
+      const aRead = a.items.every((i) => i.state === 'read');
+      const bRead = b.items.every((i) => i.state === 'read');
+      if (aRead !== bRead) return aRead ? 1 : -1;
+      return a.feed.title.localeCompare(b.feed.title);
+    });
 
   return (
     <div className="space-y-8">
-      <header className="border-b border-border pb-6">
-        <h1 className="text-3xl font-bold tracking-tight">
-          {issue.newsletterName}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {sentDate} · {itemCount} {itemCount === 1 ? 'item' : 'items'} from{' '}
-          {feedCount} {feedCount === 1 ? 'feed' : 'feeds'}
-        </p>
+      <header className="flex items-start justify-between gap-4 border-b border-border pb-6">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold tracking-tight">
+            {issue.newsletterName}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {sentDate} · {itemCount} {itemCount === 1 ? 'item' : 'items'} from{' '}
+            {feedCount} {feedCount === 1 ? 'feed' : 'feeds'}
+          </p>
+        </div>
+
+        {itemCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            disabled={updateIssueState.isPending}
+            focusableWhenDisabled
+            onClick={() =>
+              updateIssueState.mutate(issueRead ? 'unread' : 'read')
+            }
+          >
+            {issueRead ? (
+              <CircleCheck data-icon="inline-start" />
+            ) : (
+              <Check data-icon="inline-start" />
+            )}
+            {issueRead ? 'Mark all unread' : 'Mark all read'}
+          </Button>
+        )}
       </header>
 
       {feeds.length === 0 ? (
@@ -48,7 +101,7 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
         </p>
       ) : (
         <div className="space-y-8">
-          {sortedFeeds.map((feed: IssueFeed, feedIdx: number) => (
+          {sortedFeeds.map(({ feed, feedIdx, items }) => (
             <section key={feedIdx} className="space-y-4">
               <a
                 href={feed.webUrl}
@@ -60,27 +113,60 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
               </a>
 
               <ul className="space-y-5">
-                {(feed.items ?? []).map((item: IssueItem) => {
+                {items.map((item: IssueItem) => {
                   const read = item.state === 'read';
                   return (
                     <li
                       key={item.itemId}
-                      className="border-b border-border/50 pb-5 last:border-0"
+                      className="flex items-start gap-3 border-b border-border/50 pb-5 last:border-0"
                     >
-                      <a
-                        href={`/api/link/${item.token}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`block text-lg font-semibold leading-snug transition-colors hover:text-primary ${
-                          read ? 'text-muted-foreground' : 'text-foreground'
-                        }`}
+                      <div className="min-w-0 flex-1">
+                        <a
+                          href={`/api/link/${item.token}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={cn(
+                            'block text-lg font-semibold leading-snug transition-colors hover:text-primary',
+                            read ? 'text-muted-foreground' : 'text-foreground',
+                          )}
+                          onClick={() => {
+                            if (!read) {
+                              updateItemState.mutate({
+                                itemId: item.itemId,
+                                state: 'read',
+                              });
+                            }
+                          }}
+                        >
+                          {item.title}
+                        </a>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {formatRelativeTime(item.publishDate)}
+                        </p>
+                      </div>
+
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        className="shrink-0 text-muted-foreground hover:text-foreground"
+                        aria-label="Read"
+                        aria-pressed={read}
+                        title={read ? 'Mark as unread' : 'Mark as read'}
+                        disabled={pendingItemId === item.itemId}
+                        focusableWhenDisabled
+                        onClick={() =>
+                          updateItemState.mutate({
+                            itemId: item.itemId,
+                            state: read ? 'unread' : 'read',
+                          })
+                        }
                       >
-                        {item.title}
-                      </a>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {formatRelativeTime(item.publishDate)}
-                        {read && ' · read'}
-                      </p>
+                        {read ? (
+                          <CircleCheck className="text-primary" />
+                        ) : (
+                          <Circle />
+                        )}
+                      </Button>
                     </li>
                   );
                 })}

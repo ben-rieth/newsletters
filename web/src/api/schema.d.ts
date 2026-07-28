@@ -191,7 +191,7 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
-  '/issues/{id}': {
+  '/issues/{issueId}': {
     parameters: {
       query?: never;
       header?: never;
@@ -201,6 +201,40 @@ export interface paths {
     /** Get a single issue with all items */
     get: operations['get-issue'];
     put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/issues/{issueId}/item/{itemId}/state': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Updates the read status of a single item in an issue */
+    put: operations['update-issue-item-state'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/issues/{issueId}/state': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** Sets the read status of every item in an issue */
+    put: operations['update-issue-state'];
     post?: never;
     delete?: never;
     options?: never;
@@ -252,7 +286,7 @@ export interface paths {
     };
     /** Get data associated with a feed */
     get: operations['get-feed'];
-    /** Update the name and URL of a feed */
+    /** Update the alias of a feed */
     put: operations['update-feed'];
     post?: never;
     /** Deletes a feed from a newsletter */
@@ -551,6 +585,8 @@ export interface components {
       newsletterName: string;
       /** Format: date-time */
       sentAt: string;
+      /** @enum {string} */
+      state: 'read' | 'unread';
     };
     ErrorDetail: {
       /** @description Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
@@ -654,6 +690,8 @@ export interface components {
       newsletterName: string;
       /** Format: date-time */
       sentAt: string;
+      /** @enum {string} */
+      state: 'read' | 'unread';
     };
     IssueFeed: {
       items: components['schemas']['IssueItem'][] | null;
@@ -664,9 +702,20 @@ export interface components {
       itemId: string;
       /** Format: date-time */
       publishDate: string;
-      state: string;
+      /** @enum {string} */
+      state: 'read' | 'unread';
       title: string;
       token: string;
+    };
+    IssueStateBody: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/IssueStateBody.json
+       */
+      readonly $schema?: string;
+      /** @enum {string} */
+      state: 'read' | 'unread';
     };
     ItemPreview: {
       id: string;
@@ -1211,7 +1260,7 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        id: string;
+        issueId: string;
       };
       cookie?: never;
     };
@@ -1225,6 +1274,73 @@ export interface operations {
         content: {
           'application/json': components['schemas']['DetailedIssue'];
         };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'update-issue-item-state': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        issueId: string;
+        itemId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['IssueStateBody'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'update-issue-state': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        issueId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['IssueStateBody'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Error */
       default: {

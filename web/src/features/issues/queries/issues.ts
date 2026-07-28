@@ -7,9 +7,12 @@ export type DetailedIssue = components['schemas']['DetailedIssue'];
 export type IssueFeed = components['schemas']['IssueFeed'];
 export type IssueItem = components['schemas']['IssueItem'];
 
+export type IssueState = Issue['state'];
+
 export const issueKeys = {
   all: ['issues' as const],
   detail: (id: string) => ['issues', id] as const,
+  itemState: (id: string) => ['issues', id, 'itemState'] as const,
 };
 
 export const issuesOptions = queryOptions({
@@ -25,8 +28,8 @@ export const issueDetailOptions = (issueId: string) =>
   queryOptions({
     queryKey: issueKeys.detail(issueId),
     queryFn: async () => {
-      const { data, error } = await client.GET('/issues/{id}', {
-        params: { path: { id: issueId } },
+      const { data, error } = await client.GET('/issues/{issueId}', {
+        params: { path: { issueId } },
       });
       if (error) throw error;
       return data;

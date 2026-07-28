@@ -386,7 +386,7 @@ func newDoesNewsletterExistMiddleware(api huma.API, queries *db.Queries) func(ct
 		}
 
 		if !exists {
-			huma.WriteErr(api, ctx, http.StatusNotFound, notFoundErrorText("feed"))
+			huma.WriteErr(api, ctx, http.StatusNotFound, notFoundErrorText("newsletter"))
 			return
 		}
 
