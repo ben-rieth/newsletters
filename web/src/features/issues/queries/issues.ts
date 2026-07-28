@@ -12,6 +12,7 @@ export type IssueState = Issue['state'];
 export const issueKeys = {
   all: ['issues' as const],
   detail: (id: string) => ['issues', id] as const,
+  itemState: (id: string) => ['issues', id, 'itemState'] as const,
 };
 
 export const issuesOptions = queryOptions({

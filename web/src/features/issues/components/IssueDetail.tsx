@@ -26,6 +26,9 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
   );
 
   const issueRead = issue.state === 'read';
+  const pendingItemId = updateItemState.isPending
+    ? updateItemState.variables.itemId
+    : undefined;
 
   const sentDate = new Date(issue.sentAt).toLocaleDateString('en-US', {
     weekday: 'long',
@@ -33,12 +36,14 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
     month: 'long',
   });
 
-  const sortedFeeds = [...feeds].sort((a: IssueFeed, b: IssueFeed) => {
-    const aRead = (a.items ?? []).every((i) => i.state === 'read');
-    const bRead = (b.items ?? []).every((i) => i.state === 'read');
-    if (aRead !== bRead) return aRead ? 1 : -1;
-    return a.title.localeCompare(b.title);
-  });
+  const sortedFeeds = feeds
+    .map((feed: IssueFeed, feedIdx: number) => ({ feed, feedIdx }))
+    .sort((a, b) => {
+      const aRead = (a.feed.items ?? []).every((i) => i.state === 'read');
+      const bRead = (b.feed.items ?? []).every((i) => i.state === 'read');
+      if (aRead !== bRead) return aRead ? 1 : -1;
+      return a.feed.title.localeCompare(b.feed.title);
+    });
 
   return (
     <div className="space-y-8">
@@ -53,20 +58,25 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
           </p>
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          disabled={updateIssueState.isPending}
-          onClick={() => updateIssueState.mutate(issueRead ? 'unread' : 'read')}
-        >
-          {issueRead ? (
-            <CircleCheck data-icon="inline-start" />
-          ) : (
-            <Check data-icon="inline-start" />
-          )}
-          {issueRead ? 'Mark all unread' : 'Mark all read'}
-        </Button>
+        {itemCount > 0 && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            disabled={updateIssueState.isPending}
+            focusableWhenDisabled
+            onClick={() =>
+              updateIssueState.mutate(issueRead ? 'unread' : 'read')
+            }
+          >
+            {issueRead ? (
+              <CircleCheck data-icon="inline-start" />
+            ) : (
+              <Check data-icon="inline-start" />
+            )}
+            {issueRead ? 'Mark all unread' : 'Mark all read'}
+          </Button>
+        )}
       </header>
 
       {feeds.length === 0 ? (
@@ -75,7 +85,7 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
         </p>
       ) : (
         <div className="space-y-8">
-          {sortedFeeds.map((feed: IssueFeed, feedIdx: number) => (
+          {sortedFeeds.map(({ feed, feedIdx }) => (
             <section key={feedIdx} className="space-y-4">
               <a
                 href={feed.webUrl}
@@ -103,6 +113,14 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
                             'block text-lg font-semibold leading-snug transition-colors hover:text-primary',
                             read ? 'text-muted-foreground' : 'text-foreground',
                           )}
+                          onClick={() => {
+                            if (!read) {
+                              updateItemState.mutate({
+                                itemId: item.itemId,
+                                state: 'read',
+                              });
+                            }
+                          }}
                         >
                           {item.title}
                         </a>
@@ -115,9 +133,11 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
                         variant="ghost"
                         size="icon-sm"
                         className="shrink-0 text-muted-foreground hover:text-foreground"
-                        aria-label={read ? 'Mark as unread' : 'Mark as read'}
-                        title={read ? 'Mark as unread' : 'Mark as read'}
+                        aria-label="Read"
                         aria-pressed={read}
+                        title={read ? 'Mark as unread' : 'Mark as read'}
+                        disabled={pendingItemId === item.itemId}
+                        focusableWhenDisabled
                         onClick={() =>
                           updateItemState.mutate({
                             itemId: item.itemId,

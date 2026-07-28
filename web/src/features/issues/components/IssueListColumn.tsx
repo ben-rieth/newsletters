@@ -76,10 +76,13 @@ const IssueListColumn = ({ issues }: Props) => {
                       )}
                     >
                       {unread && (
-                        <span
-                          className="size-1.5 shrink-0 self-center rounded-full bg-primary"
-                          aria-label="Unread"
-                        />
+                        <>
+                          <span
+                            className="size-1.5 shrink-0 self-center rounded-full bg-primary"
+                            aria-hidden="true"
+                          />
+                          <span className="sr-only">Unread</span>
+                        </>
                       )}
                       <span className="truncate">{issue.newsletterName}</span>
                     </span>

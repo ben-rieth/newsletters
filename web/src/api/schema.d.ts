@@ -233,7 +233,7 @@ export interface paths {
       cookie?: never;
     };
     get?: never;
-    /** Updates the read status of a whole issue */
+    /** Sets the read status of every item in an issue */
     put: operations['update-issue-state'];
     post?: never;
     delete?: never;
@@ -707,6 +707,16 @@ export interface components {
       title: string;
       token: string;
     };
+    IssueStateBody: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/IssueStateBody.json
+       */
+      readonly $schema?: string;
+      /** @enum {string} */
+      state: 'read' | 'unread';
+    };
     ItemPreview: {
       id: string;
       matchedFilter?: components['schemas']['FeedFilter'];
@@ -863,26 +873,6 @@ export interface components {
       readonly $schema?: string;
       currentPassword: string;
       newPassword: string;
-    };
-    UpdateIssueItemStateInputBody: {
-      /**
-       * Format: uri
-       * @description A URL to the JSON Schema for this object.
-       * @example https://example.com/schemas/UpdateIssueItemStateInputBody.json
-       */
-      readonly $schema?: string;
-      /** @enum {string} */
-      state: 'read' | 'unread';
-    };
-    UpdateIssueStateInputBody: {
-      /**
-       * Format: uri
-       * @description A URL to the JSON Schema for this object.
-       * @example https://example.com/schemas/UpdateIssueStateInputBody.json
-       */
-      readonly $schema?: string;
-      /** @enum {string} */
-      state: 'read' | 'unread';
     };
     'Verify-email-updateRequest': {
       /**
@@ -1306,9 +1296,9 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: {
+    requestBody: {
       content: {
-        'application/json': components['schemas']['UpdateIssueItemStateInputBody'];
+        'application/json': components['schemas']['IssueStateBody'];
       };
     };
     responses: {
@@ -1339,9 +1329,9 @@ export interface operations {
       };
       cookie?: never;
     };
-    requestBody?: {
+    requestBody: {
       content: {
-        'application/json': components['schemas']['UpdateIssueStateInputBody'];
+        'application/json': components['schemas']['IssueStateBody'];
       };
     };
     responses: {

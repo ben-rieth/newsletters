@@ -2,8 +2,13 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import client from '#/api/client';
 import { getErrorMessage } from '#/lib/errors';
-import { issueKeys } from '../issues';
-import type { DetailedIssue, Issue, IssueState } from '../issues';
+import {
+  applyItemStates,
+  invalidateIssueCaches,
+  restoreIssueCaches,
+  snapshotIssueCaches,
+} from '../issueCache';
+import type { IssueState } from '../issues';
 
 const useUpdateIssueState = (issueId: string) => {
   const queryClient = useQueryClient();
@@ -19,54 +24,15 @@ const useUpdateIssueState = (issueId: string) => {
       }
     },
     onMutate: async (state) => {
-      await Promise.all([
-        queryClient.cancelQueries({ queryKey: issueKeys.all }),
-        queryClient.cancelQueries({ queryKey: issueKeys.detail(issueId) }),
-      ]);
-
-      const previousList = queryClient.getQueryData<Issue[]>(issueKeys.all);
-      const previousDetail = queryClient.getQueryData<DetailedIssue>(
-        issueKeys.detail(issueId),
-      );
-
-      queryClient.setQueryData<Issue[]>(issueKeys.all, (issues) =>
-        issues?.map((issue) =>
-          issue.issueId === issueId ? { ...issue, state } : issue,
-        ),
-      );
-      queryClient.setQueryData<DetailedIssue>(
-        issueKeys.detail(issueId),
-        (issue) =>
-          issue
-            ? {
-                ...issue,
-                state,
-                feeds: (issue.feeds ?? []).map((feed) => ({
-                  ...feed,
-                  items: (feed.items ?? []).map((item) => ({ ...item, state })),
-                })),
-              }
-            : issue,
-      );
-
-      return { previousList, previousDetail };
+      const snapshot = await snapshotIssueCaches(queryClient, issueId);
+      applyItemStates(queryClient, issueId, () => state);
+      return snapshot;
     },
-    onError: (error, _state, context) => {
-      if (context?.previousList) {
-        queryClient.setQueryData(issueKeys.all, context.previousList);
-      }
-      if (context?.previousDetail) {
-        queryClient.setQueryData(
-          issueKeys.detail(issueId),
-          context.previousDetail,
-        );
-      }
+    onError: (error, _state, snapshot) => {
+      restoreIssueCaches(queryClient, issueId, snapshot);
       toast.error(getErrorMessage(error));
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: issueKeys.all });
-      queryClient.invalidateQueries({ queryKey: issueKeys.detail(issueId) });
-    },
+    onSettled: () => invalidateIssueCaches(queryClient, issueId),
   });
 };
 

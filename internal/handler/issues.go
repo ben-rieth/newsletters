@@ -116,11 +116,13 @@ func (h *IssuesHandler) handleGetIssue(
 	}, nil
 }
 
+type issueStateBody struct {
+	State db.ItemState `json:"state" enum:"read,unread"`
+}
+
 type updateIssueStateInput struct {
 	IssueID string `path:"issueId" format:"uuid"`
-	Body    *struct {
-		State string `json:"state" enum:"read,unread"`
-	}
+	Body    issueStateBody
 }
 
 func (h *IssuesHandler) handleUpdateIssueState(
@@ -135,7 +137,7 @@ func (h *IssuesHandler) handleUpdateIssueState(
 	if err := h.queries.UpdateAllIssueItemsState(ctx, db.UpdateAllIssueItemsStateParams{
 		IssueID: i.IssueID,
 		UserID:  claims.Subject,
-		State:   db.ItemState(i.Body.State),
+		State:   i.Body.State,
 	}); err != nil {
 		return nil, internalServerError(ctx, err)
 	}
@@ -146,9 +148,7 @@ func (h *IssuesHandler) handleUpdateIssueState(
 type updateIssueItemStateInput struct {
 	IssueID string `path:"issueId" format:"uuid"`
 	ItemID  string `path:"itemId" format:"uuid"`
-	Body    *struct {
-		State string `json:"state" enum:"read,unread"`
-	}
+	Body    issueStateBody
 }
 
 func (h *IssuesHandler) handleUpdateIssueItemState(
@@ -164,7 +164,7 @@ func (h *IssuesHandler) handleUpdateIssueItemState(
 		ItemID:  i.ItemID,
 		IssueID: i.IssueID,
 		UserID:  claims.Subject,
-		State:   db.ItemState(i.Body.State),
+		State:   i.Body.State,
 	}); err != nil {
 		return nil, internalServerError(ctx, err)
 	}
@@ -234,7 +234,7 @@ func newDoesIssueItemExistMiddleware(api huma.API, queries *db.Queries) func(ctx
 		}
 
 		if !exists {
-			huma.WriteErr(api, ctx, http.StatusNotFound, notFoundErrorText("issue"))
+			huma.WriteErr(api, ctx, http.StatusNotFound, notFoundErrorText("issue item"))
 			return
 		}
 
