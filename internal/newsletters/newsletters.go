@@ -31,25 +31,27 @@ type NewslettersExport struct {
 }
 
 type Issue struct {
-	IssueID        string    `json:"issueId"`
-	NewsletterID   string    `json:"newsletterId"`
-	NewsletterName string    `json:"newsletterName"`
-	SentAt         time.Time `json:"sentAt"`
+	IssueID        string       `json:"issueId"`
+	NewsletterID   string       `json:"newsletterId"`
+	NewsletterName string       `json:"newsletterName"`
+	SentAt         time.Time    `json:"sentAt"`
+	State          db.ItemState `json:"state" enum:"read,unread"`
 }
 
 type DetailedIssue struct {
-	IssueID        string      `json:"issueId"`
-	NewsletterID   string      `json:"newsletterId"`
-	NewsletterName string      `json:"newsletterName"`
-	SentAt         time.Time   `json:"sentAt"`
-	Feeds          []IssueFeed `json:"feeds"`
+	IssueID        string       `json:"issueId"`
+	NewsletterID   string       `json:"newsletterId"`
+	NewsletterName string       `json:"newsletterName"`
+	SentAt         time.Time    `json:"sentAt"`
+	State          db.ItemState `json:"state" enum:"read,unread"`
+	Feeds          []IssueFeed  `json:"feeds"`
 }
 
 type IssueItem struct {
 	ItemID      string       `json:"itemId"`
 	Title       string       `json:"title"`
 	Token       string       `json:"token"`
-	State       db.ItemState `json:"state"`
+	State       db.ItemState `json:"state" enum:"read,unread"`
 	PublishDate time.Time    `json:"publishDate"`
 }
 

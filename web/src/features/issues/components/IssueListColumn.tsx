@@ -55,6 +55,7 @@ const IssueListColumn = ({ issues }: Props) => {
             {group.items.map((issue) => {
               const date = new Date(issue.sentAt);
               const isActive = issue.issueId === activeId;
+              const unread = issue.state === 'unread';
               return (
                 <Link
                   key={issue.issueId}
@@ -68,8 +69,19 @@ const IssueListColumn = ({ issues }: Props) => {
                   )}
                 >
                   <div className="flex items-baseline justify-between gap-2">
-                    <span className="truncate text-xs font-semibold uppercase tracking-wide text-primary">
-                      {issue.newsletterName}
+                    <span
+                      className={cn(
+                        'flex min-w-0 items-baseline gap-1.5 text-xs font-semibold uppercase tracking-wide',
+                        unread ? 'text-primary' : 'text-muted-foreground',
+                      )}
+                    >
+                      {unread && (
+                        <span
+                          className="size-1.5 shrink-0 self-center rounded-full bg-primary"
+                          aria-label="Unread"
+                        />
+                      )}
+                      <span className="truncate">{issue.newsletterName}</span>
                     </span>
                     <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                       {date.toLocaleTimeString('en-US', {
