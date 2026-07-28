@@ -27,14 +27,17 @@ WHERE i.user_id = $1 AND i.id = $2;
 SELECT ii.state, ii.item_id, ii.token, i.title, i.publish_date, i.feed_id
 FROM issue_item AS ii
 INNER JOIN feed_item AS i ON ii.item_id = i.id
-WHERE issue_id = $1 AND user_id = $2;
+WHERE issue_id = $1 AND user_id = $2
+ORDER BY ii.state = 'read', i.publish_date DESC, i.title;
 
 -- name: GetIssueFeeds :many
-SELECT DISTINCT f.* 
+SELECT f.*
 FROM feed AS f
 INNER JOIN feed_item AS item ON item.feed_id = f.id
 INNER JOIN issue_item AS issue_item ON item.id = issue_item.item_id
-WHERE issue_item.issue_id = $1 AND user_id = $2;
+WHERE issue_item.issue_id = $1 AND issue_item.user_id = $2
+GROUP BY f.id
+ORDER BY bool_and(issue_item.state = 'read'), f.title;
 
 -- name: GetIssueItemUrlByToken :one
 SELECT fi.url FROM issue_item AS ii

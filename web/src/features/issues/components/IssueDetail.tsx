@@ -36,11 +36,27 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
     month: 'long',
   });
 
+  const unreadFirst = (a: IssueItem, b: IssueItem) => {
+    const aRead = a.state === 'read';
+    const bRead = b.state === 'read';
+    if (aRead !== bRead) return aRead ? 1 : -1;
+
+    const byDate =
+      new Date(b.publishDate).getTime() - new Date(a.publishDate).getTime();
+    if (byDate !== 0) return byDate;
+
+    return a.title.localeCompare(b.title);
+  };
+
   const sortedFeeds = feeds
-    .map((feed: IssueFeed, feedIdx: number) => ({ feed, feedIdx }))
+    .map((feed: IssueFeed, feedIdx: number) => ({
+      feed,
+      feedIdx,
+      items: [...(feed.items ?? [])].sort(unreadFirst),
+    }))
     .sort((a, b) => {
-      const aRead = (a.feed.items ?? []).every((i) => i.state === 'read');
-      const bRead = (b.feed.items ?? []).every((i) => i.state === 'read');
+      const aRead = a.items.every((i) => i.state === 'read');
+      const bRead = b.items.every((i) => i.state === 'read');
       if (aRead !== bRead) return aRead ? 1 : -1;
       return a.feed.title.localeCompare(b.feed.title);
     });
@@ -85,7 +101,7 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
         </p>
       ) : (
         <div className="space-y-8">
-          {sortedFeeds.map(({ feed, feedIdx }) => (
+          {sortedFeeds.map(({ feed, feedIdx, items }) => (
             <section key={feedIdx} className="space-y-4">
               <a
                 href={feed.webUrl}
@@ -97,7 +113,7 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
               </a>
 
               <ul className="space-y-5">
-                {(feed.items ?? []).map((item: IssueItem) => {
+                {items.map((item: IssueItem) => {
                   const read = item.state === 'read';
                   return (
                     <li
