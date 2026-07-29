@@ -69,7 +69,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 		lastSendTimeByNewsletter[row.ID] = lastSentAt
 	}
 
-	feedsResult, err := service.queries.GetFeedsForManyNewsletters(ctx, newsletterIds)
+	feedsResult, err := service.queries.GetSendableFeedsForManyNewsletters(ctx, newsletterIds)
 	if err != nil {
 		return nil, err
 	}

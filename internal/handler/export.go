@@ -151,7 +151,10 @@ func (h *ExportHander) getFeedsByNl(
 	userId string,
 	nlIds []string,
 ) (map[string][]feeds.ExportableFeed, error) {
-	fds, err := h.queries.GetFeedsForManyNewsletters(ctx, nlIds)
+	fds, err := h.queries.GetFeedsForManyNewsletters(ctx, db.GetFeedsForManyNewslettersParams{
+		NewsletterIds: nlIds,
+		UserID:        userId,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -192,6 +195,7 @@ func (h *ExportHander) getFeedsByNl(
 				Name:     feed.Title,
 				Alias:    feed.Alias,
 				URL:      feed.Url,
+				Status:   string(feed.Status),
 				Filters:  filtersByFeed[feed.NewsletterFeedID],
 			},
 		)

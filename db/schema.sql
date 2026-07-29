@@ -1,4 +1,4 @@
-\restrict oFhB1vPGbkp5RqTdk3pNvopwv7v3rPc3TLEp4uT8YD13gKR9mBJkGEbAAPRHgEd
+\restrict lsXxfWcV6Zk7YMH89qUFpu8AqLXAZdCYXjLwL7FRljCgwvtjQ0WHEVkRzO2zeNw
 
 -- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
@@ -230,7 +230,8 @@ CREATE TABLE public.newsletter_feed (
     user_id uuid NOT NULL,
     alias text DEFAULT ''::text NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    status public.newsletter_status DEFAULT 'active'::public.newsletter_status NOT NULL
 );
 
 
@@ -635,7 +636,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict oFhB1vPGbkp5RqTdk3pNvopwv7v3rPc3TLEp4uT8YD13gKR9mBJkGEbAAPRHgEd
+\unrestrict lsXxfWcV6Zk7YMH89qUFpu8AqLXAZdCYXjLwL7FRljCgwvtjQ0WHEVkRzO2zeNw
 
 
 --
@@ -650,4 +651,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260509195259'),
     ('20260723225224'),
     ('20260726143000'),
-    ('20260727233615');
+    ('20260727233615'),
+    ('20260729213305');

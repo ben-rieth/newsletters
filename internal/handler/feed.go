@@ -44,13 +44,14 @@ type addFeedInput struct {
 }
 
 type uiFeed struct {
-	Id          string           `json:"id"`
-	Title       string           `json:"title"`
-	Description string           `json:"description"`
-	Url         string           `json:"url"`
-	HtmlURL     string           `json:"htmlUrl"`
-	Alias       string           `json:"alias"`
-	Health      feeds.FeedHealth `json:"health"`
+	Id          string              `json:"id"`
+	Title       string              `json:"title"`
+	Description string              `json:"description"`
+	Url         string              `json:"url"`
+	HtmlURL     string              `json:"htmlUrl"`
+	Alias       string              `json:"alias"`
+	Health      feeds.FeedHealth    `json:"health"`
+	Status      db.NewsletterStatus `json:"status"`
 }
 
 type listFeedsOutput struct {
@@ -68,14 +69,15 @@ type updateFeedInput struct {
 }
 
 type uiDetailedFeed struct {
-	Id          string             `json:"id"`
-	Alias       string             `json:"alias"`
-	Title       string             `json:"title"`
-	Url         string             `json:"url"`
-	HtmlUrl     string             `json:"htmlUrl"`
-	Description string             `json:"description"`
-	Filters     []feeds.FeedFilter `json:"filters"`
-	Health      feeds.FeedHealth   `json:"health"`
+	Id          string              `json:"id"`
+	Alias       string              `json:"alias"`
+	Title       string              `json:"title"`
+	Url         string              `json:"url"`
+	HtmlUrl     string              `json:"htmlUrl"`
+	Description string              `json:"description"`
+	Status      db.NewsletterStatus `json:"status"`
+	Filters     []feeds.FeedFilter  `json:"filters"`
+	Health      feeds.FeedHealth    `json:"health"`
 }
 
 type getFeedOutput struct {
@@ -174,6 +176,15 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		Summary:     "Preview how filters impact the items in the feed",
 		Middlewares: huma.Middlewares{doesFeedExistMiddleware},
 	}, h.handlePreviewFeed)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "update-feed-status",
+		Method:        http.MethodPatch,
+		Path:          "/newsletter/{newsletterId}/feed/{feedId}/status",
+		Summary:       "Change feed to active or inactive status",
+		DefaultStatus: http.StatusNoContent,
+		Middlewares:   huma.Middlewares{doesFeedExistMiddleware},
+	}, h.handleUpdateFeedStatus)
 }
 
 func (h *FeedHandler) handleAddFeed(ctx context.Context, input *addFeedInput) (*struct{}, error) {
@@ -246,6 +257,7 @@ func (h *FeedHandler) handleListFeeds(ctx context.Context, input *newsletterIdPa
 			Url:         nlFeed.Url,
 			HtmlURL:     nlFeed.HtmlUrl,
 			Alias:       nlFeed.Alias,
+			Status:      nlFeed.Status,
 			Health: feeds.BuildFeedHealth(
 				dbutil.FromTimestamp(nlFeed.DisabledUntil),
 				nlFeed.LastRetrievedAt,
@@ -356,6 +368,7 @@ func (h *FeedHandler) handleGetFeed(ctx context.Context, i *feedIdPath) (*getFee
 			Url:         feed.Url,
 			HtmlUrl:     feed.HtmlUrl,
 			Description: feed.Description,
+			Status:      feed.Status,
 			Filters:     feedFilters,
 			Health: feeds.BuildFeedHealth(
 				dbutil.FromTimestamp(feed.DisabledUntil),
@@ -455,6 +468,31 @@ func (h *FeedHandler) handlePreviewFeed(ctx context.Context, i *feedIdPath) (*pr
 	return &previewFeedOutput{
 		Body: itemPreviews,
 	}, nil
+}
+
+type updateFeedStatusInput struct {
+	NewsletterID string `path:"newsletterId"`
+	FeedID       string `path:"feedId"`
+	Body         struct {
+		Status string `json:"status" enum:"active,inactive"`
+	}
+}
+
+func (h *FeedHandler) handleUpdateFeedStatus(ctx context.Context, i *updateFeedStatusInput) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	if err := h.queries.UpdateNewsletterFeedStatus(ctx, db.UpdateNewsletterFeedStatusParams{
+		ID:     i.FeedID,
+		UserID: claims.Subject,
+		Status: db.NewsletterStatus(i.Body.Status),
+	}); err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
 }
 
 func newDoesFeedExistMiddleware(api huma.API, queries *db.Queries) func(ctx huma.Context, next func(huma.Context)) {

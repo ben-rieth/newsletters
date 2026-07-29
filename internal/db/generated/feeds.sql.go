@@ -224,7 +224,7 @@ func (q *Queries) GetFeedBreakerState(ctx context.Context, id string) (GetFeedBr
 
 const getFeedById = `-- name: GetFeedById :one
 SELECT
-    nlf.id, f.title, f.description, f.url, f.html_url, nlf.alias,
+    nlf.id, f.title, f.description, f.url, f.html_url, nlf.alias, nlf.status,
     f.disabled_until, f.last_retrieved_at
 FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
@@ -243,6 +243,7 @@ type GetFeedByIdRow struct {
 	Url             string
 	HtmlUrl         string
 	Alias           string
+	Status          NewsletterStatus
 	DisabledUntil   pgtype.Timestamptz
 	LastRetrievedAt time.Time
 }
@@ -257,6 +258,7 @@ func (q *Queries) GetFeedById(ctx context.Context, arg GetFeedByIdParams) (GetFe
 		&i.Url,
 		&i.HtmlUrl,
 		&i.Alias,
+		&i.Status,
 		&i.DisabledUntil,
 		&i.LastRetrievedAt,
 	)
@@ -332,12 +334,17 @@ func (q *Queries) GetFeedItemsPublishedAfter(ctx context.Context, arg GetFeedIte
 const getFeedsForManyNewsletters = `-- name: GetFeedsForManyNewsletters :many
 SELECT
     f.id AS global_feed_id, nlf.id AS newsletter_feed_id,
-    f.title, f.url, f.html_url, f.last_retrieved_at,
+    f.title, f.url, f.html_url, nlf.status, f.last_retrieved_at,
     nlf.newsletter_id, nlf.alias
 FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
-WHERE nlf.newsletter_id = ANY($1::UUID[])
+WHERE nlf.newsletter_id = ANY($2::UUID[]) AND nlf.user_id = $1
 `
+
+type GetFeedsForManyNewslettersParams struct {
+	UserID        string
+	NewsletterIds []string
+}
 
 type GetFeedsForManyNewslettersRow struct {
 	GlobalFeedID     string
@@ -345,13 +352,14 @@ type GetFeedsForManyNewslettersRow struct {
 	Title            string
 	Url              string
 	HtmlUrl          string
+	Status           NewsletterStatus
 	LastRetrievedAt  time.Time
 	NewsletterID     string
 	Alias            string
 }
 
-func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []string) ([]GetFeedsForManyNewslettersRow, error) {
-	rows, err := q.db.Query(ctx, getFeedsForManyNewsletters, dollar_1)
+func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, arg GetFeedsForManyNewslettersParams) ([]GetFeedsForManyNewslettersRow, error) {
+	rows, err := q.db.Query(ctx, getFeedsForManyNewsletters, arg.UserID, arg.NewsletterIds)
 	if err != nil {
 		return nil, err
 	}
@@ -365,6 +373,7 @@ func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []str
 			&i.Title,
 			&i.Url,
 			&i.HtmlUrl,
+			&i.Status,
 			&i.LastRetrievedAt,
 			&i.NewsletterID,
 			&i.Alias,
@@ -381,7 +390,8 @@ func (q *Queries) GetFeedsForManyNewsletters(ctx context.Context, dollar_1 []str
 
 const getFeedsForNewsletter = `-- name: GetFeedsForNewsletter :many
 SELECT
-    f.title, f.description, f.url, f.html_url, nf.alias, nf.id,
+    f.title, f.description, f.url, f.html_url, 
+    nf.alias, nf.status, nf.id,
     f.disabled_until, f.last_retrieved_at
 FROM newsletter_feed AS nf
 INNER JOIN feed AS f ON nf.feed_id = f.id
@@ -394,6 +404,7 @@ type GetFeedsForNewsletterRow struct {
 	Url             string
 	HtmlUrl         string
 	Alias           string
+	Status          NewsletterStatus
 	ID              string
 	DisabledUntil   pgtype.Timestamptz
 	LastRetrievedAt time.Time
@@ -414,6 +425,7 @@ func (q *Queries) GetFeedsForNewsletter(ctx context.Context, newsletterID string
 			&i.Url,
 			&i.HtmlUrl,
 			&i.Alias,
+			&i.Status,
 			&i.ID,
 			&i.DisabledUntil,
 			&i.LastRetrievedAt,
@@ -485,6 +497,56 @@ func (q *Queries) GetLastFeedFailuresForNewsletter(ctx context.Context, arg GetL
 	for rows.Next() {
 		var i GetLastFeedFailuresForNewsletterRow
 		if err := rows.Scan(&i.NewsletterFeedID, &i.OccurredAt, &i.Message); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getSendableFeedsForManyNewsletters = `-- name: GetSendableFeedsForManyNewsletters :many
+SELECT
+    f.id AS global_feed_id, nlf.id AS newsletter_feed_id,
+    f.title, f.url, f.html_url, f.last_retrieved_at,
+    nlf.newsletter_id, nlf.alias
+FROM newsletter_feed AS nlf
+INNER JOIN feed AS f ON nlf.feed_id = f.id
+WHERE nlf.newsletter_id = ANY($1::UUID[]) AND nlf.status = 'active'
+`
+
+type GetSendableFeedsForManyNewslettersRow struct {
+	GlobalFeedID     string
+	NewsletterFeedID string
+	Title            string
+	Url              string
+	HtmlUrl          string
+	LastRetrievedAt  time.Time
+	NewsletterID     string
+	Alias            string
+}
+
+func (q *Queries) GetSendableFeedsForManyNewsletters(ctx context.Context, newsletterIds []string) ([]GetSendableFeedsForManyNewslettersRow, error) {
+	rows, err := q.db.Query(ctx, getSendableFeedsForManyNewsletters, newsletterIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSendableFeedsForManyNewslettersRow
+	for rows.Next() {
+		var i GetSendableFeedsForManyNewslettersRow
+		if err := rows.Scan(
+			&i.GlobalFeedID,
+			&i.NewsletterFeedID,
+			&i.Title,
+			&i.Url,
+			&i.HtmlUrl,
+			&i.LastRetrievedAt,
+			&i.NewsletterID,
+			&i.Alias,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -703,5 +765,20 @@ func (q *Queries) UpdateNewsletterFeed(ctx context.Context, arg UpdateNewsletter
 		arg.ID,
 		arg.UserID,
 	)
+	return err
+}
+
+const updateNewsletterFeedStatus = `-- name: UpdateNewsletterFeedStatus :exec
+UPDATE newsletter_feed SET status = $1 WHERE id = $2 AND user_id = $3
+`
+
+type UpdateNewsletterFeedStatusParams struct {
+	Status NewsletterStatus
+	ID     string
+	UserID string
+}
+
+func (q *Queries) UpdateNewsletterFeedStatus(ctx context.Context, arg UpdateNewsletterFeedStatusParams) error {
+	_, err := q.db.Exec(ctx, updateNewsletterFeedStatus, arg.Status, arg.ID, arg.UserID)
 	return err
 }

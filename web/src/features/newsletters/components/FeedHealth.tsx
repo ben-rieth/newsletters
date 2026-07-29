@@ -30,7 +30,7 @@ export const FeedHealthBadge = ({ health }: { health: FeedHealth }) => {
       title={lastFailure ?? undefined}
     >
       {paused ? <PauseCircle /> : <CircleAlert />}
-      {paused ? 'Paused' : 'Failing'}
+      {paused ? 'Fetch paused' : 'Failing'}
       {lastFailure && <span className="sr-only">: {lastFailure}</span>}
     </Badge>
   );

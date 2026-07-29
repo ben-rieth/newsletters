@@ -442,6 +442,7 @@ type NewsletterFeed struct {
 	Alias        string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
+	Status       NewsletterStatus
 }
 
 type NewsletterFeedFilter struct {

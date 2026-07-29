@@ -27,7 +27,8 @@ INSERT INTO feed_url (feed_id, url, source) VALUES ($1, $2, $3);
 
 -- name: GetFeedsForNewsletter :many
 SELECT
-    f.title, f.description, f.url, f.html_url, nf.alias, nf.id,
+    f.title, f.description, f.url, f.html_url, 
+    nf.alias, nf.status, nf.id,
     f.disabled_until, f.last_retrieved_at
 FROM newsletter_feed AS nf
 INNER JOIN feed AS f ON nf.feed_id = f.id
@@ -51,14 +52,23 @@ WHERE newsletter_id = $2 AND id = $3 AND user_id = $4;
 -- name: DeleteNewsletterFeed :exec
 DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND id = $2 AND user_id = $3;
 
--- name: GetFeedsForManyNewsletters :many
+-- name: GetSendableFeedsForManyNewsletters :many
 SELECT
     f.id AS global_feed_id, nlf.id AS newsletter_feed_id,
     f.title, f.url, f.html_url, f.last_retrieved_at,
     nlf.newsletter_id, nlf.alias
 FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
-WHERE nlf.newsletter_id = ANY($1::UUID[]);
+WHERE nlf.newsletter_id = ANY(@newsletter_ids::UUID[]) AND nlf.status = 'active';
+
+-- name: GetFeedsForManyNewsletters :many
+SELECT
+    f.id AS global_feed_id, nlf.id AS newsletter_feed_id,
+    f.title, f.url, f.html_url, nlf.status, f.last_retrieved_at,
+    nlf.newsletter_id, nlf.alias
+FROM newsletter_feed AS nlf
+INNER JOIN feed AS f ON nlf.feed_id = f.id
+WHERE nlf.newsletter_id = ANY(@newsletter_ids::UUID[]) AND nlf.user_id = $1;
 
 -- name: DeleteAllFeedsInNewsletter :exec
 DELETE FROM newsletter_feed WHERE newsletter_id = $1;
@@ -118,7 +128,7 @@ UPDATE feed SET last_retrieved_at = $1, updated_at = NOW() WHERE id = $2;
 
 -- name: GetFeedById :one
 SELECT
-    nlf.id, f.title, f.description, f.url, f.html_url, nlf.alias,
+    nlf.id, f.title, f.description, f.url, f.html_url, nlf.alias, nlf.status,
     f.disabled_until, f.last_retrieved_at
 FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
@@ -161,3 +171,6 @@ WHERE id = $2 AND (disabled_until IS NULL OR disabled_until <= NOW());
 -- name: ResetFeedBreaker :exec
 UPDATE feed SET disabled_until = NULL, disable_count = 0, updated_at = NOW()
 WHERE id = $1 AND (disabled_until IS NOT NULL OR disable_count > 0);
+
+-- name: UpdateNewsletterFeedStatus :exec
+UPDATE newsletter_feed SET status = $1 WHERE id = $2 AND user_id = $3;
