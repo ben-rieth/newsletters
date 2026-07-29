@@ -142,9 +142,7 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
                       : 'Resume feed'}
                 </Button>
               </SettingsRow>
-            </SettingsSection>
 
-            <SettingsSection>
               <SettingsRow
                 title="Delete feed"
                 description="Remove this feed from the newsletter. Past issues keep their items."
