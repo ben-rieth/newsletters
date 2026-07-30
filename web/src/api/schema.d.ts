@@ -841,7 +841,8 @@ export interface components {
       health: components['schemas']['FeedHealth'];
       htmlUrl: string;
       id: string;
-      status: string;
+      /** @enum {string} */
+      status: 'active' | 'inactive';
       title: string;
       url: string;
     };
@@ -851,7 +852,8 @@ export interface components {
       health: components['schemas']['FeedHealth'];
       htmlUrl: string;
       id: string;
-      status: string;
+      /** @enum {string} */
+      status: 'active' | 'inactive';
       title: string;
       url: string;
     };

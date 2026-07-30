@@ -769,16 +769,22 @@ func (q *Queries) UpdateNewsletterFeed(ctx context.Context, arg UpdateNewsletter
 }
 
 const updateNewsletterFeedStatus = `-- name: UpdateNewsletterFeedStatus :exec
-UPDATE newsletter_feed SET status = $1 WHERE id = $2 AND user_id = $3
+UPDATE newsletter_feed SET status = $1, updated_at = NOW() WHERE newsletter_id = $2 AND id = $3 AND user_id = $4
 `
 
 type UpdateNewsletterFeedStatusParams struct {
-	Status NewsletterStatus
-	ID     string
-	UserID string
+	Status       NewsletterStatus
+	NewsletterID string
+	ID           string
+	UserID       string
 }
 
 func (q *Queries) UpdateNewsletterFeedStatus(ctx context.Context, arg UpdateNewsletterFeedStatusParams) error {
-	_, err := q.db.Exec(ctx, updateNewsletterFeedStatus, arg.Status, arg.ID, arg.UserID)
+	_, err := q.db.Exec(ctx, updateNewsletterFeedStatus,
+		arg.Status,
+		arg.NewsletterID,
+		arg.ID,
+		arg.UserID,
+	)
 	return err
 }

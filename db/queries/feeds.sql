@@ -173,4 +173,4 @@ UPDATE feed SET disabled_until = NULL, disable_count = 0, updated_at = NOW()
 WHERE id = $1 AND (disabled_until IS NOT NULL OR disable_count > 0);
 
 -- name: UpdateNewsletterFeedStatus :exec
-UPDATE newsletter_feed SET status = $1 WHERE id = $2 AND user_id = $3;
+UPDATE newsletter_feed SET status = $1, updated_at = NOW() WHERE newsletter_id = $2 AND id = $3 AND user_id = $4;

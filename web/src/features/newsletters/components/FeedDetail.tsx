@@ -136,7 +136,9 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
                   disabled={updateStatus.isPending}
                 >
                   {updateStatus.isPending
-                    ? '…'
+                    ? isActive
+                      ? 'Pausing…'
+                      : 'Resuming…'
                     : isActive
                       ? 'Pause feed'
                       : 'Resume feed'}

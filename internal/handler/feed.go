@@ -51,7 +51,7 @@ type uiFeed struct {
 	HtmlURL     string              `json:"htmlUrl"`
 	Alias       string              `json:"alias"`
 	Health      feeds.FeedHealth    `json:"health"`
-	Status      db.NewsletterStatus `json:"status"`
+	Status      db.NewsletterStatus `json:"status" enum:"active,inactive"`
 }
 
 type listFeedsOutput struct {
@@ -75,7 +75,7 @@ type uiDetailedFeed struct {
 	Url         string              `json:"url"`
 	HtmlUrl     string              `json:"htmlUrl"`
 	Description string              `json:"description"`
-	Status      db.NewsletterStatus `json:"status"`
+	Status      db.NewsletterStatus `json:"status" enum:"active,inactive"`
 	Filters     []feeds.FeedFilter  `json:"filters"`
 	Health      feeds.FeedHealth    `json:"health"`
 }
@@ -485,9 +485,10 @@ func (h *FeedHandler) handleUpdateFeedStatus(ctx context.Context, i *updateFeedS
 	}
 
 	if err := h.queries.UpdateNewsletterFeedStatus(ctx, db.UpdateNewsletterFeedStatusParams{
-		ID:     i.FeedID,
-		UserID: claims.Subject,
-		Status: db.NewsletterStatus(i.Body.Status),
+		NewsletterID: i.NewsletterID,
+		ID:           i.FeedID,
+		UserID:       claims.Subject,
+		Status:       db.NewsletterStatus(i.Body.Status),
 	}); err != nil {
 		return nil, internalServerError(ctx, err)
 	}

@@ -67,6 +67,10 @@ export const FeedsList = ({ newsletterId }: Props) => {
     toast.success(status === 'active' ? 'Feed resumed!' : 'Feed paused.');
   });
 
+  const pendingFeedId = updateStatus.isPending
+    ? updateStatus.variables.feedId
+    : undefined;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -130,21 +134,6 @@ export const FeedsList = ({ newsletterId }: Props) => {
                 </Link>
 
                 <div className="flex shrink-0 items-center gap-0.5 text-muted-foreground">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() =>
-                      updateStatus.mutate({
-                        feedId: feed.id,
-                        status: isActive ? 'inactive' : 'active',
-                      })
-                    }
-                    disabled={updateStatus.isPending}
-                    aria-label={isActive ? 'Pause feed' : 'Resume feed'}
-                    title={isActive ? 'Pause feed' : 'Resume feed'}
-                  >
-                    {isActive ? <Pause /> : <Play />}
-                  </Button>
                   <a
                     href={feed.htmlUrl}
                     target="_blank"
@@ -168,6 +157,21 @@ export const FeedsList = ({ newsletterId }: Props) => {
                   >
                     <Settings />
                   </Link>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() =>
+                      updateStatus.mutate({
+                        feedId: feed.id,
+                        status: isActive ? 'inactive' : 'active',
+                      })
+                    }
+                    disabled={pendingFeedId === feed.id}
+                    aria-label={isActive ? 'Pause feed' : 'Resume feed'}
+                    title={isActive ? 'Pause feed' : 'Resume feed'}
+                  >
+                    {isActive ? <Pause /> : <Play />}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon-sm"
