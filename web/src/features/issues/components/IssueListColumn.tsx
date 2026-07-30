@@ -40,7 +40,9 @@ const IssueListColumn = ({ issues }: Props) => {
 
   return (
     <div className="py-4">
-      <h2 className="px-4 pb-3 text-xl font-semibold tracking-tight">Issues</h2>
+      <h2 className="hidden px-4 pb-3 text-xl font-semibold tracking-tight md:block">
+        Issues
+      </h2>
 
       {sorted.length === 0 ? (
         <p className="px-4 py-8 text-sm text-muted-foreground">
@@ -71,7 +73,7 @@ const IssueListColumn = ({ issues }: Props) => {
                   <div className="flex items-baseline justify-between gap-2">
                     <span
                       className={cn(
-                        'flex min-w-0 items-baseline gap-1.5 text-xs font-semibold uppercase tracking-wide',
+                        'flex min-w-0 items-baseline gap-1.5 text-sm font-semibold uppercase tracking-wide md:text-xs',
                         unread ? 'text-primary' : 'text-muted-foreground',
                       )}
                     >
@@ -86,7 +88,7 @@ const IssueListColumn = ({ issues }: Props) => {
                       )}
                       <span className="truncate">{issue.newsletterName}</span>
                     </span>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    <span className="shrink-0 text-sm tabular-nums text-muted-foreground md:text-xs">
                       {date.toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit',

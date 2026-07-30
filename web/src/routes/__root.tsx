@@ -9,6 +9,7 @@ import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
 
 import '../styles.css';
 import AppSidebar from '#/components/AppSidebar';
+import { MobileHeaderProvider } from '#/components/MobileHeader';
 import DebugPanel from '#/features/debug/components/DebugPanel';
 import { useRefreshOnLoad } from '#/features/auth/queries/hooks/useRefreshOnLoad';
 import useIsSignedIn from '#/features/auth/queries/hooks/useIsSignedIn';
@@ -28,7 +29,7 @@ function RootErrorComponent({ error }: { error: unknown }) {
     error instanceof Error ? error.message : 'Something went wrong';
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-2 p-6 text-center">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-2 p-6 text-center">
       <p className="text-sm font-medium text-destructive">{message}</p>
     </div>
   );
@@ -56,14 +57,16 @@ function RootComponent() {
   return (
     <>
       {showSidebar ? (
-        <div className="flex h-screen flex-col overflow-hidden md:flex-row">
-          <AppSidebar />
-          <main className="flex-1 overflow-y-auto">
-            <Outlet />
-          </main>
-        </div>
+        <MobileHeaderProvider>
+          <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
+            <AppSidebar />
+            <main className="flex-1 overflow-y-auto pb-safe-b">
+              <Outlet />
+            </main>
+          </div>
+        </MobileHeaderProvider>
       ) : (
-        <main className="min-h-screen">
+        <main className="min-h-dvh">
           <Outlet />
         </main>
       )}

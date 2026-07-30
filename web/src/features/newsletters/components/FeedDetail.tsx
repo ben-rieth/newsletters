@@ -68,14 +68,14 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="hidden text-xl font-semibold tracking-tight md:block md:text-2xl">
             {feed.alias || feed.title}
           </h1>
           <FeedStatusBadge status={feed.status} />
           <FeedHealthBadge health={feed.health} />
         </div>
-        <p className="truncate font-mono text-sm text-muted-foreground">
+        <p className="break-all font-mono text-xs text-muted-foreground md:truncate md:text-sm">
           {feed.url}
         </p>
         {feed.description && (
@@ -88,7 +88,7 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
       <Tabs defaultValue="details">
         <TabsList
           variant="line"
-          className="w-full justify-start gap-6 border-b **:data-[slot=tabs-trigger]:flex-none **:data-[slot=tabs-trigger]:px-0"
+          className="w-full justify-start gap-6 overflow-x-auto border-b **:data-[slot=tabs-trigger]:flex-none **:data-[slot=tabs-trigger]:px-0"
         >
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="filters">

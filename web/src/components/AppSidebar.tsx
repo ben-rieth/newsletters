@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Menu, Plus, Rss } from 'lucide-react';
+import { ChevronLeft, Menu, Plus, Rss } from 'lucide-react';
 import { cn } from '#/lib/utils';
-import { Button } from '#/components/ui/button';
+import { Button, buttonVariants } from '#/components/ui/button';
+import { useMobileHeaderStore } from '#/components/MobileHeader';
 import {
   Sheet,
   SheetContent,
@@ -18,7 +19,7 @@ const sectionLabel =
   'px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground';
 
 const navRow =
-  'flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
+  'flex min-h-11 items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:min-h-0';
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const { data } = useQuery(newslettersOptions);
@@ -96,7 +97,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
                 <span className="truncate">{n.name}</span>
               </span>
               {n.status !== 'active' && (
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="text-xs uppercase tracking-wide text-muted-foreground md:text-[10px]">
                   Paused
                 </span>
               )}
@@ -117,7 +118,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
         </button>
       </div>
 
-      <div className="border-t border-sidebar-border">
+      <div className="border-t border-sidebar-border pb-safe-b">
         <nav aria-label="Account" className="space-y-0.5 px-2 py-3">
           <Link to="/profile" onClick={onNavigate} className={navRow}>
             Profile
@@ -141,40 +142,77 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   );
 };
 
-const AppSidebar = () => {
+const MobileTopBar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { config, registerActionSlot } = useMobileHeaderStore();
 
   return (
-    <>
-      <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:block">
-        <SidebarContent />
-      </aside>
+    <header className="shrink-0 border-b border-sidebar-border bg-sidebar pt-safe-t md:hidden">
+      <div className="flex h-14 items-center gap-1 pr-2 pl-1">
+        {config.back ? (
+          <Link
+            {...config.back}
+            aria-label="Back"
+            className={cn(
+              buttonVariants({ variant: 'ghost', size: 'icon' }),
+              'size-11',
+            )}
+          >
+            <ChevronLeft className="size-5" />
+          </Link>
+        ) : (
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger
+              render={
+                <Button variant="ghost" size="icon" className="size-11" />
+              }
+              aria-label="Open menu"
+            >
+              <Menu className="size-5" />
+            </SheetTrigger>
+            <SheetContent
+              side="left"
+              className="bg-sidebar p-0 text-sm data-[side=left]:w-72"
+            >
+              <SheetTitle className="sr-only">Navigation</SheetTitle>
+              <SidebarContent onNavigate={() => setMobileOpen(false)} />
+            </SheetContent>
+          </Sheet>
+        )}
 
-      <header className="flex items-center justify-between border-b border-sidebar-border bg-sidebar px-4 py-3 md:hidden">
-        <Link to="/issues" className="flex items-center gap-2 font-semibold">
-          <span className="flex size-6 items-center justify-center rounded-md bg-primary text-primary-foreground">
-            <Rss className="size-3.5" />
-          </span>
-          Slowfeed
-        </Link>
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger
-            render={<Button variant="ghost" size="icon" />}
-            aria-label="Open menu"
+        {config.title ? (
+          <h1 className="min-w-0 flex-1 truncate text-base font-semibold">
+            {config.title}
+          </h1>
+        ) : (
+          <Link
+            to="/issues"
+            className="flex min-w-0 flex-1 items-center gap-2 font-semibold"
           >
-            <Menu />
-          </SheetTrigger>
-          <SheetContent
-            side="left"
-            className="bg-sidebar p-0 data-[side=left]:w-72"
-          >
-            <SheetTitle className="sr-only">Navigation</SheetTitle>
-            <SidebarContent onNavigate={() => setMobileOpen(false)} />
-          </SheetContent>
-        </Sheet>
-      </header>
-    </>
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <Rss className="size-3.5" />
+            </span>
+            Slowfeed
+          </Link>
+        )}
+
+        <div
+          ref={registerActionSlot}
+          className="flex shrink-0 items-center gap-1"
+        />
+      </div>
+    </header>
   );
 };
+
+const AppSidebar = () => (
+  <>
+    <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar md:block">
+      <SidebarContent />
+    </aside>
+
+    <MobileTopBar />
+  </>
+);
 
 export default AppSidebar;

@@ -88,8 +88,8 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <h1 className="hidden text-xl font-semibold tracking-tight md:block md:text-2xl">
             {newsletter.name}
           </h1>
           <Badge
@@ -112,7 +112,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
       <Tabs defaultValue="feeds">
         <TabsList
           variant="line"
-          className="w-full justify-start gap-6 border-b **:data-[slot=tabs-trigger]:flex-none **:data-[slot=tabs-trigger]:px-0"
+          className="w-full justify-start gap-6 overflow-x-auto border-b **:data-[slot=tabs-trigger]:flex-none **:data-[slot=tabs-trigger]:px-0"
         >
           <TabsTrigger value="feeds">Feeds</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>

@@ -4,6 +4,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
   ExternalLink,
+  MoreVertical,
   Pause,
   Play,
   Search,
@@ -28,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog';
+import { Sheet, SheetContent, SheetTitle } from '#/components/ui/sheet';
 import { feedsOptions } from '../queries/feeds';
 import type { Feed } from '../queries/feeds';
 import { AddFeedDialog } from './AddFeedDialog';
@@ -40,9 +42,13 @@ type Props = {
   newsletterId: string;
 };
 
+const sheetActionClass =
+  'flex min-h-12 w-full items-center gap-3 rounded-md px-3 text-base transition-colors active:bg-accent';
+
 export const FeedsList = ({ newsletterId }: Props) => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [deletingFeed, setDeletingFeed] = useState<Feed | null>(null);
+  const [actionsFeed, setActionsFeed] = useState<Feed | null>(null);
   const [search, setSearch] = useState('');
 
   const { data: feeds } = useSuspenseQuery(feedsOptions(newsletterId));
@@ -73,9 +79,9 @@ export const FeedsList = ({ newsletterId }: Props) => {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         {feeds.length > 0 && (
-          <InputGroup className="flex-1">
+          <InputGroup className="sm:flex-1">
             <InputGroupAddon>
               <Search />
             </InputGroupAddon>
@@ -86,7 +92,10 @@ export const FeedsList = ({ newsletterId }: Props) => {
             />
           </InputGroup>
         )}
-        <Button className="ml-auto" onClick={() => setAddDialogOpen(true)}>
+        <Button
+          className="h-11 sm:ml-auto sm:h-9"
+          onClick={() => setAddDialogOpen(true)}
+        >
           Add Feed
         </Button>
       </div>
@@ -128,12 +137,27 @@ export const FeedsList = ({ newsletterId }: Props) => {
                     <FeedStatusBadge status={feed.status} />
                     <FeedHealthBadge health={feed.health} />
                   </p>
-                  <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                  <p className="mt-0.5 hidden truncate font-mono text-xs text-muted-foreground md:block">
                     {feed.url}
                   </p>
+                  {feed.description && (
+                    <p className="mt-0.5 truncate text-sm text-muted-foreground md:hidden">
+                      {feed.description}
+                    </p>
+                  )}
                 </Link>
 
-                <div className="flex shrink-0 items-center gap-0.5 text-muted-foreground">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="size-11 shrink-0 text-muted-foreground md:hidden"
+                  onClick={() => setActionsFeed(feed)}
+                  aria-label={`Actions for ${feed.alias || feed.title}`}
+                >
+                  <MoreVertical className="size-5" />
+                </Button>
+
+                <div className="hidden shrink-0 items-center gap-0.5 text-muted-foreground md:flex">
                   <a
                     href={feed.htmlUrl}
                     target="_blank"
@@ -186,6 +210,75 @@ export const FeedsList = ({ newsletterId }: Props) => {
           })}
         </ListPanel>
       )}
+
+      <Sheet
+        open={!!actionsFeed}
+        onOpenChange={(open) => {
+          if (!open) setActionsFeed(null);
+        }}
+      >
+        <SheetContent
+          side="bottom"
+          showCloseButton={false}
+          className="rounded-t-xl p-2 pb-safe-b text-sm md:hidden"
+        >
+          {actionsFeed && (
+            <>
+              <SheetTitle className="px-3 py-3 text-muted-foreground">
+                {actionsFeed.alias || actionsFeed.title}
+              </SheetTitle>
+              <a
+                href={actionsFeed.htmlUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={cn(sheetActionClass)}
+                onClick={() => setActionsFeed(null)}
+              >
+                <ExternalLink className="size-5" />
+                Visit website
+              </a>
+              <Link
+                to="/newsletters/$newsletterId/feeds/$feedId"
+                params={{ newsletterId, feedId: actionsFeed.id }}
+                className={cn(sheetActionClass)}
+              >
+                <Settings className="size-5" />
+                Configure feed
+              </Link>
+              <button
+                type="button"
+                className={cn(sheetActionClass)}
+                onClick={() => {
+                  updateStatus.mutate({
+                    feedId: actionsFeed.id,
+                    status:
+                      actionsFeed.status === 'active' ? 'inactive' : 'active',
+                  });
+                  setActionsFeed(null);
+                }}
+              >
+                {actionsFeed.status === 'active' ? (
+                  <Pause className="size-5" />
+                ) : (
+                  <Play className="size-5" />
+                )}
+                {actionsFeed.status === 'active' ? 'Pause feed' : 'Resume feed'}
+              </button>
+              <button
+                type="button"
+                className={cn(sheetActionClass, 'text-destructive')}
+                onClick={() => {
+                  setDeletingFeed(actionsFeed);
+                  setActionsFeed(null);
+                }}
+              >
+                <Trash2 className="size-5" />
+                Delete feed
+              </button>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
 
       <AddFeedDialog
         newsletterId={newsletterId}

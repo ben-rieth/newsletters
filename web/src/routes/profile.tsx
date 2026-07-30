@@ -6,6 +6,7 @@ import { UpdateEmailForm } from '#/features/auth/components/UpdateEmailForm';
 import { UpdatePasswordForm } from '#/features/auth/components/UpdatePasswordForm';
 import { DeleteAccountForm } from '#/features/auth/components/DeleteAccountForm';
 import { userOptions } from '#/features/auth/queries/user';
+import { useMobileHeader } from '#/components/MobileHeader';
 import useLogout from '#/features/auth/queries/hooks/useLogout';
 import useExportNewsletters from '#/features/newsletters/queries/hooks/useExportNewsletters';
 
@@ -14,8 +15,10 @@ const ProfilePage = () => {
   const logout = useLogout();
   const exportAll = useExportNewsletters();
 
+  useMobileHeader({ title: 'Profile' });
+
   return (
-    <div className="mx-auto max-w-3xl space-y-10 px-6 py-8 lg:px-10">
+    <div className="mx-auto max-w-3xl space-y-10 px-4 py-6 md:px-6 md:py-8 lg:px-10">
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
         <p className="text-sm text-muted-foreground">

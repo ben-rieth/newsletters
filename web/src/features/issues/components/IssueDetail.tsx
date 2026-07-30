@@ -1,6 +1,7 @@
 import { Check, Circle, CircleCheck } from 'lucide-react';
 import { formatRelativeTime } from '#/utils/format';
 import { Button } from '#/components/ui/button';
+import { MobileHeaderAction } from '#/components/MobileHeader';
 import { cn } from '#/lib/utils';
 import type {
   DetailedIssue,
@@ -61,11 +62,35 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
       return a.feed.title.localeCompare(b.feed.title);
     });
 
+  const toggleIssueRead = () =>
+    updateIssueState.mutate(issueRead ? 'unread' : 'read');
+
   return (
     <div className="space-y-8">
+      {itemCount > 0 && (
+        <MobileHeaderAction>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-11"
+            aria-label={issueRead ? 'Mark all unread' : 'Mark all read'}
+            aria-pressed={issueRead}
+            disabled={updateIssueState.isPending}
+            focusableWhenDisabled
+            onClick={toggleIssueRead}
+          >
+            {issueRead ? (
+              <CircleCheck className="size-5 text-primary" />
+            ) : (
+              <Check className="size-5" />
+            )}
+          </Button>
+        </MobileHeaderAction>
+      )}
+
       <header className="flex items-start justify-between gap-4 border-b border-border pb-6">
         <div className="min-w-0">
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="hidden text-2xl font-bold tracking-tight md:block md:text-3xl">
             {issue.newsletterName}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -78,12 +103,10 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
           <Button
             variant="outline"
             size="sm"
-            className="shrink-0"
+            className="hidden shrink-0 md:inline-flex"
             disabled={updateIssueState.isPending}
             focusableWhenDisabled
-            onClick={() =>
-              updateIssueState.mutate(issueRead ? 'unread' : 'read')
-            }
+            onClick={toggleIssueRead}
           >
             {issueRead ? (
               <CircleCheck data-icon="inline-start" />
@@ -140,7 +163,7 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
                         >
                           {item.title}
                         </a>
-                        <p className="mt-1 text-xs text-muted-foreground">
+                        <p className="mt-1 text-sm text-muted-foreground md:text-xs">
                           {formatRelativeTime(item.publishDate)}
                         </p>
                       </div>
@@ -148,7 +171,7 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
                       <Button
                         variant="ghost"
                         size="icon-sm"
-                        className="shrink-0 text-muted-foreground hover:text-foreground"
+                        className="size-11 shrink-0 text-muted-foreground hover:text-foreground md:size-8"
                         aria-label="Read"
                         aria-pressed={read}
                         title={read ? 'Mark as unread' : 'Mark as read'}
