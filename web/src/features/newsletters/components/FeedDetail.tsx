@@ -6,11 +6,13 @@ import { feedDetailOptions } from '../queries/feeds';
 import useUpdateFeed from '../queries/hooks/useUpdateFeed';
 import useAddFeedFilter from '../queries/hooks/useAddFeedFilter';
 import useDeleteFeed from '../queries/hooks/useDeleteFeed';
+import useUpdateFeedStatus from '../queries/hooks/useUpdateFeedStatus';
 import { EditFeedForm } from './EditFeedForm';
 import { FeedFilterForm } from './FeedFilterForm';
 import { FeedFiltersList } from './FeedFiltersList';
 import { FeedPreview } from './FeedPreview';
 import { FeedHealthAlert, FeedHealthBadge } from './FeedHealth';
+import { FeedStatusBadge } from './FeedStatusBadge';
 import { Button } from '#/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs';
 import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
@@ -40,6 +42,7 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
   );
 
   const filterCount = feed.filters?.length ?? 0;
+  const isActive = feed.status === 'active';
 
   const updateFeed = useUpdateFeed(newsletterId, feedId, () => {
     toast.success('Feed updated!');
@@ -48,6 +51,10 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
   const addFilter = useAddFeedFilter(newsletterId, feedId, () => {
     toast.success('Filter added!');
     setShowAddFilter(false);
+  });
+
+  const updateStatus = useUpdateFeedStatus(newsletterId, (status) => {
+    toast.success(status === 'active' ? 'Feed resumed!' : 'Feed paused.');
   });
 
   const deleteFeed = useDeleteFeed(newsletterId, () => {
@@ -65,6 +72,7 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
           <h1 className="text-2xl font-semibold tracking-tight">
             {feed.alias || feed.title}
           </h1>
+          <FeedStatusBadge status={feed.status} />
           <FeedHealthBadge health={feed.health} />
         </div>
         <p className="truncate font-mono text-sm text-muted-foreground">
@@ -109,6 +117,34 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
             />
 
             <SettingsSection>
+              <SettingsRow
+                title="Feed status"
+                description={
+                  isActive
+                    ? 'Items from this feed are included in new issues.'
+                    : 'This feed is paused. Its items are left out of new issues until you resume it.'
+                }
+              >
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    updateStatus.mutate({
+                      feedId,
+                      status: isActive ? 'inactive' : 'active',
+                    })
+                  }
+                  disabled={updateStatus.isPending}
+                >
+                  {updateStatus.isPending
+                    ? isActive
+                      ? 'Pausing…'
+                      : 'Resuming…'
+                    : isActive
+                      ? 'Pause feed'
+                      : 'Resume feed'}
+                </Button>
+              </SettingsRow>
+
               <SettingsRow
                 title="Delete feed"
                 description="Remove this feed from the newsletter. Past issues keep their items."

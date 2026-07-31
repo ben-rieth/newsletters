@@ -348,6 +348,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/newsletter/{newsletterId}/feed/{feedId}/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Change feed to active or inactive status */
+    patch: operations['update-feed-status'];
+    trace?: never;
+  };
   '/newsletter/{newsletterId}/one-off': {
     parameters: {
       query?: never;
@@ -663,11 +680,11 @@ export interface components {
       Title: string;
       URL: string;
     };
-    'Get-feed-metadataRequest': {
+    GetFeedMetaDataInputBody: {
       /**
        * Format: uri
        * @description A URL to the JSON Schema for this object.
-       * @example https://example.com/schemas/Get-feed-metadataRequest.json
+       * @example https://example.com/schemas/GetFeedMetaDataInputBody.json
        */
       readonly $schema?: string;
       url: string;
@@ -824,6 +841,8 @@ export interface components {
       health: components['schemas']['FeedHealth'];
       htmlUrl: string;
       id: string;
+      /** @enum {string} */
+      status: 'active' | 'inactive';
       title: string;
       url: string;
     };
@@ -833,6 +852,8 @@ export interface components {
       health: components['schemas']['FeedHealth'];
       htmlUrl: string;
       id: string;
+      /** @enum {string} */
+      status: 'active' | 'inactive';
       title: string;
       url: string;
     };
@@ -873,6 +894,16 @@ export interface components {
       readonly $schema?: string;
       currentPassword: string;
       newPassword: string;
+    };
+    UpdateFeedStatusInputBody: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/UpdateFeedStatusInputBody.json
+       */
+      readonly $schema?: string;
+      /** @enum {string} */
+      status: 'active' | 'inactive';
     };
     'Verify-email-updateRequest': {
       /**
@@ -1202,7 +1233,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['Get-feed-metadataRequest'];
+        'application/json': components['schemas']['GetFeedMetaDataInputBody'];
       };
     };
     responses: {
@@ -1663,6 +1694,40 @@ export interface operations {
         content: {
           'application/json': components['schemas']['ItemPreview'][] | null;
         };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'update-feed-status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        newsletterId: string;
+        feedId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateFeedStatusInputBody'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Error */
       default: {

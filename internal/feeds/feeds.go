@@ -38,5 +38,6 @@ type ExportableFeed struct {
 	Name     string       `json:"name"`
 	Alias    string       `json:"alias"`
 	URL      string       `json:"url"`
+	Status   string       `json:"status"`
 	Filters  []FeedFilter `json:"filters"`
 }

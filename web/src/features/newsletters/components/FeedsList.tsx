@@ -2,7 +2,14 @@ import { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ExternalLink, Search, Settings, Trash2 } from 'lucide-react';
+import {
+  ExternalLink,
+  Pause,
+  Play,
+  Search,
+  Settings,
+  Trash2,
+} from 'lucide-react';
 import { cn } from '#/lib/utils';
 import { ListPanel, listRowClass } from '#/components/ListPanel';
 import { Button, buttonVariants } from '#/components/ui/button';
@@ -25,7 +32,9 @@ import { feedsOptions } from '../queries/feeds';
 import type { Feed } from '../queries/feeds';
 import { AddFeedDialog } from './AddFeedDialog';
 import { FeedHealthBadge } from './FeedHealth';
+import { FeedStatusBadge } from './FeedStatusBadge';
 import useDeleteFeed from '../queries/hooks/useDeleteFeed';
+import useUpdateFeedStatus from '../queries/hooks/useUpdateFeedStatus';
 
 type Props = {
   newsletterId: string;
@@ -53,6 +62,14 @@ export const FeedsList = ({ newsletterId }: Props) => {
     toast.success('Feed deleted!');
     setDeletingFeed(null);
   });
+
+  const updateStatus = useUpdateFeedStatus(newsletterId, (status) => {
+    toast.success(status === 'active' ? 'Feed resumed!' : 'Feed paused.');
+  });
+
+  const pendingFeedId = updateStatus.isPending
+    ? updateStatus.variables.feedId
+    : undefined;
 
   return (
     <div className="space-y-4">
@@ -89,59 +106,84 @@ export const FeedsList = ({ newsletterId }: Props) => {
         </div>
       ) : (
         <ListPanel header="Feed">
-          {filteredFeeds.map((feed) => (
-            <div key={feed.id} className={cn('group', listRowClass)}>
-              <Link
-                to="/newsletters/$newsletterId/feeds/$feedId"
-                params={{ newsletterId, feedId: feed.id }}
-                className="min-w-0 flex-1"
-              >
-                <p className="flex items-center gap-2">
-                  <span className="truncate font-medium group-hover:underline">
-                    {feed.alias || feed.title}
-                  </span>
-                  <FeedHealthBadge health={feed.health} />
-                </p>
-                <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
-                  {feed.url}
-                </p>
-              </Link>
+          {filteredFeeds.map((feed) => {
+            const isActive = feed.status === 'active';
 
-              <div className="flex shrink-0 items-center gap-0.5 text-muted-foreground">
-                <a
-                  href={feed.htmlUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Visit feed website"
-                  className={buttonVariants({
-                    variant: 'ghost',
-                    size: 'icon-sm',
-                  })}
-                >
-                  <ExternalLink />
-                </a>
+            return (
+              <div key={feed.id} className={cn('group', listRowClass)}>
                 <Link
                   to="/newsletters/$newsletterId/feeds/$feedId"
                   params={{ newsletterId, feedId: feed.id }}
-                  aria-label="Configure feed"
-                  className={buttonVariants({
-                    variant: 'ghost',
-                    size: 'icon-sm',
-                  })}
+                  className="min-w-0 flex-1"
                 >
-                  <Settings />
+                  <p className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        'truncate font-medium group-hover:underline',
+                        !isActive && 'text-muted-foreground',
+                      )}
+                    >
+                      {feed.alias || feed.title}
+                    </span>
+                    <FeedStatusBadge status={feed.status} />
+                    <FeedHealthBadge health={feed.health} />
+                  </p>
+                  <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+                    {feed.url}
+                  </p>
                 </Link>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => setDeletingFeed(feed)}
-                  aria-label="Delete feed"
-                >
-                  <Trash2 />
-                </Button>
+
+                <div className="flex shrink-0 items-center gap-0.5 text-muted-foreground">
+                  <a
+                    href={feed.htmlUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Visit feed website"
+                    className={buttonVariants({
+                      variant: 'ghost',
+                      size: 'icon-sm',
+                    })}
+                  >
+                    <ExternalLink />
+                  </a>
+                  <Link
+                    to="/newsletters/$newsletterId/feeds/$feedId"
+                    params={{ newsletterId, feedId: feed.id }}
+                    aria-label="Configure feed"
+                    className={buttonVariants({
+                      variant: 'ghost',
+                      size: 'icon-sm',
+                    })}
+                  >
+                    <Settings />
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() =>
+                      updateStatus.mutate({
+                        feedId: feed.id,
+                        status: isActive ? 'inactive' : 'active',
+                      })
+                    }
+                    disabled={pendingFeedId === feed.id}
+                    aria-label={isActive ? 'Pause feed' : 'Resume feed'}
+                    title={isActive ? 'Pause feed' : 'Resume feed'}
+                  >
+                    {isActive ? <Pause /> : <Play />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => setDeletingFeed(feed)}
+                    aria-label="Delete feed"
+                  >
+                    <Trash2 />
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </ListPanel>
       )}
 
