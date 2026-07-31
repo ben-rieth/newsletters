@@ -5,6 +5,7 @@ import { ChevronRight, Plus } from 'lucide-react';
 import { cn } from '#/lib/utils';
 import { Button } from '#/components/ui/button';
 import { ListPanel, listRowClass } from '#/components/ListPanel';
+import { EmptyState } from '#/components/EmptyState';
 import { useMobileHeader, MobileHeaderAction } from '#/components/MobileHeader';
 import { newslettersOptions } from '#/features/newsletters/queries/newsletters';
 import { formatSchedule } from '#/features/newsletters/lib/format';
@@ -46,14 +47,16 @@ const NewslettersPage = () => {
       </header>
 
       {sorted.length === 0 ? (
-        <div className="space-y-3 rounded-lg border border-dashed py-12 text-center">
-          <p className="text-sm text-muted-foreground">
-            A newsletter is a group of feeds delivered on a schedule you pick.
-          </p>
-          <Button onClick={() => setCreateOpen(true)}>
-            Create your first newsletter
-          </Button>
-        </div>
+        <EmptyState
+          className="px-0 md:px-0"
+          title="No newsletters yet"
+          description="A newsletter is a group of feeds delivered on a schedule you pick — daily, weekly, or a specific day. Most people keep two or three, split by topic."
+          action={
+            <Button onClick={() => setCreateOpen(true)}>
+              Create your first newsletter
+            </Button>
+          }
+        />
       ) : (
         <ListPanel>
           {sorted.map((newsletter) => {

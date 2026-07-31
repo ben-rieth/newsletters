@@ -1,5 +1,12 @@
+import { useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '#/lib/utils';
+import { Button, buttonVariants } from '#/components/ui/button';
+import { EmptyState } from '#/components/EmptyState';
+import { formatUpcoming } from '#/utils/format';
+import { newslettersOptions } from '#/features/newsletters/queries/newsletters';
+import { CreateNewsletterDialog } from '#/features/newsletters/components/CreateNewsletterDialog';
 import type { Issue } from '../queries/issues';
 
 type Props = {
@@ -32,6 +39,80 @@ const summarize = (
   return parts.join(' · ');
 };
 
+const IssuesEmpty = () => {
+  const { data } = useQuery(newslettersOptions);
+  const [createOpen, setCreateOpen] = useState(false);
+  const newsletters = data ?? [];
+
+  if (newsletters.length === 0) {
+    return (
+      <>
+        <EmptyState
+          title="Nothing to read yet"
+          description="A newsletter is a group of feeds delivered on a schedule you choose. Make one, paste in a few feed URLs, and issues land here."
+          action={
+            <Button onClick={() => setCreateOpen(true)}>
+              Create your first newsletter
+            </Button>
+          }
+        />
+        <CreateNewsletterDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+        />
+      </>
+    );
+  }
+
+  const next = newsletters
+    .filter((n) => n.status === 'active')
+    .toSorted(
+      (a, b) =>
+        new Date(a.nextSendTime).getTime() - new Date(b.nextSendTime).getTime(),
+    )
+    .at(0);
+
+  if (!next) {
+    return (
+      <EmptyState
+        title="Everything is paused"
+        description={`You have ${newsletters.length} ${
+          newsletters.length === 1 ? 'newsletter' : 'newsletters'
+        }, but none are sending. Activate one to start receiving issues.`}
+        action={
+          <Link
+            to="/newsletters"
+            className={buttonVariants({ variant: 'outline' })}
+          >
+            Manage newsletters
+          </Link>
+        }
+      />
+    );
+  }
+
+  return (
+    <EmptyState
+      title="Your first issue is on the way"
+      description={
+        <>
+          <span className="text-foreground">{next.name}</span> sends{' '}
+          {formatUpcoming(next.nextSendTime)}. Until then there is nothing to
+          read — that&rsquo;s the point.
+        </>
+      }
+      action={
+        <Link
+          to="/newsletters"
+          className={buttonVariants({ variant: 'outline' })}
+        >
+          Add more feeds
+        </Link>
+      }
+    />
+  );
+};
+
 const IssueListColumn = ({ issues }: Props) => {
   const params = useParams({ strict: false });
   const activeId = (params as { issueId?: string }).issueId;
@@ -58,9 +139,7 @@ const IssueListColumn = ({ issues }: Props) => {
       </h2>
 
       {sorted.length === 0 ? (
-        <p className="px-4 py-8 text-sm text-muted-foreground">
-          No issues yet — newsletters appear here after they're first sent.
-        </p>
+        <IssuesEmpty />
       ) : (
         groups.map((group) => (
           <div key={group.label} className="mb-2">

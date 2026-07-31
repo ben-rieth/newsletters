@@ -3,6 +3,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { cn } from '#/lib/utils';
 import IssueListColumn from '#/features/issues/components/IssueListColumn';
 import { issuesOptions } from '#/features/issues/queries/issues';
+import { newslettersOptions } from '#/features/newsletters/queries/newsletters';
 
 const IssuesLayout = () => {
   const { data: issues } = useSuspenseQuery(issuesOptions);
@@ -34,6 +35,9 @@ const IssuesLayout = () => {
 export const Route = createFileRoute('/issues')({
   component: IssuesLayout,
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(issuesOptions);
+    await Promise.all([
+      context.queryClient.ensureQueryData(issuesOptions),
+      context.queryClient.ensureQueryData(newslettersOptions),
+    ]);
   },
 });

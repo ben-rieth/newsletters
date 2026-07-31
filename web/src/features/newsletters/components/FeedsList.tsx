@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { cn } from '#/lib/utils';
 import { ListPanel, listRowClass } from '#/components/ListPanel';
+import { EmptyState } from '#/components/EmptyState';
 import { Button, buttonVariants } from '#/components/ui/button';
 import {
   InputGroup,
@@ -101,18 +102,31 @@ export const FeedsList = ({ newsletterId }: Props) => {
       </div>
 
       {feeds.length === 0 ? (
-        <div className="space-y-3 rounded-lg border border-dashed py-12 text-center">
-          <p className="text-sm text-muted-foreground">No feeds added yet.</p>
-          <Button onClick={() => setAddDialogOpen(true)}>
-            Add your first feed
-          </Button>
-        </div>
+        <EmptyState
+          className="px-0 md:px-0"
+          title="No feeds yet"
+          description="Paste the RSS or Atom URL of any site, blog, YouTube channel, or podcast. Slowfeed checks each one resolves before adding it."
+          action={
+            <Button onClick={() => setAddDialogOpen(true)}>
+              Add your first feed
+            </Button>
+          }
+        />
       ) : query && filteredFeeds.length === 0 ? (
-        <div className="rounded-lg border border-dashed py-12 text-center">
-          <p className="text-sm text-muted-foreground">
-            No feeds match &ldquo;{query}&rdquo;.
-          </p>
-        </div>
+        <EmptyState
+          className="px-0 md:px-0"
+          title="No matches"
+          description={
+            <>
+              None of your {feeds.length} feeds match &ldquo;{query}&rdquo;.
+            </>
+          }
+          action={
+            <Button variant="outline" onClick={() => setSearch('')}>
+              Clear search
+            </Button>
+          }
+        />
       ) : (
         <ListPanel header="Feed">
           {filteredFeeds.map((feed) => {

@@ -1,21 +1,29 @@
 import { Link } from '@tanstack/react-router';
 import { ChevronRight } from 'lucide-react';
 import { ListPanel, listRowClass } from '#/components/ListPanel';
+import { EmptyState } from '#/components/EmptyState';
+import { formatUpcoming } from '#/utils/format';
 import { cn } from '#/lib/utils';
 import type { Issue } from '#/features/issues/queries/issues';
 
 interface IssuesListProps {
   issues: Issue[];
+  /** Next scheduled send, so the empty state can say when the first one lands. */
+  nextSendTime?: string;
 }
 
-const IssuesList = ({ issues }: IssuesListProps) => {
+const IssuesList = ({ issues, nextSendTime }: IssuesListProps) => {
   if (issues.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed py-12 text-center">
-        <p className="text-sm text-muted-foreground">
-          No issues yet — sent issues will appear here.
-        </p>
-      </div>
+      <EmptyState
+        className="px-0 md:px-0"
+        title="No issues sent yet"
+        description={
+          nextSendTime
+            ? `Every send is archived here, so you can reread past issues at any point. The first one lands ${formatUpcoming(nextSendTime)}.`
+            : 'Every send is archived here, so you can reread past issues at any point.'
+        }
+      />
     );
   }
 

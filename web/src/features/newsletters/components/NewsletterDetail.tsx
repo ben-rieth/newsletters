@@ -126,7 +126,10 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
         </TabsContent>
 
         <TabsContent value="history" className="pt-6">
-          <IssuesList issues={newsletterIssues} />
+          <IssuesList
+            issues={newsletterIssues}
+            nextSendTime={newsletter.nextSendTime}
+          />
         </TabsContent>
 
         <TabsContent value="settings" className="pt-6" keepMounted>

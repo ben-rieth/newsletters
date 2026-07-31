@@ -30,7 +30,7 @@ function RootErrorComponent({ error }: { error: unknown }) {
     error instanceof Error ? error.message : 'Something went wrong';
 
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center gap-2 p-6 text-center">
+    <div className="flex min-h-full flex-col items-center justify-center gap-2 p-6 text-center">
       <p className="text-sm font-medium text-destructive">{message}</p>
     </div>
   );
@@ -59,16 +59,16 @@ function RootComponent() {
     <>
       {showSidebar ? (
         <MobileHeaderProvider>
-          <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
+          <div className="flex h-full flex-col overflow-hidden md:flex-row">
             <AppSidebar />
-            <main className="flex-1 overflow-y-auto">
+            <main className="min-h-0 flex-1 overflow-y-auto">
               <Outlet />
             </main>
             <MobileTabBar />
           </div>
         </MobileHeaderProvider>
       ) : (
-        <main className="min-h-dvh pb-safe-b">
+        <main className="min-h-full pb-safe-b">
           <Outlet />
         </main>
       )}

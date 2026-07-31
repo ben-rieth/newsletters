@@ -99,6 +99,11 @@
     @apply font-sans;
     color-scheme: dark;
   }
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
 
   ::selection {
     background-color: oklch(from var(--primary) l c h / 28%);
