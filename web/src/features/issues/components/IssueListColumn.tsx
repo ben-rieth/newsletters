@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { cn } from '#/lib/utils';
 import { Button, buttonVariants } from '#/components/ui/button';
 import { EmptyState } from '#/components/EmptyState';
+import { ErrorState } from '#/components/ErrorState';
 import { formatUpcoming } from '#/utils/format';
 import { newslettersOptions } from '#/features/newsletters/queries/newsletters';
 import { CreateNewsletterDialog } from '#/features/newsletters/components/CreateNewsletterDialog';
@@ -40,9 +41,22 @@ const summarize = (
 };
 
 const IssuesEmpty = () => {
-  const { data } = useQuery(newslettersOptions);
+  const { data, isError, refetch } = useQuery(newslettersOptions);
   const [createOpen, setCreateOpen] = useState(false);
   const newsletters = data ?? [];
+
+  // Without newsletters loaded we can't tell "you have none" from "the request
+  // failed" — and guessing wrong tells you to recreate what you already have.
+  if (isError) {
+    return (
+      <ErrorState
+        className="px-4 md:px-4"
+        title="Couldn’t check your newsletters"
+        description="Your issues are fine — this is just the list of newsletters that decides what to show here."
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   if (newsletters.length === 0) {
     return (

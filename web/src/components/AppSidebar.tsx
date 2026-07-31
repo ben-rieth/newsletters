@@ -18,7 +18,7 @@ const navRow =
 const navRowActive = 'border-primary text-foreground';
 
 const SidebarContent = () => {
-  const { data } = useQuery(newslettersOptions);
+  const { data, isPending, isError, refetch } = useQuery(newslettersOptions);
   const newsletters = data ?? [];
   const [createOpen, setCreateOpen] = useState(false);
   const logout = useLogout();
@@ -50,6 +50,25 @@ const SidebarContent = () => {
 
         <p className={cn(sectionLabel, 'mt-6 mb-2')}>Newsletters</p>
         <nav aria-label="Newsletters">
+          {isPending && (
+            <p className="px-3 py-2 text-sm text-muted-foreground">Loading…</p>
+          )}
+
+          {isError && (
+            <div className="px-3 py-2">
+              <p className="text-sm text-muted-foreground">
+                Couldn’t load newsletters.
+              </p>
+              <button
+                type="button"
+                onClick={() => void refetch()}
+                className="mt-1 text-sm text-foreground underline underline-offset-4"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {sorted.map((n) => (
             <Link
               key={n.id}

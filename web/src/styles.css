@@ -50,6 +50,17 @@
   --radius-4xl: calc(var(--radius) * 2.6);
   --spacing-safe-t: env(safe-area-inset-top);
   --spacing-safe-b: env(safe-area-inset-bottom);
+  --animate-route-progress: route-progress 1.4s ease-in-out infinite;
+}
+
+@keyframes route-progress {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 :root {
@@ -103,6 +114,17 @@
   body,
   #app {
     height: 100%;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   ::selection {
