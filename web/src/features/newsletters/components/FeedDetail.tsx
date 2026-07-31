@@ -88,7 +88,7 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
       <Tabs defaultValue="details">
         <TabsList
           variant="line"
-          className="w-full justify-start gap-6 overflow-x-auto border-b **:data-[slot=tabs-trigger]:flex-none **:data-[slot=tabs-trigger]:px-0"
+          className="w-full justify-start gap-6 border-b **:data-[slot=tabs-trigger]:flex-none **:data-[slot=tabs-trigger]:px-0"
         >
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="filters">

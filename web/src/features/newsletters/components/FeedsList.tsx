@@ -11,6 +11,7 @@ import {
   Settings,
   Trash2,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { cn } from '#/lib/utils';
 import { ListPanel, listRowClass } from '#/components/ListPanel';
 import { EmptyState } from '#/components/EmptyState';
@@ -44,7 +45,19 @@ type Props = {
 };
 
 const sheetActionClass =
-  'flex min-h-12 w-full items-center gap-3 rounded-md px-3 text-base transition-colors active:bg-accent';
+  'flex min-h-12 w-full items-center gap-3 rounded-md px-3 text-base transition-colors active:bg-accent disabled:opacity-50';
+
+type FeedAction = {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  destructive?: boolean;
+  disabled?: boolean;
+} & (
+  | { kind: 'external'; href: string }
+  | { kind: 'configure'; feedId: string }
+  | { kind: 'action'; onSelect: () => void }
+);
 
 export const FeedsList = ({ newsletterId }: Props) => {
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -74,9 +87,46 @@ export const FeedsList = ({ newsletterId }: Props) => {
     toast.success(status === 'active' ? 'Feed resumed!' : 'Feed paused.');
   });
 
-  const pendingFeedId = updateStatus.isPending
-    ? updateStatus.variables.feedId
-    : undefined;
+  const buildFeedActions = (feed: Feed): FeedAction[] => {
+    const isActive = feed.status === 'active';
+
+    return [
+      {
+        kind: 'external',
+        key: 'visit',
+        label: 'Visit website',
+        icon: ExternalLink,
+        href: feed.htmlUrl,
+      },
+      {
+        kind: 'configure',
+        key: 'configure',
+        label: 'Configure feed',
+        icon: Settings,
+        feedId: feed.id,
+      },
+      {
+        kind: 'action',
+        key: 'status',
+        label: isActive ? 'Pause feed' : 'Resume feed',
+        icon: isActive ? Pause : Play,
+        disabled: updateStatus.isPending,
+        onSelect: () =>
+          updateStatus.mutate({
+            feedId: feed.id,
+            status: isActive ? 'inactive' : 'active',
+          }),
+      },
+      {
+        kind: 'action',
+        key: 'delete',
+        label: 'Delete feed',
+        icon: Trash2,
+        destructive: true,
+        onSelect: () => setDeletingFeed(feed),
+      },
+    ];
+  };
 
   return (
     <div className="space-y-4">
@@ -172,52 +222,58 @@ export const FeedsList = ({ newsletterId }: Props) => {
                 </Button>
 
                 <div className="hidden shrink-0 items-center gap-0.5 text-muted-foreground md:flex">
-                  <a
-                    href={feed.htmlUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Visit feed website"
-                    className={buttonVariants({
+                  {buildFeedActions(feed).map((action) => {
+                    const Icon = action.icon;
+                    const iconButtonClass = buttonVariants({
                       variant: 'ghost',
                       size: 'icon-sm',
-                    })}
-                  >
-                    <ExternalLink />
-                  </a>
-                  <Link
-                    to="/newsletters/$newsletterId/feeds/$feedId"
-                    params={{ newsletterId, feedId: feed.id }}
-                    aria-label="Configure feed"
-                    className={buttonVariants({
-                      variant: 'ghost',
-                      size: 'icon-sm',
-                    })}
-                  >
-                    <Settings />
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() =>
-                      updateStatus.mutate({
-                        feedId: feed.id,
-                        status: isActive ? 'inactive' : 'active',
-                      })
+                    });
+
+                    if (action.kind === 'external') {
+                      return (
+                        <a
+                          key={action.key}
+                          href={action.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={action.label}
+                          title={action.label}
+                          className={iconButtonClass}
+                        >
+                          <Icon />
+                        </a>
+                      );
                     }
-                    disabled={pendingFeedId === feed.id}
-                    aria-label={isActive ? 'Pause feed' : 'Resume feed'}
-                    title={isActive ? 'Pause feed' : 'Resume feed'}
-                  >
-                    {isActive ? <Pause /> : <Play />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => setDeletingFeed(feed)}
-                    aria-label="Delete feed"
-                  >
-                    <Trash2 />
-                  </Button>
+
+                    if (action.kind === 'configure') {
+                      return (
+                        <Link
+                          key={action.key}
+                          to="/newsletters/$newsletterId/feeds/$feedId"
+                          params={{ newsletterId, feedId: action.feedId }}
+                          aria-label={action.label}
+                          title={action.label}
+                          className={iconButtonClass}
+                        >
+                          <Icon />
+                        </Link>
+                      );
+                    }
+
+                    return (
+                      <Button
+                        key={action.key}
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={action.onSelect}
+                        disabled={action.disabled}
+                        aria-label={action.label}
+                        title={action.label}
+                      >
+                        <Icon />
+                      </Button>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -241,54 +297,63 @@ export const FeedsList = ({ newsletterId }: Props) => {
               <SheetTitle className="px-3 py-3 text-muted-foreground">
                 {actionsFeed.alias || actionsFeed.title}
               </SheetTitle>
-              <a
-                href={actionsFeed.htmlUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={cn(sheetActionClass)}
-                onClick={() => setActionsFeed(null)}
-              >
-                <ExternalLink className="size-5" />
-                Visit website
-              </a>
-              <Link
-                to="/newsletters/$newsletterId/feeds/$feedId"
-                params={{ newsletterId, feedId: actionsFeed.id }}
-                className={cn(sheetActionClass)}
-              >
-                <Settings className="size-5" />
-                Configure feed
-              </Link>
-              <button
-                type="button"
-                className={cn(sheetActionClass)}
-                onClick={() => {
-                  updateStatus.mutate({
-                    feedId: actionsFeed.id,
-                    status:
-                      actionsFeed.status === 'active' ? 'inactive' : 'active',
-                  });
-                  setActionsFeed(null);
-                }}
-              >
-                {actionsFeed.status === 'active' ? (
-                  <Pause className="size-5" />
-                ) : (
-                  <Play className="size-5" />
-                )}
-                {actionsFeed.status === 'active' ? 'Pause feed' : 'Resume feed'}
-              </button>
-              <button
-                type="button"
-                className={cn(sheetActionClass, 'text-destructive')}
-                onClick={() => {
-                  setDeletingFeed(actionsFeed);
-                  setActionsFeed(null);
-                }}
-              >
-                <Trash2 className="size-5" />
-                Delete feed
-              </button>
+              {buildFeedActions(actionsFeed).map((action) => {
+                const Icon = action.icon;
+                const className = cn(
+                  sheetActionClass,
+                  action.destructive && 'text-destructive',
+                );
+                const content = (
+                  <>
+                    <Icon className="size-5" />
+                    {action.label}
+                  </>
+                );
+
+                if (action.kind === 'external') {
+                  return (
+                    <a
+                      key={action.key}
+                      href={action.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={className}
+                      onClick={() => setActionsFeed(null)}
+                    >
+                      {content}
+                    </a>
+                  );
+                }
+
+                if (action.kind === 'configure') {
+                  return (
+                    <Link
+                      key={action.key}
+                      to="/newsletters/$newsletterId/feeds/$feedId"
+                      params={{ newsletterId, feedId: action.feedId }}
+                      className={className}
+                      onClick={() => setActionsFeed(null)}
+                    >
+                      {content}
+                    </Link>
+                  );
+                }
+
+                return (
+                  <button
+                    key={action.key}
+                    type="button"
+                    className={className}
+                    disabled={action.disabled}
+                    onClick={() => {
+                      action.onSelect();
+                      setActionsFeed(null);
+                    }}
+                  >
+                    {content}
+                  </button>
+                );
+              })}
             </>
           )}
         </SheetContent>

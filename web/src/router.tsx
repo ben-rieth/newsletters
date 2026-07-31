@@ -21,10 +21,6 @@ export const router = createRouter({
   routeTree,
   defaultPreload: 'intent',
   scrollRestoration: true,
-  // Loaders block navigation, so hold the current screen briefly rather than
-  // flashing a boundary; the progress bar in __root covers the wait.
-  defaultPendingMs: 300,
-  defaultPendingMinMs: 400,
   defaultErrorComponent: RouteErrorComponent,
   defaultNotFoundComponent: () => <RouteNotFoundComponent />,
   context: {

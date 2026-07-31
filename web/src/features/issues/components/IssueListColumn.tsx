@@ -212,8 +212,8 @@ const IssueListColumn = ({ issues }: Props) => {
                         unread ? 'text-foreground' : 'text-muted-foreground',
                       )}
                     >
-                      {titles.map((title) => (
-                        <li key={title} className="line-clamp-1">
+                      {titles.map((title, index) => (
+                        <li key={`${index}-${title}`} className="line-clamp-1">
                           {title}
                         </li>
                       ))}
