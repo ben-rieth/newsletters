@@ -117,7 +117,7 @@ const LandingPage = () => {
         <section className="mx-auto max-w-6xl px-5 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-24">
           <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-8">
-              <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl sm:leading-[1.05] lg:text-6xl">
+              <h1 className="font-serif text-display font-medium text-balance">
                 Read on your schedule, not the algorithm’s.
               </h1>
               <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -160,7 +160,7 @@ const LandingPage = () => {
         >
           <div className="mx-auto max-w-6xl px-5 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
-              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
                 Three steps, then nothing
               </h2>
               <p className="text-muted-foreground">
@@ -172,7 +172,7 @@ const LandingPage = () => {
               {STEPS.map((step) => (
                 <div key={step.n} className="space-y-3">
                   <div className="border-t-2 border-primary pt-4">
-                    <span className="font-mono text-sm text-primary">
+                    <span className="font-serif text-xl text-primary tabular-nums">
                       {step.n}
                     </span>
                   </div>
@@ -189,7 +189,7 @@ const LandingPage = () => {
         <section id="what-you-can-add" className="border-t border-border/60">
           <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 sm:px-6 sm:py-16 lg:grid-cols-2 lg:gap-12 lg:px-10 lg:py-20">
             <div className="space-y-5">
-              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
                 If it has a feed, it works
               </h2>
               <p className="max-w-md leading-relaxed text-muted-foreground">
@@ -221,7 +221,7 @@ const LandingPage = () => {
 
         <section className="border-t border-border/60 bg-card/30">
           <div className="mx-auto max-w-6xl space-y-6 px-5 py-12 text-center sm:px-6 sm:py-16 lg:px-10">
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
               Start a newsletter you’ll actually finish.
             </h2>
             {!isSignedIn && (
@@ -301,7 +301,9 @@ const IssuePreview = () => (
                 <p className="text-xs text-muted-foreground">
                   {item.source} · {item.when}
                 </p>
-                <p className="text-sm font-medium leading-snug">{item.title}</p>
+                <p className="font-serif text-[0.9375rem] leading-snug">
+                  {item.title}
+                </p>
               </div>
             </div>
           ))}

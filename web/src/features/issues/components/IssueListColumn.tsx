@@ -53,7 +53,7 @@ const IssueListColumn = ({ issues }: Props) => {
 
   return (
     <div className="py-4">
-      <h2 className="hidden px-4 pb-3 text-xl font-semibold tracking-tight md:block">
+      <h2 className="hidden px-4 pb-3 font-serif text-2xl font-medium tracking-tight md:block">
         Issues
       </h2>
 
@@ -115,7 +115,7 @@ const IssueListColumn = ({ issues }: Props) => {
                   {titles.length > 0 && (
                     <ul
                       className={cn(
-                        'mt-1.5 space-y-1 text-sm leading-snug',
+                        'mt-1.5 space-y-1 font-serif text-[0.9375rem] leading-snug',
                         unread ? 'text-foreground' : 'text-muted-foreground',
                       )}
                     >

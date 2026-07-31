@@ -69,7 +69,7 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
     <div className="space-y-6">
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h1 className="hidden text-xl font-semibold tracking-tight md:block md:text-2xl">
+          <h1 className="hidden font-serif text-2xl font-medium tracking-tight md:block md:text-3xl">
             {feed.alias || feed.title}
           </h1>
           <FeedStatusBadge status={feed.status} />

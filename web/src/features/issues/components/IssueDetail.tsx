@@ -90,7 +90,7 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
 
       <header className="flex items-start justify-between gap-4 border-b border-border pb-6">
         <div className="min-w-0">
-          <h1 className="hidden text-2xl font-bold tracking-tight md:block md:text-3xl">
+          <h1 className="hidden font-serif text-3xl font-medium tracking-tight md:block md:text-4xl">
             {issue.newsletterName}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
@@ -149,7 +149,7 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
                           target="_blank"
                           rel="noopener noreferrer"
                           className={cn(
-                            'block text-lg font-semibold leading-snug transition-colors hover:text-primary',
+                            'block font-serif text-xl font-medium leading-snug transition-colors hover:text-primary',
                             read ? 'text-muted-foreground' : 'text-foreground',
                           )}
                           onClick={() => {

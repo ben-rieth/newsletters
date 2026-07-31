@@ -36,7 +36,9 @@ const NewslettersPage = () => {
       </MobileHeaderAction>
 
       <header className="mb-6 hidden items-center justify-between gap-4 md:flex">
-        <h1 className="text-2xl font-semibold tracking-tight">Newsletters</h1>
+        <h1 className="font-serif text-3xl font-medium tracking-tight">
+          Newsletters
+        </h1>
         <Button onClick={() => setCreateOpen(true)}>
           <Plus data-icon="inline-start" />
           New newsletter
