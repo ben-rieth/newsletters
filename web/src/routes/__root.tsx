@@ -9,6 +9,7 @@ import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
 
 import '../styles.css';
 import AppSidebar from '#/components/AppSidebar';
+import MobileTabBar from '#/components/MobileTabBar';
 import { MobileHeaderProvider } from '#/components/MobileHeader';
 import DebugPanel from '#/features/debug/components/DebugPanel';
 import { useRefreshOnLoad } from '#/features/auth/queries/hooks/useRefreshOnLoad';
@@ -60,13 +61,14 @@ function RootComponent() {
         <MobileHeaderProvider>
           <div className="flex h-dvh flex-col overflow-hidden md:flex-row">
             <AppSidebar />
-            <main className="flex-1 overflow-y-auto pb-safe-b">
+            <main className="flex-1 overflow-y-auto">
               <Outlet />
             </main>
+            <MobileTabBar />
           </div>
         </MobileHeaderProvider>
       ) : (
-        <main className="min-h-dvh">
+        <main className="min-h-dvh pb-safe-b">
           <Outlet />
         </main>
       )}

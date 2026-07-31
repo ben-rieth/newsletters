@@ -1,6 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { Button } from '#/components/ui/button';
+import { Button, buttonVariants } from '#/components/ui/button';
 import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
 import { UpdateEmailForm } from '#/features/auth/components/UpdateEmailForm';
 import { UpdatePasswordForm } from '#/features/auth/components/UpdatePasswordForm';
@@ -20,7 +20,9 @@ const ProfilePage = () => {
   return (
     <div className="mx-auto max-w-3xl space-y-10 px-4 py-6 md:px-6 md:py-8 lg:px-10">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
+        <h1 className="hidden text-2xl font-semibold tracking-tight md:block">
+          Profile
+        </h1>
         <p className="text-sm text-muted-foreground">
           Manage your account details and security.
         </p>
@@ -76,6 +78,15 @@ const ProfilePage = () => {
           >
             {logout.isPending ? 'Logging out…' : 'Log out'}
           </Button>
+        </SettingsRow>
+
+        <SettingsRow
+          title="About Slowfeed"
+          description="Who builds it, what it runs on, and the work it stands on."
+        >
+          <Link to="/about" className={buttonVariants({ variant: 'outline' })}>
+            About &amp; credits
+          </Link>
         </SettingsRow>
 
         <SettingsRow

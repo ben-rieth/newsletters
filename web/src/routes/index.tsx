@@ -69,7 +69,7 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-dvh bg-background text-foreground">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
         <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-10">
           <div className="flex items-center gap-2">
@@ -100,10 +100,7 @@ const LandingPage = () => {
               <>
                 <Link
                   to="/sign-in"
-                  className={buttonVariants({
-                    variant: 'ghost',
-                    className: 'hidden sm:inline-flex',
-                  })}
+                  className={buttonVariants({ variant: 'ghost' })}
                 >
                   Sign in
                 </Link>
@@ -117,13 +114,13 @@ const LandingPage = () => {
       </header>
 
       <main>
-        <section className="mx-auto max-w-6xl px-6 py-16 lg:px-10 lg:py-24">
+        <section className="mx-auto max-w-6xl px-5 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-24">
           <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-8">
-              <h1 className="text-5xl font-bold leading-[1.05] tracking-tight sm:text-6xl">
+              <h1 className="text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl sm:leading-[1.05] lg:text-6xl">
                 Read on your schedule, not the algorithm’s.
               </h1>
-              <p className="max-w-xl text-lg leading-relaxed text-muted-foreground">
+              <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
                 Slowfeed turns a list of RSS feeds into your own newsletter.
                 Paste the URLs of the channels, sites, and blogs you actually
                 follow, pick when it arrives, and read the whole lot in one
@@ -161,9 +158,9 @@ const LandingPage = () => {
           id="how-it-works"
           className="border-t border-border/60 bg-card/30"
         >
-          <div className="mx-auto max-w-6xl px-6 py-16 lg:px-10 lg:py-20">
+          <div className="mx-auto max-w-6xl px-5 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
-              <h2 className="text-3xl font-bold tracking-tight">
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
                 Three steps, then nothing
               </h2>
               <p className="text-muted-foreground">
@@ -171,7 +168,7 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div className="mt-12 grid gap-10 sm:grid-cols-3">
+            <div className="mt-10 grid gap-8 sm:mt-12 sm:grid-cols-3 sm:gap-10">
               {STEPS.map((step) => (
                 <div key={step.n} className="space-y-3">
                   <div className="border-t-2 border-primary pt-4">
@@ -190,9 +187,9 @@ const LandingPage = () => {
         </section>
 
         <section id="what-you-can-add" className="border-t border-border/60">
-          <div className="mx-auto grid max-w-6xl gap-12 px-6 py-16 lg:grid-cols-2 lg:px-10 lg:py-20">
+          <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 sm:px-6 sm:py-16 lg:grid-cols-2 lg:gap-12 lg:px-10 lg:py-20">
             <div className="space-y-5">
-              <h2 className="text-3xl font-bold tracking-tight">
+              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
                 If it has a feed, it works
               </h2>
               <p className="max-w-md leading-relaxed text-muted-foreground">
@@ -210,7 +207,7 @@ const LandingPage = () => {
               {FEED_EXAMPLES.map((example) => (
                 <div
                   key={example.label}
-                  className="grid grid-cols-[9rem_minmax(0,1fr)] items-center gap-4 py-4"
+                  className="grid gap-1 py-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center sm:gap-4"
                 >
                   <span className="text-sm font-medium">{example.label}</span>
                   <span className="truncate font-mono text-sm text-muted-foreground">
@@ -223,8 +220,8 @@ const LandingPage = () => {
         </section>
 
         <section className="border-t border-border/60 bg-card/30">
-          <div className="mx-auto max-w-6xl space-y-6 px-6 py-16 text-center lg:px-10">
-            <h2 className="text-3xl font-bold tracking-tight">
+          <div className="mx-auto max-w-6xl space-y-6 px-5 py-12 text-center sm:px-6 sm:py-16 lg:px-10">
+            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
               Start a newsletter you’ll actually finish.
             </h2>
             {!isSignedIn && (
@@ -237,7 +234,7 @@ const LandingPage = () => {
       </main>
 
       <footer className="border-t border-border/60">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between lg:px-10">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-10">
           <div className="flex items-center gap-2">
             <span className="h-3.5 w-1 rounded-full bg-primary" />
             <span className="font-semibold text-foreground">Slowfeed</span>
@@ -266,8 +263,8 @@ const LandingPage = () => {
 
 const IssuePreview = () => (
   <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-black/40">
-    <div className="grid grid-cols-[8rem_minmax(0,1fr)] divide-x divide-border">
-      <div className="space-y-4 p-4">
+    <div className="grid sm:grid-cols-[8rem_minmax(0,1fr)] sm:divide-x sm:divide-border">
+      <div className="hidden space-y-4 p-4 sm:block">
         <div className="space-y-1 text-sm">
           <div className="flex items-center justify-between rounded-md bg-primary/10 px-2 py-1 text-primary">
             <span className="font-medium">Issues</span>
@@ -289,7 +286,7 @@ const IssuePreview = () => (
         </div>
       </div>
 
-      <div className="space-y-4 p-5">
+      <div className="space-y-4 p-4 sm:p-5">
         <div>
           <p className="text-xs text-muted-foreground">
             Entertainment · daily at 08:00

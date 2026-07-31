@@ -10,7 +10,7 @@ const NewsletterPage = () => {
     newsletterOptions(newsletterId),
   );
 
-  useMobileHeader({ title: newsletter.name });
+  useMobileHeader({ title: newsletter.name, back: { to: '/newsletters' } });
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 md:px-6 md:py-8 lg:px-10">

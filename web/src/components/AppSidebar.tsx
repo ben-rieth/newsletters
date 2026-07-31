@@ -1,16 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, Menu, Plus, Rss } from 'lucide-react';
+import { ChevronLeft, Plus, Rss } from 'lucide-react';
 import { cn } from '#/lib/utils';
-import { Button, buttonVariants } from '#/components/ui/button';
+import { buttonVariants } from '#/components/ui/button';
 import { useMobileHeaderStore } from '#/components/MobileHeader';
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-  SheetTrigger,
-} from '#/components/ui/sheet';
 import { newslettersOptions } from '#/features/newsletters/queries/newsletters';
 import { CreateNewsletterDialog } from '#/features/newsletters/components/CreateNewsletterDialog';
 import useLogout from '#/features/auth/queries/hooks/useLogout';
@@ -21,7 +15,7 @@ const sectionLabel =
 const navRow =
   'flex min-h-11 items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:min-h-0';
 
-const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
+const SidebarContent = () => {
   const { data } = useQuery(newslettersOptions);
   const newsletters = data ?? [];
   const [createOpen, setCreateOpen] = useState(false);
@@ -32,21 +26,9 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
     [newsletters],
   );
 
-  const handleLogout = () => {
-    logout.mutate(undefined, {
-      onSuccess: () => {
-        onNavigate?.();
-      },
-    });
-  };
-
   return (
     <div className="flex h-full flex-col">
-      <Link
-        to="/issues"
-        onClick={onNavigate}
-        className="flex items-center gap-2.5 px-5 py-5"
-      >
+      <Link to="/issues" className="flex items-center gap-2.5 px-5 py-5">
         <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
           <Rss className="size-4" />
         </span>
@@ -58,7 +40,6 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
         <nav aria-label="Reading" className="space-y-0.5">
           <Link
             to="/issues"
-            onClick={onNavigate}
             className={navRow}
             activeProps={{
               className: cn(navRow, 'bg-accent text-foreground'),
@@ -75,7 +56,6 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
               key={n.id}
               to="/newsletters/$newsletterId"
               params={{ newsletterId: n.id }}
-              onClick={onNavigate}
               activeOptions={{ exact: false }}
               className={cn(navRow, 'justify-between')}
               activeProps={{
@@ -120,15 +100,15 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 
       <div className="border-t border-sidebar-border pb-safe-b">
         <nav aria-label="Account" className="space-y-0.5 px-2 py-3">
-          <Link to="/profile" onClick={onNavigate} className={navRow}>
+          <Link to="/profile" className={navRow}>
             Profile
           </Link>
-          <Link to="/about" onClick={onNavigate} className={navRow}>
+          <Link to="/about" className={navRow}>
             About
           </Link>
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => logout.mutate()}
             disabled={logout.isPending}
             className={cn(navRow, 'w-full')}
           >
@@ -143,13 +123,12 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
 };
 
 const MobileTopBar = () => {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const { config, registerActionSlot } = useMobileHeaderStore();
 
   return (
     <header className="shrink-0 border-b border-sidebar-border bg-sidebar pt-safe-t md:hidden">
       <div className="flex h-14 items-center gap-1 pr-2 pl-1">
-        {config.back ? (
+        {config.back && (
           <Link
             {...config.back}
             aria-label="Back"
@@ -160,34 +139,21 @@ const MobileTopBar = () => {
           >
             <ChevronLeft className="size-5" />
           </Link>
-        ) : (
-          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-            <SheetTrigger
-              render={
-                <Button variant="ghost" size="icon" className="size-11" />
-              }
-              aria-label="Open menu"
-            >
-              <Menu className="size-5" />
-            </SheetTrigger>
-            <SheetContent
-              side="left"
-              className="bg-sidebar p-0 text-sm data-[side=left]:w-72"
-            >
-              <SheetTitle className="sr-only">Navigation</SheetTitle>
-              <SidebarContent onNavigate={() => setMobileOpen(false)} />
-            </SheetContent>
-          </Sheet>
         )}
 
         {config.title ? (
-          <h1 className="min-w-0 flex-1 truncate text-base font-semibold">
+          <h1
+            className={cn(
+              'min-w-0 flex-1 truncate text-base font-semibold',
+              !config.back && 'pl-3',
+            )}
+          >
             {config.title}
           </h1>
         ) : (
           <Link
             to="/issues"
-            className="flex min-w-0 flex-1 items-center gap-2 font-semibold"
+            className="flex min-w-0 flex-1 items-center gap-2 pl-3 font-semibold"
           >
             <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Rss className="size-3.5" />
