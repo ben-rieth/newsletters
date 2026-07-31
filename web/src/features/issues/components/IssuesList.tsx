@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router';
-import { ChevronRight } from 'lucide-react';
 import { ListPanel, listRowClass } from '#/components/ListPanel';
 import { EmptyState } from '#/components/EmptyState';
 import { formatUpcoming } from '#/utils/format';
@@ -32,7 +31,7 @@ const IssuesList = ({ issues, nextSendTime }: IssuesListProps) => {
   );
 
   return (
-    <ListPanel header="Issue">
+    <ListPanel>
       {sorted.map((issue) => {
         const date = new Date(issue.sentAt);
         const unread = issue.state === 'unread';
@@ -82,7 +81,6 @@ const IssuesList = ({ issues, nextSendTime }: IssuesListProps) => {
                 ].join(' · ')}
               </p>
             </div>
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           </Link>
         );
       })}

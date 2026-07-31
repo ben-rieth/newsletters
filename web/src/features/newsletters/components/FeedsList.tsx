@@ -128,7 +128,7 @@ export const FeedsList = ({ newsletterId }: Props) => {
           }
         />
       ) : (
-        <ListPanel header="Feed">
+        <ListPanel>
           {filteredFeeds.map((feed) => {
             const isActive = feed.status === 'active';
 

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, Plus, Rss } from 'lucide-react';
+import { ChevronLeft, Plus } from 'lucide-react';
 import { cn } from '#/lib/utils';
 import { buttonVariants } from '#/components/ui/button';
 import { useMobileHeaderStore } from '#/components/MobileHeader';
@@ -13,7 +13,9 @@ const sectionLabel =
   'px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground';
 
 const navRow =
-  'flex min-h-11 items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground md:min-h-0';
+  'flex min-h-11 items-center gap-2.5 border-l-2 border-transparent px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground md:min-h-0';
+
+const navRowActive = 'border-primary text-foreground';
 
 const SidebarContent = () => {
   const { data } = useQuery(newslettersOptions);
@@ -28,29 +30,26 @@ const SidebarContent = () => {
 
   return (
     <div className="flex h-full flex-col">
-      <Link to="/issues" className="flex items-center gap-2.5 px-5 py-5">
-        <span className="flex size-7 items-center justify-center rounded-md bg-primary text-primary-foreground">
-          <Rss className="size-4" />
-        </span>
-        <span className="text-base font-semibold">Slowfeed</span>
+      <Link to="/issues" className="flex items-center gap-2 px-5 py-5">
+        <span className="h-4 w-1 rounded-full bg-primary" />
+        <span className="text-base font-semibold tracking-tight">Slowfeed</span>
       </Link>
 
       <div className="flex-1 overflow-y-auto px-2">
-        <p className={cn(sectionLabel, 'mt-2 mb-2')}>Read</p>
-        <nav aria-label="Reading" className="space-y-0.5">
+        <nav aria-label="Reading" className="mt-2">
           <Link
             to="/issues"
-            className={navRow}
+            className={cn(navRow, 'font-medium text-foreground')}
             activeProps={{
-              className: cn(navRow, 'bg-accent text-foreground'),
+              className: cn(navRow, 'font-medium', navRowActive),
             }}
           >
             Issues
           </Link>
         </nav>
 
-        <p className={cn(sectionLabel, 'mt-4 mb-2')}>Newsletters</p>
-        <nav aria-label="Newsletters" className="space-y-0.5">
+        <p className={cn(sectionLabel, 'mt-6 mb-2')}>Newsletters</p>
+        <nav aria-label="Newsletters">
           {sorted.map((n) => (
             <Link
               key={n.id}
@@ -59,23 +58,10 @@ const SidebarContent = () => {
               activeOptions={{ exact: false }}
               className={cn(navRow, 'justify-between')}
               activeProps={{
-                className: cn(
-                  navRow,
-                  'justify-between bg-accent text-foreground',
-                ),
+                className: cn(navRow, 'justify-between', navRowActive),
               }}
             >
-              <span className="flex items-center gap-2.5 truncate">
-                <span
-                  className={cn(
-                    'size-1.5 shrink-0 rounded-full',
-                    n.status === 'active'
-                      ? 'bg-primary'
-                      : 'bg-muted-foreground/40',
-                  )}
-                />
-                <span className="truncate">{n.name}</span>
-              </span>
+              <span className="truncate">{n.name}</span>
               {n.status !== 'active' && (
                 <span className="text-xs uppercase tracking-wide text-muted-foreground md:text-[10px]">
                   Paused
@@ -88,10 +74,7 @@ const SidebarContent = () => {
         <button
           type="button"
           onClick={() => setCreateOpen(true)}
-          className={cn(
-            navRow,
-            'mt-2 w-full border border-dashed border-border',
-          )}
+          className={cn(navRow, 'mt-1 w-full')}
         >
           <Plus className="size-4" />
           New newsletter
@@ -153,11 +136,9 @@ const MobileTopBar = () => {
         ) : (
           <Link
             to="/issues"
-            className="flex min-w-0 flex-1 items-center gap-2 pl-3 font-semibold"
+            className="flex min-w-0 flex-1 items-center gap-2 pl-3 font-semibold tracking-tight"
           >
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Rss className="size-3.5" />
-            </span>
+            <span className="h-4 w-1 shrink-0 rounded-full bg-primary" />
             Slowfeed
           </Link>
         )}

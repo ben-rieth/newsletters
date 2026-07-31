@@ -13,7 +13,9 @@ const useAddFeedFilter = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (body: components['schemas']['SubmittableFeedFilterFields']) => {
+    mutationFn: async (
+      body: components['schemas']['SubmittableFeedFilterFields'],
+    ) => {
       const { error } = await client.POST(
         '/newsletter/{newsletterId}/feed/{feedId}/filter',
         { params: { path: { newsletterId, feedId } }, body },

@@ -42,7 +42,9 @@ export const SignInForm = () => {
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
               placeholder="you@example.com"
-              aria-invalid={field.state.meta.isBlurred && field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isBlurred && field.state.meta.errors.length > 0
+              }
             />
           </FormField>
         )}
@@ -57,7 +59,9 @@ export const SignInForm = () => {
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
-              aria-invalid={field.state.meta.isBlurred && field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isBlurred && field.state.meta.errors.length > 0
+              }
             />
           </FormField>
         )}

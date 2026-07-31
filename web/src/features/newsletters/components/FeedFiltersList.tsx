@@ -51,10 +51,10 @@ export const FeedFiltersList = ({ newsletterId, feedId, filters }: Props) => {
   }
 
   return (
-    <ListPanel header="Filter">
+    <ListPanel>
       {filters.map((filter) =>
         editingId === filter.id ? (
-          <div key={filter.id} className="px-5 py-4">
+          <div key={filter.id} className="px-1 py-4">
             <FeedFilterForm
               filter={filter}
               onSubmit={async (values) => {

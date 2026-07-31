@@ -4,26 +4,21 @@ import { Button, buttonVariants } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
 import useIsSignedIn from '#/features/auth/queries/hooks/useIsSignedIn';
 
-const NAV_LINKS = [
-  { href: '#how-it-works', label: 'How it works' },
-  { href: '#what-you-can-add', label: 'What you can add' },
-];
-
 const STEPS = [
   {
     n: '01',
     title: 'Group the feeds',
-    body: 'Make a newsletter — Entertainment, Morning News, whatever — and paste in RSS or Atom URLs. Each one is checked to make sure it resolves before it’s added.',
+    body: 'Make a newsletter — Entertainment, Morning News, whatever — and paste in RSS or Atom URLs.',
   },
   {
     n: '02',
     title: 'Pick when it lands',
-    body: 'Daily, weekly, or a specific day, at the time and timezone you choose. Need an extra issue sooner? Schedule a one-off send without touching the routine.',
+    body: 'Daily, weekly, or a specific day, at the time and timezone you choose.',
   },
   {
     n: '03',
     title: 'Read it once',
-    body: 'The issue arrives as email and stays in the app, grouped and ready. Past issues keep — there’s nothing to keep up with between sends.',
+    body: 'The issue arrives as email and stays in the app. There’s nothing to keep up with between sends.',
   },
 ];
 
@@ -36,24 +31,6 @@ const FEED_EXAMPLES = [
   { label: 'Blog or Substack', url: 'yourfavourite.substack.com/feed' },
   { label: 'Podcast', url: 'feeds.simplecast.com/…' },
   { label: 'Software releases', url: 'github.com/owner/repo/releases.atom' },
-];
-
-const PREVIEW_ITEMS = [
-  {
-    source: 'Corridor Crew',
-    when: '2h ago',
-    title: 'VFX Artists React to Bad & Great CGi',
-  },
-  {
-    source: 'The Criterion Channel',
-    when: '4h ago',
-    title: 'Now streaming: the complete Kelly Reichardt',
-  },
-  {
-    source: 'A24',
-    when: '1d ago',
-    title: 'Notes on Film 44 — the sound of an empty room',
-  },
 ];
 
 const LandingPage = () => {
@@ -70,95 +47,61 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-full bg-background text-foreground">
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
-        <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6 lg:px-10">
-          <div className="flex items-center gap-2">
-            <span className="h-4 w-1 rounded-full bg-primary" />
-            <span className="text-base font-semibold tracking-tight">
-              Slowfeed
-            </span>
-          </div>
+      <header className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-6 lg:px-10">
+        <div className="flex items-center gap-2">
+          <span className="h-4 w-1 rounded-full bg-primary" />
+          <span className="text-base font-semibold tracking-tight">
+            Slowfeed
+          </span>
+        </div>
 
-          <div className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="transition-colors hover:text-foreground"
-              >
-                {link.label}
-              </a>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {isSignedIn ? (
-              <Link to="/issues" className={buttonVariants()}>
-                Go to Issues
-              </Link>
-            ) : (
-              <>
-                <Link
-                  to="/sign-in"
-                  className={buttonVariants({ variant: 'ghost' })}
-                >
-                  Sign in
-                </Link>
-                <Link to="/sign-up" className={buttonVariants()}>
-                  Start reading
-                </Link>
-              </>
-            )}
-          </div>
-        </nav>
+        {isSignedIn ? (
+          <Link to="/issues" className={buttonVariants()}>
+            Go to Issues
+          </Link>
+        ) : (
+          <Link to="/sign-in" className={buttonVariants({ variant: 'ghost' })}>
+            Sign in
+          </Link>
+        )}
       </header>
 
       <main>
-        <section className="mx-auto max-w-6xl px-5 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-24">
-          <div className="grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-8">
-              <h1 className="font-serif text-display font-medium text-balance">
-                Read on your schedule, not the algorithm’s.
-              </h1>
-              <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-                Slowfeed turns a list of RSS feeds into your own newsletter.
-                Paste the URLs of the channels, sites, and blogs you actually
-                follow, pick when it arrives, and read the whole lot in one
-                sitting — by email or in the app.
-              </p>
+        <section className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-28 lg:px-10 lg:py-36">
+          <h1 className="max-w-4xl font-serif text-display font-medium text-balance">
+            Read on your schedule, not the algorithm’s.
+          </h1>
+          <p className="mt-8 max-w-xl text-lg leading-relaxed text-muted-foreground">
+            Slowfeed turns a list of RSS feeds into your own newsletter. Paste
+            the URLs you actually follow, pick when it arrives, read the lot in
+            one sitting.
+          </p>
 
-              {!isSignedIn && (
-                <form
-                  className="flex max-w-md flex-col gap-3 sm:flex-row"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    startReading();
-                  }}
-                >
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    aria-label="Email address"
-                    className="h-11 flex-1"
-                  />
-                  <Button type="submit" size="lg">
-                    Start reading
-                  </Button>
-                </form>
-              )}
-            </div>
-
-            <IssuePreview />
-          </div>
+          {!isSignedIn && (
+            <form
+              className="mt-10 flex max-w-md flex-col gap-3 sm:flex-row"
+              onSubmit={(e) => {
+                e.preventDefault();
+                startReading();
+              }}
+            >
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                aria-label="Email address"
+                className="h-11 flex-1"
+              />
+              <Button type="submit" size="lg">
+                Start reading
+              </Button>
+            </form>
+          )}
         </section>
 
-        <section
-          id="how-it-works"
-          className="border-t border-border/60 bg-card/30"
-        >
-          <div className="mx-auto max-w-6xl px-5 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
+        <section className="border-t border-border">
+          <div className="mx-auto max-w-6xl px-5 py-14 sm:px-6 sm:py-20 lg:px-10">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:gap-6">
               <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
                 Three steps, then nothing
@@ -168,16 +111,14 @@ const LandingPage = () => {
               </p>
             </div>
 
-            <div className="mt-10 grid gap-8 sm:mt-12 sm:grid-cols-3 sm:gap-10">
+            <div className="mt-12 grid gap-10 sm:grid-cols-3">
               {STEPS.map((step) => (
-                <div key={step.n} className="space-y-3">
-                  <div className="border-t-2 border-primary pt-4">
-                    <span className="font-serif text-xl text-primary tabular-nums">
-                      {step.n}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold">{step.title}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
+                <div key={step.n} className="border-t border-border pt-4">
+                  <span className="font-serif text-xl tabular-nums text-muted-foreground">
+                    {step.n}
+                  </span>
+                  <h3 className="mt-3 text-lg font-semibold">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                     {step.body}
                   </p>
                 </div>
@@ -186,20 +127,17 @@ const LandingPage = () => {
           </div>
         </section>
 
-        <section id="what-you-can-add" className="border-t border-border/60">
-          <div className="mx-auto grid max-w-6xl gap-10 px-5 py-12 sm:px-6 sm:py-16 lg:grid-cols-2 lg:gap-12 lg:px-10 lg:py-20">
-            <div className="space-y-5">
+        <section className="border-t border-border">
+          <div className="mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:px-6 sm:py-20 lg:grid-cols-2 lg:gap-16 lg:px-10">
+            <div>
               <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
                 If it has a feed, it works
               </h2>
-              <p className="max-w-md leading-relaxed text-muted-foreground">
+              <p className="mt-5 max-w-md leading-relaxed text-muted-foreground">
                 Slowfeed takes URLs — that’s the whole input. Most sites still
-                publish a feed even when they don’t advertise one, and a YouTube
-                channel has one for every channel ID.
-              </p>
-              <p className="max-w-md leading-relaxed text-muted-foreground">
-                Point a feed at a newsletter and add filters to hide the items
-                you don’t want, so a noisy source stays in its lane.
+                publish a feed even when they don’t advertise one. Add filters
+                to drop the items you don’t want, so a noisy source stays in its
+                lane.
               </p>
             </div>
 
@@ -218,101 +156,22 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
-
-        <section className="border-t border-border/60 bg-card/30">
-          <div className="mx-auto max-w-6xl space-y-6 px-5 py-12 text-center sm:px-6 sm:py-16 lg:px-10">
-            <h2 className="font-serif text-3xl font-medium tracking-tight sm:text-4xl">
-              Start a newsletter you’ll actually finish.
-            </h2>
-            {!isSignedIn && (
-              <Link to="/sign-up" className={buttonVariants({ size: 'lg' })}>
-                Start reading
-              </Link>
-            )}
-          </div>
-        </section>
       </main>
 
-      <footer className="border-t border-border/60">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 py-8 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-10">
+      <footer className="border-t border-border">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-8 text-sm text-muted-foreground sm:px-6 lg:px-10">
           <div className="flex items-center gap-2">
             <span className="h-3.5 w-1 rounded-full bg-primary" />
             <span className="font-semibold text-foreground">Slowfeed</span>
           </div>
-          <div className="flex items-center gap-6">
-            {!isSignedIn && (
-              <Link
-                to="/sign-in"
-                className="transition-colors hover:text-foreground"
-              >
-                Sign in
-              </Link>
-            )}
-            <Link
-              to="/about"
-              className="transition-colors hover:text-foreground"
-            >
-              About &amp; credits
-            </Link>
-          </div>
+          <Link to="/about" className="transition-colors hover:text-foreground">
+            About &amp; credits
+          </Link>
         </div>
       </footer>
     </div>
   );
 };
-
-const IssuePreview = () => (
-  <div className="overflow-hidden rounded-xl border border-border bg-card shadow-2xl shadow-black/40">
-    <div className="grid sm:grid-cols-[8rem_minmax(0,1fr)] sm:divide-x sm:divide-border">
-      <div className="hidden space-y-4 p-4 sm:block">
-        <div className="space-y-1 text-sm">
-          <div className="flex items-center justify-between rounded-md bg-primary/10 px-2 py-1 text-primary">
-            <span className="font-medium">Issues</span>
-            <span className="text-xs">3</span>
-          </div>
-          <p className="px-2 py-1 text-muted-foreground">Saved</p>
-        </div>
-        <div className="space-y-1">
-          <p className="px-2 text-xs uppercase tracking-wider text-muted-foreground">
-            Newsletters
-          </p>
-          <p className="px-2 py-1 text-sm text-foreground">Entertainment</p>
-          <p className="px-2 py-1 text-sm text-muted-foreground">
-            Morning News
-          </p>
-          <p className="px-2 py-1 text-sm text-muted-foreground">
-            Dev &amp; Releases
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-4 p-4 sm:p-5">
-        <div>
-          <p className="text-xs text-muted-foreground">
-            Entertainment · daily at 08:00
-          </p>
-          <p className="mt-1 text-lg font-semibold">Friday, 24 July</p>
-        </div>
-        <div className="space-y-4">
-          {PREVIEW_ITEMS.map((item) => (
-            <div key={item.title} className="flex gap-3">
-              <div className="mt-0.5 size-10 shrink-0 rounded bg-muted" />
-              <div className="min-w-0">
-                <p className="text-xs text-muted-foreground">
-                  {item.source} · {item.when}
-                </p>
-                <p className="font-serif text-[0.9375rem] leading-snug">
-                  {item.title}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground">+ 6 more items</p>
-      </div>
-    </div>
-  </div>
-);
 
 export const Route = createFileRoute('/')({
   component: LandingPage,

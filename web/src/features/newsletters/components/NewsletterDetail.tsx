@@ -18,7 +18,6 @@ import { NewsletterDebugActions } from '#/features/debug/components/NewsletterDe
 import IssuesList from '#/features/issues/components/IssuesList';
 import { issuesOptions } from '#/features/issues/queries/issues';
 import { Button } from '#/components/ui/button';
-import { Badge } from '#/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs';
 import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
 import {
@@ -88,24 +87,12 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <h1 className="hidden font-serif text-2xl font-medium tracking-tight md:block md:text-3xl">
-            {newsletter.name}
-          </h1>
-          <Badge
-            variant="outline"
-            className={
-              isActive
-                ? 'border-primary/30 bg-primary/10 text-primary'
-                : 'text-muted-foreground'
-            }
-          >
-            {isActive ? 'Active' : 'Paused'}
-          </Badge>
-        </div>
+        <h1 className="hidden font-serif text-2xl font-medium tracking-tight md:block md:text-3xl">
+          {newsletter.name}
+        </h1>
         <p className="text-sm text-muted-foreground">
           {feeds.length} {feeds.length === 1 ? 'feed' : 'feeds'} ·{' '}
-          {formatSchedule(newsletter)}
+          {isActive ? formatSchedule(newsletter) : 'Paused'}
         </p>
       </header>
 

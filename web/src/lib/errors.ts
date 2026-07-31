@@ -1,6 +1,6 @@
 export const getErrorMessage = (error: unknown): string => {
   if (error instanceof Error) {
-    return error.message
+    return error.message;
   }
   if (
     typeof error === 'object' &&
@@ -8,7 +8,7 @@ export const getErrorMessage = (error: unknown): string => {
     'detail' in error &&
     typeof error.detail === 'string'
   ) {
-    return error.detail
+    return error.detail;
   }
-  return 'Something went wrong'
-}
+  return 'Something went wrong';
+};

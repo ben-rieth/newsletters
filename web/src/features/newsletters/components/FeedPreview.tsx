@@ -33,7 +33,7 @@ const PreviewItem = ({ item }: { item: ItemPreview }) => {
   return (
     <div
       className={cn(
-        'flex items-start gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-accent/40',
+        'flex items-start gap-3 px-1 py-4 text-sm transition-colors hover:bg-accent/30',
         isFiltered && 'opacity-50',
       )}
     >
@@ -112,7 +112,7 @@ export const FeedPreview = ({ newsletterId, feedId }: Props) => {
       )}
 
       {hasRequested && !isFetching && data && data.length > 0 && (
-        <ListPanel header="Item">
+        <ListPanel>
           {data.map((item) => (
             <PreviewItem key={item.id} item={item} />
           ))}
