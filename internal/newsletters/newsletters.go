@@ -36,6 +36,9 @@ type Issue struct {
 	NewsletterName string       `json:"newsletterName"`
 	SentAt         time.Time    `json:"sentAt"`
 	State          db.ItemState `json:"state" enum:"read,unread"`
+	ItemCount      int32        `json:"itemCount"`
+	UnreadCount    int32        `json:"unreadCount"`
+	PreviewTitles  []string     `json:"previewTitles"`
 }
 
 type DetailedIssue struct {

@@ -19,6 +19,19 @@ const bucketLabel = (date: Date): string => {
   });
 };
 
+const summarize = (
+  itemCount: number,
+  unreadCount: number,
+  remaining: number,
+): string => {
+  if (itemCount === 0) return 'No items';
+
+  const parts = [];
+  if (remaining > 0) parts.push(`+${remaining} more`);
+  parts.push(unreadCount > 0 ? `${unreadCount} unread` : 'All read');
+  return parts.join(' · ');
+};
+
 const IssueListColumn = ({ issues }: Props) => {
   const params = useParams({ strict: false });
   const activeId = (params as { issueId?: string }).issueId;
@@ -58,13 +71,15 @@ const IssueListColumn = ({ issues }: Props) => {
               const date = new Date(issue.sentAt);
               const isActive = issue.issueId === activeId;
               const unread = issue.state === 'unread';
+              const titles = issue.previewTitles ?? [];
+              const remaining = issue.itemCount - titles.length;
               return (
                 <Link
                   key={issue.issueId}
                   to="/issues/$issueId"
                   params={{ issueId: issue.issueId }}
                   className={cn(
-                    'block border-l-2 px-4 py-3 transition-colors',
+                    'block border-l-2 px-4 py-3.5 transition-colors active:bg-accent/60 md:py-3',
                     isActive
                       ? 'border-primary bg-accent'
                       : 'border-transparent hover:bg-accent/50',
@@ -73,7 +88,7 @@ const IssueListColumn = ({ issues }: Props) => {
                   <div className="flex items-baseline justify-between gap-2">
                     <span
                       className={cn(
-                        'flex min-w-0 items-baseline gap-1.5 text-sm font-semibold uppercase tracking-wide md:text-xs',
+                        'flex min-w-0 items-baseline gap-1.5 text-xs font-semibold uppercase tracking-wide',
                         unread ? 'text-primary' : 'text-muted-foreground',
                       )}
                     >
@@ -88,7 +103,7 @@ const IssueListColumn = ({ issues }: Props) => {
                       )}
                       <span className="truncate">{issue.newsletterName}</span>
                     </span>
-                    <span className="shrink-0 text-sm tabular-nums text-muted-foreground md:text-xs">
+                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                       {date.toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit',
@@ -96,12 +111,24 @@ const IssueListColumn = ({ issues }: Props) => {
                       })}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {date.toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short',
-                    })}
+
+                  {titles.length > 0 && (
+                    <ul
+                      className={cn(
+                        'mt-1.5 space-y-1 text-sm leading-snug',
+                        unread ? 'text-foreground' : 'text-muted-foreground',
+                      )}
+                    >
+                      {titles.map((title) => (
+                        <li key={title} className="line-clamp-1">
+                          {title}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {summarize(issue.itemCount, issue.unreadCount, remaining)}
                   </p>
                 </Link>
               );

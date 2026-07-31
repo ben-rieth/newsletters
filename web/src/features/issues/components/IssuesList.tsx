@@ -61,12 +61,17 @@ const IssuesList = ({ issues }: IssuesListProps) => {
                 </span>
               </p>
               <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                {issue.newsletterName} ·{' '}
-                {date.toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false,
-                })}
+                {[
+                  date.toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                  }),
+                  `${issue.itemCount} ${issue.itemCount === 1 ? 'item' : 'items'}`,
+                  ...(issue.unreadCount > 0
+                    ? [`${issue.unreadCount} unread`]
+                    : []),
+                ].join(' · ')}
               </p>
             </div>
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />

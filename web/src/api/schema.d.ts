@@ -703,12 +703,17 @@ export interface components {
     };
     Issue: {
       issueId: string;
+      /** Format: int32 */
+      itemCount: number;
       newsletterId: string;
       newsletterName: string;
+      previewTitles: string[] | null;
       /** Format: date-time */
       sentAt: string;
       /** @enum {string} */
       state: 'read' | 'unread';
+      /** Format: int32 */
+      unreadCount: number;
     };
     IssueFeed: {
       items: components['schemas']['IssueItem'][] | null;
