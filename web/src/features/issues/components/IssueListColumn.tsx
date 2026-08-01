@@ -1,5 +1,13 @@
+import { useState } from 'react';
 import { Link, useParams } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import { cn } from '#/lib/utils';
+import { Button, buttonVariants } from '#/components/ui/button';
+import { EmptyState } from '#/components/EmptyState';
+import { ErrorState } from '#/components/ErrorState';
+import { formatUpcoming } from '#/utils/format';
+import { newslettersOptions } from '#/features/newsletters/queries/newsletters';
+import { CreateNewsletterDialog } from '#/features/newsletters/components/CreateNewsletterDialog';
 import type { Issue } from '../queries/issues';
 
 type Props = {
@@ -17,6 +25,106 @@ const bucketLabel = (date: Date): string => {
     month: 'short',
     day: 'numeric',
   });
+};
+
+const summarize = (
+  itemCount: number,
+  unreadCount: number,
+  remaining: number,
+): string => {
+  if (itemCount === 0) return 'No items';
+
+  const parts = [];
+  if (remaining > 0) parts.push(`+${remaining} more`);
+  parts.push(unreadCount > 0 ? `${unreadCount} unread` : 'All read');
+  return parts.join(' · ');
+};
+
+const IssuesEmpty = () => {
+  const { data, isError, refetch } = useQuery(newslettersOptions);
+  const [createOpen, setCreateOpen] = useState(false);
+  const newsletters = data ?? [];
+
+  // Without newsletters loaded we can't tell "you have none" from "the request
+  // failed" — and guessing wrong tells you to recreate what you already have.
+  if (isError) {
+    return (
+      <ErrorState
+        className="px-4 md:px-4"
+        title="Couldn’t check your newsletters"
+        description="Your issues are fine — this is just the list of newsletters that decides what to show here."
+        onRetry={() => void refetch()}
+      />
+    );
+  }
+
+  if (newsletters.length === 0) {
+    return (
+      <>
+        <EmptyState
+          title="Nothing to read yet"
+          description="A newsletter is a group of feeds delivered on a schedule you choose. Make one, paste in a few feed URLs, and issues land here."
+          action={
+            <Button onClick={() => setCreateOpen(true)}>
+              Create your first newsletter
+            </Button>
+          }
+        />
+        <CreateNewsletterDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+        />
+      </>
+    );
+  }
+
+  const next = newsletters
+    .filter((n) => n.status === 'active')
+    .toSorted(
+      (a, b) =>
+        new Date(a.nextSendTime).getTime() - new Date(b.nextSendTime).getTime(),
+    )
+    .at(0);
+
+  if (!next) {
+    return (
+      <EmptyState
+        title="Everything is paused"
+        description={`You have ${newsletters.length} ${
+          newsletters.length === 1 ? 'newsletter' : 'newsletters'
+        }, but none are sending. Activate one to start receiving issues.`}
+        action={
+          <Link
+            to="/newsletters"
+            className={buttonVariants({ variant: 'outline' })}
+          >
+            Manage newsletters
+          </Link>
+        }
+      />
+    );
+  }
+
+  return (
+    <EmptyState
+      title="Your first issue is on the way"
+      description={
+        <>
+          <span className="text-foreground">{next.name}</span> sends{' '}
+          {formatUpcoming(next.nextSendTime)}. Until then there is nothing to
+          read — that&rsquo;s the point.
+        </>
+      }
+      action={
+        <Link
+          to="/newsletters"
+          className={buttonVariants({ variant: 'outline' })}
+        >
+          Add more feeds
+        </Link>
+      }
+    />
+  );
 };
 
 const IssueListColumn = ({ issues }: Props) => {
@@ -40,12 +148,12 @@ const IssueListColumn = ({ issues }: Props) => {
 
   return (
     <div className="py-4">
-      <h2 className="px-4 pb-3 text-xl font-semibold tracking-tight">Issues</h2>
+      <h2 className="hidden px-4 pb-3 font-serif text-2xl font-medium tracking-tight md:block">
+        Issues
+      </h2>
 
       {sorted.length === 0 ? (
-        <p className="px-4 py-8 text-sm text-muted-foreground">
-          No issues yet — newsletters appear here after they're first sent.
-        </p>
+        <IssuesEmpty />
       ) : (
         groups.map((group) => (
           <div key={group.label} className="mb-2">
@@ -56,13 +164,15 @@ const IssueListColumn = ({ issues }: Props) => {
               const date = new Date(issue.sentAt);
               const isActive = issue.issueId === activeId;
               const unread = issue.state === 'unread';
+              const titles = issue.previewTitles ?? [];
+              const remaining = issue.itemCount - titles.length;
               return (
                 <Link
                   key={issue.issueId}
                   to="/issues/$issueId"
                   params={{ issueId: issue.issueId }}
                   className={cn(
-                    'block border-l-2 px-4 py-3 transition-colors',
+                    'block border-l-2 px-4 py-3.5 transition-colors active:bg-accent/60 md:py-3',
                     isActive
                       ? 'border-primary bg-accent'
                       : 'border-transparent hover:bg-accent/50',
@@ -94,12 +204,24 @@ const IssueListColumn = ({ issues }: Props) => {
                       })}
                     </span>
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {date.toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      day: 'numeric',
-                      month: 'short',
-                    })}
+
+                  {titles.length > 0 && (
+                    <ul
+                      className={cn(
+                        'mt-1.5 space-y-1 font-serif text-[0.9375rem] leading-snug',
+                        unread ? 'text-foreground' : 'text-muted-foreground',
+                      )}
+                    >
+                      {titles.map((title, index) => (
+                        <li key={`${index}-${title}`} className="line-clamp-1">
+                          {title}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+
+                  <p className="mt-1.5 text-xs text-muted-foreground">
+                    {summarize(issue.itemCount, issue.unreadCount, remaining)}
                   </p>
                 </Link>
               );

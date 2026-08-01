@@ -9,6 +9,9 @@ import { ReactQueryDevtoolsPanel } from '@tanstack/react-query-devtools';
 
 import '../styles.css';
 import AppSidebar from '#/components/AppSidebar';
+import { ErrorState } from '#/components/ErrorState';
+import MobileTabBar from '#/components/MobileTabBar';
+import { MobileHeaderProvider } from '#/components/MobileHeader';
 import DebugPanel from '#/features/debug/components/DebugPanel';
 import { useRefreshOnLoad } from '#/features/auth/queries/hooks/useRefreshOnLoad';
 import useIsSignedIn from '#/features/auth/queries/hooks/useIsSignedIn';
@@ -24,13 +27,33 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 });
 
 function RootErrorComponent({ error }: { error: unknown }) {
-  const message =
-    error instanceof Error ? error.message : 'Something went wrong';
+  return (
+    <main className="min-h-full px-5 py-16 sm:px-6 lg:px-10">
+      <ErrorState
+        className="mx-auto px-0 md:px-0"
+        title="Slowfeed didn’t start"
+        description="Something failed before the app could load. Reloading usually clears it."
+        error={error}
+        onRetry={() => window.location.reload()}
+      />
+    </main>
+  );
+}
+
+/**
+ * Loaders hold the previous screen while they run, so navigation has no
+ * feedback of its own. This is that feedback.
+ */
+function RouteProgress() {
+  const isLoading = useRouterState({ select: (state) => state.isLoading });
+  if (!isLoading) return null;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-2 p-6 text-center">
-      <p className="text-sm font-medium text-destructive">{message}</p>
-    </div>
+    <div
+      role="status"
+      aria-label="Loading"
+      className="animate-route-progress pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-primary"
+    />
   );
 }
 
@@ -55,15 +78,19 @@ function RootComponent() {
 
   return (
     <>
+      <RouteProgress />
       {showSidebar ? (
-        <div className="flex h-screen flex-col overflow-hidden md:flex-row">
-          <AppSidebar />
-          <main className="flex-1 overflow-y-auto">
-            <Outlet />
-          </main>
-        </div>
+        <MobileHeaderProvider>
+          <div className="flex h-full flex-col overflow-hidden md:flex-row">
+            <AppSidebar />
+            <main className="min-h-0 flex-1 overflow-y-auto">
+              <Outlet />
+            </main>
+            <MobileTabBar />
+          </div>
+        </MobileHeaderProvider>
       ) : (
-        <main className="min-h-screen">
+        <main className="min-h-full pb-safe-b">
           <Outlet />
         </main>
       )}

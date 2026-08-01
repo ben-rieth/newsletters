@@ -7,20 +7,26 @@ import { Input } from '#/components/ui/input';
 import { getErrorMessage } from '#/lib/errors';
 import useUpdatePassword from '../queries/hooks/useUpdatePassword';
 
-const updatePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'Current password is required'),
-  newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string().min(1, 'Please confirm your new password'),
-}).refine((data) => data.newPassword === data.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
+const updatePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, 'Current password is required'),
+    newPassword: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string().min(1, 'Please confirm your new password'),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  });
 
 export const UpdatePasswordForm = () => {
   const { mutateAsync, isPending, error } = useUpdatePassword();
 
   const form = useForm({
-    defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' },
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    },
     validators: { onChange: updatePasswordSchema },
     onSubmit: async ({ value }) => {
       await mutateAsync({
@@ -47,7 +53,9 @@ export const UpdatePasswordForm = () => {
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
-              aria-invalid={field.state.meta.isBlurred && field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isBlurred && field.state.meta.errors.length > 0
+              }
             />
           </FormField>
         )}
@@ -62,7 +70,9 @@ export const UpdatePasswordForm = () => {
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
-              aria-invalid={field.state.meta.isBlurred && field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isBlurred && field.state.meta.errors.length > 0
+              }
             />
           </FormField>
         )}
@@ -77,7 +87,9 @@ export const UpdatePasswordForm = () => {
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
-              aria-invalid={field.state.meta.isBlurred && field.state.meta.errors.length > 0}
+              aria-invalid={
+                field.state.meta.isBlurred && field.state.meta.errors.length > 0
+              }
             />
           </FormField>
         )}

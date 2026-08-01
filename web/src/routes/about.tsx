@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { Globe, GitBranch } from 'lucide-react';
 import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
+import { useMobileHeader } from '#/components/MobileHeader';
 
 const STACK = [
   {
@@ -19,10 +20,12 @@ const STACK = [
 ];
 
 const AboutPage = () => {
+  useMobileHeader({ title: 'About' });
+
   return (
-    <div className="mx-auto max-w-3xl space-y-10 px-6 py-8 lg:px-10">
+    <div className="mx-auto max-w-3xl space-y-10 px-4 py-6 md:px-6 md:py-8 lg:px-10">
       <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">
+        <h1 className="hidden font-serif text-3xl font-medium tracking-tight md:block">
           About Slowfeed
         </h1>
         <p className="text-sm text-muted-foreground">

@@ -3,6 +3,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '#/components/ui/button';
 import { ListPanel, listRowClass } from '#/components/ListPanel';
+import { EmptyState } from '#/components/EmptyState';
 import type { components } from '#/api/schema';
 import useDeleteFeedFilter from '../queries/hooks/useDeleteFeedFilter';
 import useUpdateFeedFilter from '../queries/hooks/useUpdateFeedFilter';
@@ -41,17 +42,19 @@ export const FeedFiltersList = ({ newsletterId, feedId, filters }: Props) => {
 
   if (filters.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed py-12 text-center">
-        <p className="text-sm text-muted-foreground">No filters added yet.</p>
-      </div>
+      <EmptyState
+        className="px-0 md:px-0"
+        title="No filters"
+        description="Every item from this feed is included. Add a filter to drop items whose name or URL matches a phrase — useful for keeping a noisy source in its lane."
+      />
     );
   }
 
   return (
-    <ListPanel header="Filter">
+    <ListPanel>
       {filters.map((filter) =>
         editingId === filter.id ? (
-          <div key={filter.id} className="px-5 py-4">
+          <div key={filter.id} className="px-1 py-4">
             <FeedFilterForm
               filter={filter}
               onSubmit={async (values) => {

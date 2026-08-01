@@ -6,11 +6,33 @@ INSERT INTO issue_item (issue_id, item_id, user_id, token) VALUES ($1, $2, $3, $
 
 -- name: GetAllUserIssues :many
 SELECT i.id, nl.id AS newsletter_id, nl.name, i.sent_at,
-    CASE WHEN EXISTS (
-        SELECT 1 FROM issue_item AS ii WHERE ii.issue_id = i.id AND ii.state = 'unread'
-    ) THEN 'unread' ELSE 'read' END::item_state AS state
+    CASE WHEN counts.unread_count > 0 THEN 'unread' ELSE 'read' END::item_state AS state,
+    counts.item_count,
+    counts.unread_count,
+    preview.titles::text[] AS preview_titles
 FROM newsletter_issue AS i
 INNER JOIN newsletter AS nl ON i.newsletter_id = nl.id
+LEFT JOIN LATERAL (
+    SELECT
+        COUNT(*)::int AS item_count,
+        COUNT(*) FILTER (WHERE ii.state = 'unread')::int AS unread_count
+    FROM issue_item AS ii
+    WHERE ii.issue_id = i.id AND ii.user_id = i.user_id
+) AS counts ON TRUE
+LEFT JOIN LATERAL (
+    SELECT COALESCE(ARRAY_AGG(top.title ORDER BY top.rank), ARRAY[]::text[]) AS titles
+    FROM (
+        SELECT fi.title,
+            ROW_NUMBER() OVER (
+                ORDER BY ii.state = 'read', fi.publish_date DESC, fi.title
+            ) AS rank
+        FROM issue_item AS ii
+        INNER JOIN feed_item AS fi ON ii.item_id = fi.id
+        WHERE ii.issue_id = i.id AND ii.user_id = i.user_id
+        ORDER BY rank
+        LIMIT 2
+    ) AS top
+) AS preview ON TRUE
 WHERE i.user_id = $1
 ORDER BY sent_at DESC;
 

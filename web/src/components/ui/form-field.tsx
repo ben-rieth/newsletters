@@ -9,7 +9,8 @@ interface FormFieldProps {
 }
 
 const FormField = ({ field, label, children }: FormFieldProps) => {
-  const hasError = field.state.meta.isBlurred && field.state.meta.errors.length > 0;
+  const hasError =
+    field.state.meta.isBlurred && field.state.meta.errors.length > 0;
 
   return (
     <Field data-invalid={hasError}>

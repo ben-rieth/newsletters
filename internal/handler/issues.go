@@ -77,12 +77,20 @@ func (h *IssuesHandler) handleGetAllIssues(
 
 	issues := make([]newsletters.Issue, 0, len(issueRows))
 	for _, issueRow := range issueRows {
+		previewTitles := issueRow.PreviewTitles
+		if previewTitles == nil {
+			previewTitles = []string{}
+		}
+
 		issues = append(issues, newsletters.Issue{
 			IssueID:        issueRow.ID,
 			NewsletterID:   issueRow.NewsletterID,
 			NewsletterName: issueRow.Name,
 			SentAt:         issueRow.SentAt,
 			State:          issueRow.State,
+			ItemCount:      issueRow.ItemCount,
+			UnreadCount:    issueRow.UnreadCount,
+			PreviewTitles:  previewTitles,
 		})
 	}
 

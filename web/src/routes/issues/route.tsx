@@ -1,14 +1,9 @@
-import {
-  createFileRoute,
-  Link,
-  Outlet,
-  useParams,
-} from '@tanstack/react-router';
+import { createFileRoute, Outlet, useParams } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { ChevronLeft } from 'lucide-react';
 import { cn } from '#/lib/utils';
 import IssueListColumn from '#/features/issues/components/IssueListColumn';
 import { issuesOptions } from '#/features/issues/queries/issues';
+import { newslettersOptions } from '#/features/newsletters/queries/newsletters';
 
 const IssuesLayout = () => {
   const { data: issues } = useSuspenseQuery(issuesOptions);
@@ -31,15 +26,6 @@ const IssuesLayout = () => {
           !hasSelection && 'hidden md:block',
         )}
       >
-        {hasSelection && (
-          <Link
-            to="/issues"
-            className="flex items-center gap-1 px-6 pt-6 text-sm text-muted-foreground hover:text-foreground md:hidden"
-          >
-            <ChevronLeft className="size-4" />
-            All issues
-          </Link>
-        )}
         <Outlet />
       </div>
     </div>
@@ -49,6 +35,9 @@ const IssuesLayout = () => {
 export const Route = createFileRoute('/issues')({
   component: IssuesLayout,
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(issuesOptions);
+    await Promise.all([
+      context.queryClient.ensureQueryData(issuesOptions),
+      context.queryClient.ensureQueryData(newslettersOptions),
+    ]);
   },
 });

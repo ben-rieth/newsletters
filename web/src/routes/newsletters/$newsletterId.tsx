@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router';
+import { RouteNotFoundComponent } from '#/components/RouteBoundaries';
 import { newsletterOptions } from '#/features/newsletters/queries/newsletters';
 import { feedsOptions } from '#/features/newsletters/queries/feeds';
 import { issuesOptions } from '#/features/issues/queries/issues';
@@ -15,8 +16,9 @@ export const Route = createFileRoute('/newsletters/$newsletterId')({
     ]);
   },
   notFoundComponent: () => (
-    <div className="p-6">
-      <p className="text-muted-foreground">Newsletter not found.</p>
-    </div>
+    <RouteNotFoundComponent
+      title="Newsletter not found"
+      description="It may have been deleted, or the link is stale."
+    />
   ),
 });
