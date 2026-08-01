@@ -57,4 +57,5 @@ Backend Go types → Huma generates OpenAPI spec → `pnpm api:generate` → `sr
 ## Conventions
 
 - Commits are formatted/linted on staging via `husky` + `lint-staged` (prettier + eslint on `*.{ts,tsx}`, prettier on `*.{json,css,md}`). Keep code passing `pnpm lint`.
-- Don't scatter comments through the code. Let the code speak for itself — add a comment only when it's genuinely needed (e.g. explaining non-obvious *why*, not restating *what*).
+- **Comments are rare.** Default to none. Self-explanatory code — clear names, small functions, obvious structure — always beats a comment. If code needs a comment to be understood, rewrite the code first.
+- A comment may only explain **why**: a non-obvious tradeoff, a workaround, a constraint that isn't visible in the code. Never write a comment that describes **what** the code does or **how** it does it — that's what the code is for.
