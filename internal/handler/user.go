@@ -126,15 +126,7 @@ func (h *UserHandler) handleUpdatePassword(
 		return nil, huma.Error401Unauthorized("Current password is incorrect")
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(i.Body.NewPassword), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, internalServerError(ctx, err)
-	}
-
-	err = h.queries.UpdateUserPassword(ctx, db.UpdateUserPasswordParams{
-		ID:       claims.Subject,
-		Password: string(hash),
-	})
+	err = h.userService.UpdatePassword(ctx, claims.Subject, i.Body.NewPassword)
 	if err != nil {
 		return nil, internalServerError(ctx, err)
 	}
