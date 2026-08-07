@@ -284,6 +284,10 @@ func (h *AuthHandler) handleResendVerificationEmail(ctx context.Context, i *stru
 		return nil, huma.Error500InternalServerError(internalServerErrorText)
 	}
 
+	if user.EmailVerifiedAt.Valid {
+		return nil, nil
+	}
+
 	if err = h.emailVerifyService.SendVerificationEmail(ctx, user.ID, i.Body.Email); err != nil {
 		return nil, internalServerError(ctx, err)
 	}
