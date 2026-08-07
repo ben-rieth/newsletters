@@ -186,7 +186,16 @@ func (h *UserHandler) handleEmailUpdate(ctx context.Context, i *struct {
 		return nil, badRequestError("Invalid email")
 	}
 
-	_, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
+	exists, err := h.queries.IsWhiteListedEmail(ctx, i.Body.Email)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	if !exists {
+		return nil, huma.Error403Forbidden("Email not on whitelist. Please contact site owner to get email whitelisted.")
+	}
+
+	_, err = h.queries.GetUserByEmail(ctx, i.Body.Email)
 	if err == nil {
 		return nil, huma.Error409Conflict("Email is already in use.")
 	}
