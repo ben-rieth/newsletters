@@ -77,6 +77,12 @@ DELETE FROM issue_item WHERE issue_id = $1 AND user_id = $2;
 -- name: DeleteIssue :exec
 DELETE FROM newsletter_issue WHERE id = $1 AND user_id = $2;
 
+-- name: DeleteAllIssueItemsForUser :exec
+DELETE FROM issue_item WHERE user_id = $1;
+
+-- name: DeleteAllIssuesForUser :exec
+DELETE FROM newsletter_issue WHERE user_id = $1;
+
 -- name: UpdateAllIssueItemsState :exec
 UPDATE issue_item
 SET state = $1, updated_at = NOW()

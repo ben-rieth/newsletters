@@ -9,10 +9,8 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 )
 
-func AuthMiddleware(api huma.API) func(ctx huma.Context, next func(huma.Context)) {
+func AuthMiddleware(api huma.API, cfg *config.Config) func(ctx huma.Context, next func(huma.Context)) {
 	return func(ctx huma.Context, next func(huma.Context)) {
-		cfg := config.Load()
-
 		tokenCookie, err := huma.ReadCookie(ctx, "access_token")
 		if err != nil {
 			if errors.Is(err, http.ErrNoCookie) {

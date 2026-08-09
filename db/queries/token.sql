@@ -17,7 +17,16 @@ VALUES ($1, $2, $3, $4);
 -- name: DeleteExistingTokensWithPurpose :exec
 DELETE FROM verification_token WHERE user_id = $1 AND purpose = $2;
 
--- name: FindValidToken :one
-SELECT * FROM verification_token 
-WHERE user_id = $1 AND purpose = $2 AND code = $3 
+-- name: DeleteAllVerificationTokensForUser :exec
+DELETE FROM verification_token WHERE user_id = $1;
+
+-- name: FindUnexpiredToken :one
+SELECT * FROM verification_token
+WHERE user_id = $1 AND purpose = $2
 AND expires_at > @expires_at_greater_than;
+
+-- name: RecordFailedTokenAttempt :one
+UPDATE verification_token SET attempts = attempts + 1 WHERE id = $1 RETURNING attempts;
+
+-- name: DeleteVerificationToken :exec
+DELETE FROM verification_token WHERE id = $1;

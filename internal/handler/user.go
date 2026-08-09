@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/mail"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
@@ -166,7 +165,8 @@ func (h *UserHandler) handleDeleteUser(
 
 func (h *UserHandler) handleEmailUpdate(ctx context.Context, i *struct {
 	Body struct {
-		Email string `json:"email"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 }) (*struct{}, error) {
 	claims, ok := auth.ClaimsFromContext(ctx)
@@ -174,11 +174,23 @@ func (h *UserHandler) handleEmailUpdate(ctx context.Context, i *struct {
 		return nil, huma.Error401Unauthorized("Not authorized")
 	}
 
-	if _, err := mail.ParseAddress(i.Body.Email); err != nil {
+	newEmail, err := users.CanonicalizeEmail(i.Body.Email)
+	if err != nil {
 		return nil, badRequestError("Invalid email")
 	}
 
-	exists, err := h.queries.IsWhiteListedEmail(ctx, i.Body.Email)
+	user, err := h.queries.GetUserById(ctx, claims.Subject)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	// Whoever controls the account's email controls the account, so moving it
+	// takes more than a session cookie.
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(i.Body.Password)); err != nil {
+		return nil, huma.Error401Unauthorized("Current password is incorrect")
+	}
+
+	exists, err := h.queries.IsWhiteListedEmail(ctx, newEmail)
 	if err != nil {
 		return nil, internalServerError(ctx, err)
 	}
@@ -187,7 +199,7 @@ func (h *UserHandler) handleEmailUpdate(ctx context.Context, i *struct {
 		return nil, huma.Error403Forbidden("Email not on whitelist. Please contact site owner to get email whitelisted.")
 	}
 
-	_, err = h.queries.GetUserByEmail(ctx, i.Body.Email)
+	_, err = h.queries.GetUserByEmail(ctx, newEmail)
 	if err == nil {
 		return nil, huma.Error409Conflict("Email is already in use.")
 	}
@@ -197,7 +209,7 @@ func (h *UserHandler) handleEmailUpdate(ctx context.Context, i *struct {
 	}
 
 	err = h.queries.AddPendingEmailUpdate(ctx, db.AddPendingEmailUpdateParams{
-		PendingEmail: i.Body.Email,
+		PendingEmail: newEmail,
 		ID:           claims.Subject,
 	})
 
@@ -205,7 +217,7 @@ func (h *UserHandler) handleEmailUpdate(ctx context.Context, i *struct {
 		return nil, internalServerError(ctx, err)
 	}
 
-	err = h.emailVerifyService.SendVerificationEmail(ctx, claims.Subject, i.Body.Email)
+	err = h.emailVerifyService.SendEmailUpdateVerification(ctx, claims.Subject, newEmail)
 	if err != nil {
 		return nil, internalServerError(ctx, err)
 	}
@@ -243,17 +255,18 @@ func (h *UserHandler) handleResendVerificationEmail(ctx context.Context, i *stru
 
 	user, err := h.queries.GetUserById(ctx, claims.Subject)
 	if err != nil {
-		if errors.Is(pgx.ErrNoRows, err) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, huma.Error500InternalServerError(internalServerErrorText)
 	}
 
-	if _, err := mail.ParseAddress(user.PendingEmail); err != nil {
+	pendingEmail, err := users.CanonicalizeEmail(user.PendingEmail)
+	if err != nil {
 		return nil, badRequestError("User not in email update flow")
 	}
 
-	if err = h.emailVerifyService.SendVerificationEmail(ctx, user.ID, user.PendingEmail); err != nil {
+	if err = h.emailVerifyService.SendEmailUpdateVerification(ctx, user.ID, pendingEmail); err != nil {
 		return nil, internalServerError(ctx, err)
 	}
 

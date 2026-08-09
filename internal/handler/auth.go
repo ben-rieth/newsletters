@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/mail"
 	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
@@ -12,6 +11,7 @@ import (
 	dbutil "github.com/ben-rieth/newsletter-api/internal/db"
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/email"
+	"github.com/ben-rieth/newsletter-api/internal/users"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
@@ -21,7 +21,7 @@ import (
 type authInput struct {
 	Body struct {
 		Email    string `json:"email" doc:"Must be a valid email" pattern:"^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$"`
-		Password string `json:"password" minLength:"8" maxLength:"80"`
+		Password string `json:"password" minLength:"8" maxLength:"72"`
 	}
 }
 
@@ -47,14 +47,16 @@ type AuthHandler struct {
 	queries            *db.Queries
 	config             *config.Config
 	emailVerifyService *email.EmailVerifyService
+	userService        *users.UserService
 }
 
 func NewAuthHandler(
 	queries *db.Queries,
 	config *config.Config,
 	emailVerifyService *email.EmailVerifyService,
+	userService *users.UserService,
 ) *AuthHandler {
-	return &AuthHandler{queries, config, emailVerifyService}
+	return &AuthHandler{queries, config, emailVerifyService, userService}
 }
 
 func (h *AuthHandler) RegisterRoutes(api huma.API) {
@@ -103,11 +105,12 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 }
 
 func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutput, error) {
-	if _, err := mail.ParseAddress(i.Body.Email); err != nil {
+	userEmail, err := users.CanonicalizeEmail(i.Body.Email)
+	if err != nil {
 		return nil, badRequestError("Invalid email")
 	}
 
-	exists, err := h.queries.IsWhiteListedEmail(ctx, i.Body.Email)
+	exists, err := h.queries.IsWhiteListedEmail(ctx, userEmail)
 	if err != nil {
 		return nil, internalServerError(ctx, err)
 	}
@@ -116,20 +119,9 @@ func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutp
 		return nil, huma.Error403Forbidden("Email not on whitelist. Please contact site owner for invitation.")
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(i.Body.Password), bcrypt.DefaultCost)
+	id, err := h.userService.CreateUser(ctx, userEmail, i.Body.Password)
 	if err != nil {
-		return nil, internalServerError(ctx, err)
-	}
-	wideLog.AddLogField(ctx, "didHashPassword", true)
-
-	var id string
-	id, err = h.queries.CreateUser(ctx, db.CreateUserParams{
-		Email:    i.Body.Email,
-		Password: string(hash),
-	})
-
-	if err != nil {
-		if dbutil.IsUniqueViolation(err) {
+		if errors.Is(err, users.EmailInUseError) || dbutil.IsUniqueViolation(err) {
 			return nil, huma.Error409Conflict("Email already in use")
 		}
 
@@ -137,7 +129,7 @@ func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutp
 	}
 	wideLog.AddLogField(ctx, "didCreateUser", true)
 
-	err = h.emailVerifyService.SendVerificationEmail(ctx, id, i.Body.Email)
+	err = h.emailVerifyService.SendVerificationEmail(ctx, id, userEmail)
 	if err != nil {
 		return nil, internalServerError(ctx, err)
 	}
@@ -149,9 +141,27 @@ func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutp
 	}, nil
 }
 
-func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutput, error) {
-	user, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
+// A bcrypt hash of a value nobody knows. Comparing against it on the unknown
+// email path keeps sign-in's cost the same whether or not the account exists,
+// so response time stops being an account oracle.
+var dummyPasswordHash = func() []byte {
+	hash, err := bcrypt.GenerateFromPassword([]byte("password-that-is-never-used"), bcrypt.DefaultCost)
 	if err != nil {
+		panic(err)
+	}
+
+	return hash
+}()
+
+func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutput, error) {
+	userEmail, err := users.CanonicalizeEmail(i.Body.Email)
+	if err != nil {
+		return nil, huma.Error401Unauthorized("Email or password is incorrect")
+	}
+
+	user, err := h.queries.GetUserByEmail(ctx, userEmail)
+	if err != nil {
+		bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(i.Body.Password))
 		return nil, huma.Error401Unauthorized("Email or password is incorrect")
 	}
 
@@ -160,7 +170,7 @@ func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutp
 	}
 
 	if !user.EmailVerifiedAt.Valid {
-		err = h.emailVerifyService.SendVerificationEmail(ctx, user.ID, i.Body.Email)
+		err = h.emailVerifyService.SendVerificationEmail(ctx, user.ID, user.Email)
 		if err != nil {
 			return nil, internalServerError(ctx, err)
 		}
@@ -191,11 +201,12 @@ func (h *AuthHandler) handleVerifyEmail(ctx context.Context, i *struct {
 		Email string `json:"email"`
 	}
 }) (*authOutput, error) {
-	if _, err := mail.ParseAddress(i.Body.Email); err != nil {
+	userEmail, err := users.CanonicalizeEmail(i.Body.Email)
+	if err != nil {
 		return nil, badRequestError("Invalid email")
 	}
 
-	user, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
+	user, err := h.queries.GetUserByEmail(ctx, userEmail)
 	if err != nil {
 		return nil, badRequestError("Token or email is invalid.")
 	}
@@ -223,7 +234,7 @@ func (h *AuthHandler) handleVerifyEmail(ctx context.Context, i *struct {
 }
 
 func (h *AuthHandler) handleTokenRefresh(ctx context.Context, i *refreshInput) (*authOutput, error) {
-	tokenData, err := h.queries.GetRefreshToken(ctx, i.RefreshToken)
+	tokenData, err := h.queries.GetRefreshToken(ctx, auth.HashRefreshToken(i.RefreshToken))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, huma.Error401Unauthorized("Invalid token. Please sign in again.")
@@ -231,7 +242,19 @@ func (h *AuthHandler) handleTokenRefresh(ctx context.Context, i *refreshInput) (
 		return nil, internalServerError(ctx, err)
 	}
 
-	if tokenData.ExpiresAt.Before(time.Now()) || tokenData.RevokedAt.Valid {
+	// Rotation means a revoked token should never come back. That it did means
+	// two parties hold tokens from this chain and there is no way to tell which
+	// one is the legitimate user, so the whole family goes.
+	if tokenData.RevokedAt.Valid {
+		wideLog.AddLogField(ctx, "refreshTokenReuse", true)
+		if err := h.queries.DeleteAllRefreshTokensForUser(ctx, tokenData.UserID); err != nil {
+			return nil, internalServerError(ctx, err)
+		}
+
+		return nil, huma.Error401Unauthorized("Session is expired")
+	}
+
+	if tokenData.ExpiresAt.Before(time.Now()) {
 		return nil, huma.Error401Unauthorized("Session is expired")
 	}
 
@@ -258,7 +281,7 @@ func (h *AuthHandler) handleRevokeToken(ctx context.Context, i *refreshInput) (*
 		return nil, badRequestError("Invalid token provided")
 	}
 
-	err := h.queries.RevokeToken(ctx, i.RefreshToken)
+	err := h.queries.RevokeToken(ctx, auth.HashRefreshToken(i.RefreshToken))
 	if err != nil {
 		return nil, internalServerError(ctx, err)
 	}
@@ -276,7 +299,12 @@ func (h *AuthHandler) handleResendVerificationEmail(ctx context.Context, i *stru
 		Email string `json:"email"`
 	}
 }) (*struct{}, error) {
-	user, err := h.queries.GetUserByEmail(ctx, i.Body.Email)
+	userEmail, err := users.CanonicalizeEmail(i.Body.Email)
+	if err != nil {
+		return nil, nil
+	}
+
+	user, err := h.queries.GetUserByEmail(ctx, userEmail)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -288,7 +316,7 @@ func (h *AuthHandler) handleResendVerificationEmail(ctx context.Context, i *stru
 		return nil, nil
 	}
 
-	if err = h.emailVerifyService.SendVerificationEmail(ctx, user.ID, i.Body.Email); err != nil {
+	if err = h.emailVerifyService.SendVerificationEmail(ctx, user.ID, user.Email); err != nil {
 		return nil, internalServerError(ctx, err)
 	}
 
@@ -301,9 +329,13 @@ func (h *AuthHandler) buildTokenResult(ctx context.Context, userID string) (*Tok
 		return nil, err
 	}
 
-	refreshToken := auth.MakeRefreshToken()
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		return nil, err
+	}
+
 	err = h.queries.CreateRefreshToken(ctx, db.CreateRefreshTokenParams{
-		Token:     refreshToken,
+		Token:     auth.HashRefreshToken(refreshToken),
 		UserID:    userID,
 		ExpiresAt: time.Now().Add(auth.RefreshTokenTTL),
 	})

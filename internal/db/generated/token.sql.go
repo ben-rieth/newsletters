@@ -36,6 +36,15 @@ func (q *Queries) DeleteAllRefreshTokensForUser(ctx context.Context, userID stri
 	return err
 }
 
+const deleteAllVerificationTokensForUser = `-- name: DeleteAllVerificationTokensForUser :exec
+DELETE FROM verification_token WHERE user_id = $1
+`
+
+func (q *Queries) DeleteAllVerificationTokensForUser(ctx context.Context, userID string) error {
+	_, err := q.db.Exec(ctx, deleteAllVerificationTokensForUser, userID)
+	return err
+}
+
 const deleteExistingTokensWithPurpose = `-- name: DeleteExistingTokensWithPurpose :exec
 DELETE FROM verification_token WHERE user_id = $1 AND purpose = $2
 `
@@ -50,26 +59,29 @@ func (q *Queries) DeleteExistingTokensWithPurpose(ctx context.Context, arg Delet
 	return err
 }
 
-const findValidToken = `-- name: FindValidToken :one
-SELECT id, user_id, code, purpose, created_at, expires_at FROM verification_token 
-WHERE user_id = $1 AND purpose = $2 AND code = $3 
-AND expires_at > $4
+const deleteVerificationToken = `-- name: DeleteVerificationToken :exec
+DELETE FROM verification_token WHERE id = $1
 `
 
-type FindValidTokenParams struct {
+func (q *Queries) DeleteVerificationToken(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteVerificationToken, id)
+	return err
+}
+
+const findUnexpiredToken = `-- name: FindUnexpiredToken :one
+SELECT id, user_id, code, purpose, created_at, expires_at, attempts FROM verification_token
+WHERE user_id = $1 AND purpose = $2
+AND expires_at > $3
+`
+
+type FindUnexpiredTokenParams struct {
 	UserID               string
 	Purpose              TokenPurpose
-	Code                 string
 	ExpiresAtGreaterThan time.Time
 }
 
-func (q *Queries) FindValidToken(ctx context.Context, arg FindValidTokenParams) (VerificationToken, error) {
-	row := q.db.QueryRow(ctx, findValidToken,
-		arg.UserID,
-		arg.Purpose,
-		arg.Code,
-		arg.ExpiresAtGreaterThan,
-	)
+func (q *Queries) FindUnexpiredToken(ctx context.Context, arg FindUnexpiredTokenParams) (VerificationToken, error) {
+	row := q.db.QueryRow(ctx, findUnexpiredToken, arg.UserID, arg.Purpose, arg.ExpiresAtGreaterThan)
 	var i VerificationToken
 	err := row.Scan(
 		&i.ID,
@@ -78,6 +90,7 @@ func (q *Queries) FindValidToken(ctx context.Context, arg FindValidTokenParams) 
 		&i.Purpose,
 		&i.CreatedAt,
 		&i.ExpiresAt,
+		&i.Attempts,
 	)
 	return i, err
 }
@@ -103,6 +116,17 @@ func (q *Queries) GetRefreshToken(ctx context.Context, token string) (GetRefresh
 		&i.UserID,
 	)
 	return i, err
+}
+
+const recordFailedTokenAttempt = `-- name: RecordFailedTokenAttempt :one
+UPDATE verification_token SET attempts = attempts + 1 WHERE id = $1 RETURNING attempts
+`
+
+func (q *Queries) RecordFailedTokenAttempt(ctx context.Context, id string) (int32, error) {
+	row := q.db.QueryRow(ctx, recordFailedTokenAttempt, id)
+	var attempts int32
+	err := row.Scan(&attempts)
+	return attempts, err
 }
 
 const revokeToken = `-- name: RevokeToken :exec

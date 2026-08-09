@@ -10,6 +10,24 @@ import (
 	"time"
 )
 
+const deleteAllIssueItemsForUser = `-- name: DeleteAllIssueItemsForUser :exec
+DELETE FROM issue_item WHERE user_id = $1
+`
+
+func (q *Queries) DeleteAllIssueItemsForUser(ctx context.Context, userID string) error {
+	_, err := q.db.Exec(ctx, deleteAllIssueItemsForUser, userID)
+	return err
+}
+
+const deleteAllIssuesForUser = `-- name: DeleteAllIssuesForUser :exec
+DELETE FROM newsletter_issue WHERE user_id = $1
+`
+
+func (q *Queries) DeleteAllIssuesForUser(ctx context.Context, userID string) error {
+	_, err := q.db.Exec(ctx, deleteAllIssuesForUser, userID)
+	return err
+}
+
 const deleteIssue = `-- name: DeleteIssue :exec
 DELETE FROM newsletter_issue WHERE id = $1 AND user_id = $2
 `

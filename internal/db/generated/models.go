@@ -315,6 +315,7 @@ type TokenPurpose string
 
 const (
 	TokenPurposeEmailVerify TokenPurpose = "email_verify"
+	TokenPurposeEmailUpdate TokenPurpose = "email_update"
 )
 
 func (e *TokenPurpose) Scan(src interface{}) error {
@@ -481,6 +482,7 @@ type VerificationToken struct {
 	Purpose   TokenPurpose
 	CreatedAt time.Time
 	ExpiresAt time.Time
+	Attempts  int32
 }
 
 type WhiteListedEmail struct {

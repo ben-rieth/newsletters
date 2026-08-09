@@ -15,6 +15,7 @@ const updateEmailSchema = z
   .object({
     email: z.string().email('Invalid email address'),
     confirmEmail: z.string().email('Invalid email address'),
+    password: z.string().min(1, 'Current password is required'),
   })
   .refine((data) => data.email === data.confirmEmail, {
     message: 'Emails do not match',
@@ -41,12 +42,13 @@ export const UpdateEmailForm = () => {
   } = useResendEmailUpdateVerification();
 
   const form = useForm({
-    defaultValues: { email: '', confirmEmail: '' },
+    defaultValues: { email: '', confirmEmail: '', password: '' },
     validators: { onChange: updateEmailSchema },
     onSubmit: async ({ value }) => {
-      await updateEmail(value.email, {
-        onSuccess: () => setIsVerifying(true),
-      });
+      await updateEmail(
+        { email: value.email, password: value.password },
+        { onSuccess: () => setIsVerifying(true) },
+      );
     },
   });
 
@@ -117,6 +119,24 @@ export const UpdateEmailForm = () => {
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
               placeholder="new@example.com"
+              aria-invalid={
+                field.state.meta.isBlurred && field.state.meta.errors.length > 0
+              }
+            />
+          </FormField>
+        )}
+      </form.Field>
+
+      <form.Field name="password">
+        {(field) => (
+          <FormField field={field} label="Current Password">
+            <Input
+              id={field.name}
+              type="password"
+              autoComplete="current-password"
+              value={field.state.value}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
               aria-invalid={
                 field.state.meta.isBlurred && field.state.meta.errors.length > 0
               }

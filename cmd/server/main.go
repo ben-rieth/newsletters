@@ -86,13 +86,13 @@ func main() {
 	api.UseMiddleware(wideLog.WideLogMiddleware)
 
 	authApi := huma.NewGroup(api)
-	authApiRateLimiting := auth.NewRateLimitMiddleware(ctx, api, 1, 5)
+	authApiRateLimiting := auth.NewRateLimitMiddleware(ctx, api, &cfg, 1, 5)
 	authApi.UseMiddleware(authApiRateLimiting)
 
-	authHandler := handler.NewAuthHandler(queries, &cfg, emailVerifyService)
+	authHandler := handler.NewAuthHandler(queries, &cfg, emailVerifyService, userService)
 	authHandler.RegisterRoutes(authApi)
 
-	rateLimiting := auth.NewRateLimitMiddleware(ctx, api, 10, 30)
+	rateLimiting := auth.NewRateLimitMiddleware(ctx, api, &cfg, 10, 30)
 
 	publicApi := huma.NewGroup(api)
 	publicApi.UseMiddleware(rateLimiting)
@@ -105,7 +105,7 @@ func main() {
 
 	protectedApi := huma.NewGroup(api)
 	protectedApi.UseMiddleware(rateLimiting)
-	protectedApi.UseMiddleware(auth.AuthMiddleware(api))
+	protectedApi.UseMiddleware(auth.AuthMiddleware(api, &cfg))
 
 	newsletterHandler := handler.NewNewsletterHandler(queries, newsletterService)
 	newsletterHandler.RegisterRoutes(protectedApi)
@@ -119,7 +119,7 @@ func main() {
 		// Newsletter debug routes are user-scoped, so they need auth.
 		protectedDebugApi := huma.NewGroup(api)
 		protectedDebugApi.UseMiddleware(rateLimiting)
-		protectedDebugApi.UseMiddleware(auth.AuthMiddleware(api))
+		protectedDebugApi.UseMiddleware(auth.AuthMiddleware(api, &cfg))
 		newsletterDebugHandler := handler.NewNewsletterDebugHandler(queries)
 		newsletterDebugHandler.RegisterRoutes(protectedDebugApi)
 	}

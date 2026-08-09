@@ -4,9 +4,12 @@ import (
 	"context"
 	"net"
 	"net/http"
+	"net/netip"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/danielgtaylor/huma/v2"
 	"golang.org/x/time/rate"
 )
@@ -54,7 +57,63 @@ func (i *IPRateLimiter) cleanUp() {
 	}
 }
 
-func NewRateLimitMiddleware(ctx context.Context, api huma.API, limit, burst int) func(ctx huma.Context, next func(huma.Context)) {
+// peerIP is the address of whoever actually opened the connection, so it can
+// never be forged by the client.
+func peerIP(ctx huma.Context) (string, error) {
+	ip, _, err := net.SplitHostPort(ctx.RemoteAddr())
+	if err != nil {
+		return "", err
+	}
+
+	return ip, nil
+}
+
+func forwardedForChain(ctx huma.Context) []string {
+	var chain []string
+
+	ctx.EachHeader(func(name, value string) {
+		if !strings.EqualFold(name, "X-Forwarded-For") {
+			return
+		}
+
+		for _, hop := range strings.Split(value, ",") {
+			if hop = strings.TrimSpace(hop); hop != "" {
+				chain = append(chain, hop)
+			}
+		}
+	})
+
+	return chain
+}
+
+// clientIP walks back exactly trustedProxyCount hops from the server. Anything
+// further left in X-Forwarded-For was appended by an untrusted party and is
+// attacker-controlled, so a short or malformed chain falls back to the peer
+// address rather than trusting what the client sent.
+func clientIP(ctx huma.Context, trustedProxyCount int) (string, error) {
+	peer, err := peerIP(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	if trustedProxyCount == 0 {
+		return peer, nil
+	}
+
+	chain := forwardedForChain(ctx)
+	i := len(chain) - trustedProxyCount
+	if i < 0 {
+		return peer, nil
+	}
+
+	if addr, err := netip.ParseAddr(chain[i]); err == nil {
+		return addr.String(), nil
+	}
+
+	return peer, nil
+}
+
+func NewRateLimitMiddleware(ctx context.Context, api huma.API, cfg *config.Config, limit, burst int) func(ctx huma.Context, next func(huma.Context)) {
 	limiters := make(map[string]*Limiter)
 
 	ipRateLimiter := IPRateLimiter{
@@ -78,8 +137,7 @@ func NewRateLimitMiddleware(ctx context.Context, api huma.API, limit, burst int)
 	}()
 
 	return func(ctx huma.Context, next func(huma.Context)) {
-		address := ctx.RemoteAddr()
-		ip, _, err := net.SplitHostPort(address)
+		ip, err := clientIP(ctx, cfg.TrustedProxyCount)
 		if err != nil {
 			huma.WriteErr(api, ctx, http.StatusInternalServerError, "Something went wrong.")
 			return

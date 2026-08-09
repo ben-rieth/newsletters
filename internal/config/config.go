@@ -18,12 +18,21 @@ type Config struct {
 	PublicApiURL          string
 	NewsletterSenderEmail mail.Address
 	JobQueueSize          int
+	TrustedProxyCount     int
 }
 
 func Load() Config {
 	jobQueueSize, err := strconv.Atoi(os.Getenv("JOB_QUEUE_SIZE"))
 	if err != nil {
 		log.Fatal("JOB_QUEUE_SIZE must be valid integer")
+	}
+
+	trustedProxyCount := 0
+	if raw := os.Getenv("TRUSTED_PROXY_COUNT"); raw != "" {
+		trustedProxyCount, err = strconv.Atoi(raw)
+		if err != nil || trustedProxyCount < 0 {
+			log.Fatal("TRUSTED_PROXY_COUNT must be a non-negative integer")
+		}
 	}
 
 	cfg := Config{
@@ -36,6 +45,8 @@ func Load() Config {
 		Environment:  os.Getenv("ENVIRONMENT"),
 		JobQueueSize: jobQueueSize,
 		PublicApiURL: os.Getenv("PUBLIC_API_URL"),
+
+		TrustedProxyCount: trustedProxyCount,
 	}
 
 	if cfg.DatabaseURL == "" {

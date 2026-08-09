@@ -879,6 +879,7 @@ export interface components {
        */
       readonly $schema?: string;
       email: string;
+      password: string;
     };
     'Update-newsletter-statusRequest': {
       /**

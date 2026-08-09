@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -64,11 +65,18 @@ func ParseToken(tokenString, tokenSecret string) (*Claims, error) {
 	return claims, nil
 }
 
-func MakeRefreshToken() string {
+func MakeRefreshToken() (string, error) {
 	token := make([]byte, 32)
+	if _, err := rand.Read(token); err != nil {
+		return "", err
+	}
 
-	rand.Read(token)
-	return hex.EncodeToString(token)
+	return hex.EncodeToString(token), nil
+}
+
+func HashRefreshToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
 }
 
 func MakeVerificationToken() (string, error) {

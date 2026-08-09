@@ -1,4 +1,4 @@
-\restrict lsXxfWcV6Zk7YMH89qUFpu8AqLXAZdCYXjLwL7FRljCgwvtjQ0WHEVkRzO2zeNw
+\restrict ZIb9sBfrN0Cgh9GFrwTf2QczBZRDGOXq66zb8YACOQrzbVTrfceiflHoGnmRD5O
 
 -- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
@@ -94,7 +94,8 @@ CREATE TYPE public.newsletter_status AS ENUM (
 --
 
 CREATE TYPE public.token_purpose AS ENUM (
-    'email_verify'
+    'email_verify',
+    'email_update'
 );
 
 
@@ -317,7 +318,8 @@ CREATE TABLE public.verification_token (
     code text NOT NULL,
     purpose public.token_purpose NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    expires_at timestamp with time zone NOT NULL
+    expires_at timestamp with time zone NOT NULL,
+    attempts integer DEFAULT 0 NOT NULL
 );
 
 
@@ -491,6 +493,13 @@ ALTER TABLE ONLY public.white_listed_email
 
 
 --
+-- Name: app_user_email_lower_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX app_user_email_lower_key ON public.app_user USING btree (lower(email));
+
+
+--
 -- Name: feed_fetch_failure_feed_occurred_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -502,6 +511,13 @@ CREATE INDEX feed_fetch_failure_feed_occurred_idx ON public.feed_fetch_failure U
 --
 
 CREATE INDEX issue_item_issue_id_state_idx ON public.issue_item USING btree (issue_id, state);
+
+
+--
+-- Name: white_listed_email_lower_key; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX white_listed_email_lower_key ON public.white_listed_email USING btree (lower(email));
 
 
 --
@@ -636,7 +652,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict lsXxfWcV6Zk7YMH89qUFpu8AqLXAZdCYXjLwL7FRljCgwvtjQ0WHEVkRzO2zeNw
+\unrestrict ZIb9sBfrN0Cgh9GFrwTf2QczBZRDGOXq66zb8YACOQrzbVTrfceiflHoGnmRD5O
 
 
 --
@@ -652,4 +668,7 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260723225224'),
     ('20260726143000'),
     ('20260727233615'),
-    ('20260729213305');
+    ('20260729213305'),
+    ('20260807120000'),
+    ('20260807120100'),
+    ('20260807120200');

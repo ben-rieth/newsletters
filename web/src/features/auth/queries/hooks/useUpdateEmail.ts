@@ -5,8 +5,16 @@ import { getErrorMessage } from '#/lib/errors';
 
 const useUpdateEmail = () => {
   return useMutation({
-    mutationFn: async (email: string) => {
-      const { error } = await client.PATCH('/user/email', { body: { email } });
+    mutationFn: async ({
+      email,
+      password,
+    }: {
+      email: string;
+      password: string;
+    }) => {
+      const { error } = await client.PATCH('/user/email', {
+        body: { email, password },
+      });
       if (error) {
         throw error;
       }
