@@ -117,6 +117,7 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 			LastSendTime:     lastSentAt,
 			UnsubscribeToken: row.UnsubscribeToken,
 			SendWhenEmpty:    row.SendWhenEmpty,
+			IsOneOffSend:     row.IsOneOffSend,
 			Feeds:            feedsByNewsletter[row.ID],
 		})
 	}

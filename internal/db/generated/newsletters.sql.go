@@ -129,7 +129,11 @@ func (q *Queries) ForceSendNewsletter(ctx context.Context, arg ForceSendNewslett
 }
 
 const getDueNewsletters = `-- name: GetDueNewsletters :many
-SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at, nl.unsubscribe_token, nl.send_when_empty
+SELECT 
+    nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, 
+    last_sent_at, nl.unsubscribe_token, nl.send_when_empty, 
+    (nl.original_next_send_time IS NOT NULL)::bool AS is_one_off_send,
+    u.email, u.id AS user_id
 FROM newsletter AS nl
 INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE nl.next_send_time <= NOW() AND nl.status = 'active'
@@ -143,11 +147,12 @@ type GetDueNewslettersRow struct {
 	SendHour         int32
 	SendTimezone     string
 	Frequency        Frequency
-	Email            string
-	UserID           string
 	LastSentAt       pgtype.Timestamptz
 	UnsubscribeToken string
 	SendWhenEmpty    bool
+	IsOneOffSend     bool
+	Email            string
+	UserID           string
 }
 
 func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow, error) {
@@ -167,11 +172,12 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 			&i.SendHour,
 			&i.SendTimezone,
 			&i.Frequency,
-			&i.Email,
-			&i.UserID,
 			&i.LastSentAt,
 			&i.UnsubscribeToken,
 			&i.SendWhenEmpty,
+			&i.IsOneOffSend,
+			&i.Email,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}

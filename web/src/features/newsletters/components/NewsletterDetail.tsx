@@ -218,7 +218,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
 
               <SettingsRow
                 title="Empty issues"
-                description="Send an issue even when none of your feeds have new items."
+                description="Send an issue even when none of your feeds have new items. One-off sends always go out, empty or not."
               >
                 <Switch
                   aria-label="Send empty issues"
