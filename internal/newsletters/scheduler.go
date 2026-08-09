@@ -151,6 +151,11 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 	wideLog.AddLogField(ctx, "nonEmptyFeedCount", len(feedResults.Succeeded))
 	wideLog.AddLogField(ctx, "emptyFeedCount", len(feedResults.SucceededNoItems))
 
+	if len(feedResults.Succeeded) == 0 && !nl.SendWhenEmpty {
+		wideLog.AddLogField(ctx, "skippedEmpty", true)
+		return sch.newsletterService.SkipSend(ctx, &nl)
+	}
+
 	itemIdToTokenMap := generateTokensForItems(feedResults.Succeeded)
 	feedResults.Succeeded = wrapItemURLs(
 		feedResults.Succeeded,

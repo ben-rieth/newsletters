@@ -129,7 +129,7 @@ func (q *Queries) ForceSendNewsletter(ctx context.Context, arg ForceSendNewslett
 }
 
 const getDueNewsletters = `-- name: GetDueNewsletters :many
-SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at, nl.unsubscribe_token
+SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at, nl.unsubscribe_token, nl.send_when_empty
 FROM newsletter AS nl
 INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE nl.next_send_time <= NOW() AND nl.status = 'active'
@@ -147,6 +147,7 @@ type GetDueNewslettersRow struct {
 	UserID           string
 	LastSentAt       pgtype.Timestamptz
 	UnsubscribeToken string
+	SendWhenEmpty    bool
 }
 
 func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow, error) {
@@ -170,6 +171,7 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 			&i.UserID,
 			&i.LastSentAt,
 			&i.UnsubscribeToken,
+			&i.SendWhenEmpty,
 		); err != nil {
 			return nil, err
 		}
@@ -182,7 +184,7 @@ func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow
 }
 
 const getNewsletter = `-- name: GetNewsletter :one
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at, original_next_send_time FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at, original_next_send_time, send_when_empty FROM newsletter
 WHERE id = $1 AND user_id = $2
 `
 
@@ -210,6 +212,7 @@ func (q *Queries) GetNewsletter(ctx context.Context, arg GetNewsletterParams) (N
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.OriginalNextSendTime,
+		&i.SendWhenEmpty,
 	)
 	return i, err
 }
@@ -240,7 +243,7 @@ func (q *Queries) GetNewsletterByUnsubscribeToken(ctx context.Context, unsubscri
 }
 
 const listNewsletters = `-- name: ListNewsletters :many
-SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at, original_next_send_time FROM newsletter
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at, original_next_send_time, send_when_empty FROM newsletter
 WHERE user_id = $1
 ORDER BY created_at DESC
 `
@@ -270,6 +273,7 @@ func (q *Queries) ListNewsletters(ctx context.Context, userID string) ([]Newslet
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.OriginalNextSendTime,
+			&i.SendWhenEmpty,
 		); err != nil {
 			return nil, err
 		}
@@ -279,6 +283,25 @@ func (q *Queries) ListNewsletters(ctx context.Context, userID string) ([]Newslet
 		return nil, err
 	}
 	return items, nil
+}
+
+const skipNewsletterSend = `-- name: SkipNewsletterSend :exec
+UPDATE newsletter SET
+    next_send_time = $1,
+    original_next_send_time = NULL,
+    updated_at = NOW()
+WHERE id = $2 AND user_id = $3
+`
+
+type SkipNewsletterSendParams struct {
+	NextSendTime time.Time
+	ID           string
+	UserID       string
+}
+
+func (q *Queries) SkipNewsletterSend(ctx context.Context, arg SkipNewsletterSendParams) error {
+	_, err := q.db.Exec(ctx, skipNewsletterSend, arg.NextSendTime, arg.ID, arg.UserID)
+	return err
 }
 
 const updateNewsletter = `-- name: UpdateNewsletter :exec
@@ -372,6 +395,21 @@ func (q *Queries) UpdateNewsletterSendTimes(ctx context.Context, arg UpdateNewsl
 		arg.ID,
 		arg.UserID,
 	)
+	return err
+}
+
+const updateNewsletterSendWhenEmpty = `-- name: UpdateNewsletterSendWhenEmpty :exec
+UPDATE newsletter SET send_when_empty = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3
+`
+
+type UpdateNewsletterSendWhenEmptyParams struct {
+	SendWhenEmpty bool
+	ID            string
+	UserID        string
+}
+
+func (q *Queries) UpdateNewsletterSendWhenEmpty(ctx context.Context, arg UpdateNewsletterSendWhenEmptyParams) error {
+	_, err := q.db.Exec(ctx, updateNewsletterSendWhenEmpty, arg.SendWhenEmpty, arg.ID, arg.UserID)
 	return err
 }
 

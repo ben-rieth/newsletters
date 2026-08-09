@@ -433,6 +433,7 @@ type Newsletter struct {
 	CreatedAt            time.Time
 	UpdatedAt            time.Time
 	OriginalNextSendTime pgtype.Timestamptz
+	SendWhenEmpty        bool
 }
 
 type NewsletterFeed struct {

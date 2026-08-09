@@ -99,6 +99,15 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	}, h.handleUpdateNewsletterStatus)
 
 	huma.Register(api, huma.Operation{
+		OperationID:   "update-newsletter-send-when-empty",
+		Path:          "/newsletter/{newsletterId}/send-when-empty",
+		Method:        http.MethodPatch,
+		Description:   "Choose whether the newsletter sends an issue when no feed has new items",
+		DefaultStatus: http.StatusNoContent,
+		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
+	}, h.handleUpdateNewsletterSendWhenEmpty)
+
+	huma.Register(api, huma.Operation{
 		OperationID:   "schedule-one-off",
 		Path:          "/newsletter/{newsletterId}/one-off",
 		Method:        http.MethodPost,
@@ -268,6 +277,29 @@ func (h *NewsletterHandler) handleUpdateNewsletterStatus(ctx context.Context, i 
 		Status: db.NewsletterStatus(i.Body.Status),
 		ID:     i.NewsletterID,
 		UserID: claims.Subject,
+	})
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
+}
+
+func (h *NewsletterHandler) handleUpdateNewsletterSendWhenEmpty(ctx context.Context, i *struct {
+	NewsletterID string `path:"newsletterId"`
+	Body         struct {
+		SendWhenEmpty bool `json:"sendWhenEmpty"`
+	}
+}) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	err := h.queries.UpdateNewsletterSendWhenEmpty(ctx, db.UpdateNewsletterSendWhenEmptyParams{
+		SendWhenEmpty: i.Body.SendWhenEmpty,
+		ID:            i.NewsletterID,
+		UserID:        claims.Subject,
 	})
 	if err != nil {
 		return nil, internalServerError(ctx, err)

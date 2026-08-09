@@ -1,4 +1,4 @@
-\restrict ZIb9sBfrN0Cgh9GFrwTf2QczBZRDGOXq66zb8YACOQrzbVTrfceiflHoGnmRD5O
+\restrict UNwmCIwnfIG1PAjL3KkYrzlRQkoauHRrtC031jOo6VHshhkvSeb06jF99BVKLgN
 
 -- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
@@ -216,7 +216,8 @@ CREATE TABLE public.newsletter (
     unsubscribe_token uuid DEFAULT gen_random_uuid() NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    original_next_send_time timestamp with time zone
+    original_next_send_time timestamp with time zone,
+    send_when_empty boolean DEFAULT false NOT NULL
 );
 
 
@@ -652,7 +653,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ZIb9sBfrN0Cgh9GFrwTf2QczBZRDGOXq66zb8YACOQrzbVTrfceiflHoGnmRD5O
+\unrestrict UNwmCIwnfIG1PAjL3KkYrzlRQkoauHRrtC031jOo6VHshhkvSeb06jF99BVKLgN
 
 
 --
@@ -671,4 +672,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260729213305'),
     ('20260807120000'),
     ('20260807120100'),
-    ('20260807120200');
+    ('20260807120200'),
+    ('20260809120000');
