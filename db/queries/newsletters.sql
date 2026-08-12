@@ -39,7 +39,11 @@ WHERE id = $8 AND user_id = $9;
 SELECT EXISTS(SELECT 1 FROM newsletter WHERE id = $1 AND user_id = $2);
 
 -- name: GetDueNewsletters :many
-SELECT nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, u.email, u.id AS user_id, last_sent_at, nl.unsubscribe_token
+SELECT 
+    nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, 
+    last_sent_at, nl.unsubscribe_token, nl.send_when_empty, 
+    (nl.original_next_send_time IS NOT NULL)::bool AS is_one_off_send,
+    u.email, u.id AS user_id
 FROM newsletter AS nl
 INNER JOIN app_user AS u ON nl.user_id = u.id
 WHERE nl.next_send_time <= NOW() AND nl.status = 'active';
@@ -54,6 +58,7 @@ WHERE id = $2 AND user_id = $3;
 -- name: ForceSendNewsletter :exec
 UPDATE newsletter SET
     next_send_time = $1,
+    original_next_send_time = COALESCE(original_next_send_time, next_send_time),
     updated_at = NOW()
 WHERE id = $2 AND user_id = $3;
 
@@ -72,11 +77,21 @@ UPDATE newsletter SET
     updated_at = NOW() 
 WHERE id = $3 AND user_id = $4;
 
+-- name: SkipNewsletterSend :exec
+UPDATE newsletter SET
+    next_send_time = $1,
+    last_sent_at = COALESCE(last_sent_at, $2),
+    updated_at = NOW()
+WHERE id = $3 AND user_id = $4;
+
 -- name: DeleteAllNewslettersForUser :exec
 DELETE FROM newsletter WHERE user_id = $1;
 
 -- name: UpdateNewsletterStatus :exec
 UPDATE newsletter SET status = $1 WHERE id = $2 AND user_id = $3;
+
+-- name: UpdateNewsletterSendWhenEmpty :exec
+UPDATE newsletter SET send_when_empty = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3;
 
 -- name: GetNewsletterByUnsubscribeToken :one
 SELECT nl.id AS newsletter_id, nl.name, u.email, u.id AS user_id FROM newsletter AS nl

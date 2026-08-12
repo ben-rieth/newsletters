@@ -24,6 +24,7 @@ type Newsletter struct {
 	SendTimezone    string     `json:"sendTimezone"`
 	LastSentAt      *time.Time `json:"lastSentAt,omitempty"`
 	Status          string     `json:"status"`
+	SendWhenEmpty   bool       `json:"sendWhenEmpty"`
 	CreatedAt       time.Time  `json:"createdAt"`
 	UpdatedAt       time.Time  `json:"updatedAt"`
 }
@@ -115,6 +116,8 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 			UserID:           row.UserID,
 			LastSendTime:     lastSentAt,
 			UnsubscribeToken: row.UnsubscribeToken,
+			SendWhenEmpty:    row.SendWhenEmpty,
+			IsOneOffSend:     row.IsOneOffSend,
 			Feeds:            feedsByNewsletter[row.ID],
 		})
 	}
@@ -122,15 +125,19 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 	return &dueNewsletters, nil
 }
 
+func nextSendTimeFor(nl *SendableNewsletter) (time.Time, error) {
+	return ComputeNextSendTime(
+		dbgen.Frequency(nl.Frequency), int(nl.SendDay), int(nl.SendHour), int(nl.SendMinute), nl.SendTimezone,
+		time.Now(),
+	)
+}
+
 func (s *NewsletterService) UpdateSendTimes(
 	ctx context.Context,
 	nl *SendableNewsletter,
 	sentAt time.Time,
 ) error {
-	nextSendTime, err := ComputeNextSendTime(
-		dbgen.Frequency(nl.Frequency), int(nl.SendDay), int(nl.SendHour), int(nl.SendMinute), nl.SendTimezone,
-		time.Now(),
-	)
+	nextSendTime, err := nextSendTimeFor(nl)
 	if err != nil {
 		return err
 	}
@@ -140,6 +147,22 @@ func (s *NewsletterService) UpdateSendTimes(
 		UserID:       nl.UserID,
 		NextSendTime: nextSendTime,
 		LastSentAt:   db.ToTimestamp(&sentAt),
+	})
+}
+
+// last_sent_at only anchors on the first skip, so the skipped window is still covered by the next send.
+func (s *NewsletterService) SkipSend(ctx context.Context, nl *SendableNewsletter) error {
+	nextSendTime, err := nextSendTimeFor(nl)
+	if err != nil {
+		return err
+	}
+
+	lastSendTime := nl.LastSendTime
+	return s.queries.SkipNewsletterSend(ctx, dbgen.SkipNewsletterSendParams{
+		ID:           nl.ID,
+		UserID:       nl.UserID,
+		NextSendTime: nextSendTime,
+		LastSentAt:   db.ToTimestamp(&lastSendTime),
 	})
 }
 

@@ -20,6 +20,8 @@ type SendableNewsletter struct {
 	Email            string
 	UserID           string
 	UnsubscribeToken string
+	SendWhenEmpty    bool
+	IsOneOffSend     bool
 	Feeds            []feeds.BaseFeed
 }
 

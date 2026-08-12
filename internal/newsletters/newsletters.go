@@ -95,5 +95,6 @@ func DbNewsletterToNewsletterType(newsletter db.Newsletter) Newsletter {
 		CreatedAt:       newsletter.CreatedAt,
 		UpdatedAt:       newsletter.UpdatedAt,
 		Status:          string(newsletter.Status),
+		SendWhenEmpty:   newsletter.SendWhenEmpty,
 	}
 }

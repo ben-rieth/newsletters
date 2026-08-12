@@ -11,6 +11,7 @@ import useUpdateNewsletter from '../queries/hooks/useUpdateNewsletter';
 import useDeleteNewsletter from '../queries/hooks/useDeleteNewsletter';
 import useExportNewsletter from '../queries/hooks/useExportNewsletter';
 import useUpdateNewsletterStatus from '../queries/hooks/useUpdateNewsletterStatus';
+import useUpdateNewsletterSendWhenEmpty from '../queries/hooks/useUpdateNewsletterSendWhenEmpty';
 import useCancelOneOffSend from '../queries/hooks/useCancelOneOffSend';
 import { FeedsList } from './FeedsList';
 import { ScheduleSendDialog } from './ScheduleSendDialog';
@@ -18,6 +19,7 @@ import { NewsletterDebugActions } from '#/features/debug/components/NewsletterDe
 import IssuesList from '#/features/issues/components/IssuesList';
 import { issuesOptions } from '#/features/issues/queries/issues';
 import { Button } from '#/components/ui/button';
+import { Switch } from '#/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs';
 import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
 import {
@@ -79,6 +81,16 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
       isActive ? 'Newsletter deactivated.' : 'Newsletter activated!',
     );
   });
+
+  const updateSendWhenEmpty = useUpdateNewsletterSendWhenEmpty(
+    (sendWhenEmpty) => {
+      toast.success(
+        sendWhenEmpty
+          ? 'Empty issues will still send.'
+          : 'Empty issues will be skipped.',
+      );
+    },
+  );
 
   const cancelOneOff = useCancelOneOffSend(() => {
     toast.success('One-off send cancelled.');
@@ -202,6 +214,23 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
                       ? 'Deactivate'
                       : 'Activate'}
                 </Button>
+              </SettingsRow>
+
+              <SettingsRow
+                title="Empty issues"
+                description="Send an issue even when none of your feeds have new items. One-off sends always go out, empty or not."
+              >
+                <Switch
+                  aria-label="Send empty issues"
+                  checked={newsletter.sendWhenEmpty}
+                  onCheckedChange={(sendWhenEmpty) =>
+                    updateSendWhenEmpty.mutate({
+                      newsletterId: newsletter.id,
+                      sendWhenEmpty,
+                    })
+                  }
+                  disabled={updateSendWhenEmpty.isPending}
+                />
               </SettingsRow>
 
               <SettingsRow

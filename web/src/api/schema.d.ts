@@ -383,6 +383,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/newsletter/{newsletterId}/send-when-empty': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** @description Choose whether the newsletter sends an issue when no feed has new items */
+    patch: operations['update-newsletter-send-when-empty'];
+    trace?: never;
+  };
   '/newsletter/{newsletterId}/status': {
     parameters: {
       query?: never;
@@ -772,6 +789,7 @@ export interface components {
       /** Format: int64 */
       sendMinute: number;
       sendTimezone: string;
+      sendWhenEmpty: boolean;
       status: string;
       /** Format: date-time */
       updatedAt: string;
@@ -880,6 +898,15 @@ export interface components {
       readonly $schema?: string;
       email: string;
       password: string;
+    };
+    'Update-newsletter-send-when-emptyRequest': {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/Update-newsletter-send-when-emptyRequest.json
+       */
+      readonly $schema?: string;
+      sendWhenEmpty: boolean;
     };
     'Update-newsletter-statusRequest': {
       /**
@@ -1789,6 +1816,39 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'update-newsletter-send-when-empty': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        newsletterId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Update-newsletter-send-when-emptyRequest'];
+      };
+    };
     responses: {
       /** @description No Content */
       204: {
