@@ -113,6 +113,7 @@ func (q *Queries) DoesNewsletterExist(ctx context.Context, arg DoesNewsletterExi
 const forceSendNewsletter = `-- name: ForceSendNewsletter :exec
 UPDATE newsletter SET
     next_send_time = $1,
+    original_next_send_time = COALESCE(original_next_send_time, next_send_time),
     updated_at = NOW()
 WHERE id = $2 AND user_id = $3
 `
@@ -294,19 +295,25 @@ func (q *Queries) ListNewsletters(ctx context.Context, userID string) ([]Newslet
 const skipNewsletterSend = `-- name: SkipNewsletterSend :exec
 UPDATE newsletter SET
     next_send_time = $1,
-    original_next_send_time = NULL,
+    last_sent_at = COALESCE(last_sent_at, $2),
     updated_at = NOW()
-WHERE id = $2 AND user_id = $3
+WHERE id = $3 AND user_id = $4
 `
 
 type SkipNewsletterSendParams struct {
 	NextSendTime time.Time
+	LastSentAt   pgtype.Timestamptz
 	ID           string
 	UserID       string
 }
 
 func (q *Queries) SkipNewsletterSend(ctx context.Context, arg SkipNewsletterSendParams) error {
-	_, err := q.db.Exec(ctx, skipNewsletterSend, arg.NextSendTime, arg.ID, arg.UserID)
+	_, err := q.db.Exec(ctx, skipNewsletterSend,
+		arg.NextSendTime,
+		arg.LastSentAt,
+		arg.ID,
+		arg.UserID,
+	)
 	return err
 }
 

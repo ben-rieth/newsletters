@@ -150,17 +150,19 @@ func (s *NewsletterService) UpdateSendTimes(
 	})
 }
 
-// last_sent_at is left untouched so the skipped window is still covered by the next send.
+// last_sent_at only anchors on the first skip, so the skipped window is still covered by the next send.
 func (s *NewsletterService) SkipSend(ctx context.Context, nl *SendableNewsletter) error {
 	nextSendTime, err := nextSendTimeFor(nl)
 	if err != nil {
 		return err
 	}
 
+	lastSendTime := nl.LastSendTime
 	return s.queries.SkipNewsletterSend(ctx, dbgen.SkipNewsletterSendParams{
 		ID:           nl.ID,
 		UserID:       nl.UserID,
 		NextSendTime: nextSendTime,
+		LastSentAt:   db.ToTimestamp(&lastSendTime),
 	})
 }
 

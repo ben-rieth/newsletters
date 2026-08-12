@@ -58,6 +58,7 @@ WHERE id = $2 AND user_id = $3;
 -- name: ForceSendNewsletter :exec
 UPDATE newsletter SET
     next_send_time = $1,
+    original_next_send_time = COALESCE(original_next_send_time, next_send_time),
     updated_at = NOW()
 WHERE id = $2 AND user_id = $3;
 
@@ -79,9 +80,9 @@ WHERE id = $3 AND user_id = $4;
 -- name: SkipNewsletterSend :exec
 UPDATE newsletter SET
     next_send_time = $1,
-    original_next_send_time = NULL,
+    last_sent_at = COALESCE(last_sent_at, $2),
     updated_at = NOW()
-WHERE id = $2 AND user_id = $3;
+WHERE id = $3 AND user_id = $4;
 
 -- name: DeleteAllNewslettersForUser :exec
 DELETE FROM newsletter WHERE user_id = $1;

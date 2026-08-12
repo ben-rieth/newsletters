@@ -229,6 +229,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
                       sendWhenEmpty,
                     })
                   }
+                  disabled={updateSendWhenEmpty.isPending}
                 />
               </SettingsRow>
 

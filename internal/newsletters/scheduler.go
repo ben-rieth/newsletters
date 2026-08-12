@@ -151,7 +151,7 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 	wideLog.AddLogField(ctx, "nonEmptyFeedCount", len(feedResults.Succeeded))
 	wideLog.AddLogField(ctx, "emptyFeedCount", len(feedResults.SucceededNoItems))
 
-	if !nl.IsOneOffSend && len(feedResults.Succeeded) == 0 && !nl.SendWhenEmpty {
+	if !nl.IsOneOffSend && len(feedResults.Succeeded) == 0 && len(feedResults.Failed) == 0 && !nl.SendWhenEmpty {
 		wideLog.AddLogField(ctx, "skippedEmpty", true)
 		return sch.newsletterService.SkipSend(ctx, &nl)
 	}
