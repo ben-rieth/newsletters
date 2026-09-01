@@ -176,13 +176,7 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 		return err
 	}
 
-	result, err := sch.emailService.Send(
-		ctx,
-		nl.Name,
-		sch.cfg.NewsletterSenderEmail.Address,
-		nl.Email,
-		newsletterHtml,
-	)
+	result, err := sch.sendEmailWithRetry(ctx, nl, newsletterHtml)
 
 	if err != nil {
 		sch.cleanUpAfterSendFailure(ctx, issueId, nl.UserID)
@@ -199,6 +193,34 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 	}
 
 	return nil
+}
+
+func (sch *Scheduler) sendEmailWithRetry(ctx context.Context, nl SendableNewsletter, html string) (*email.SendResult, error) {
+
+	var err error
+	var result *email.SendResult
+
+	maxAttempts := 3
+	delay := time.Second * 2
+
+	for attempt := 1; attempt < maxAttempts; attempt++ {
+		result, err = sch.emailService.Send(
+			ctx,
+			nl.Name,
+			sch.cfg.NewsletterSenderEmail.Address,
+			nl.Email,
+			html,
+		)
+
+		if err == nil {
+			return result, nil
+		}
+
+		wideLog.AddArrayField(ctx, "sendEmailAttempts", fmt.Sprintf("Attept %d failed: %w. Retrying.", attempt, err))
+		time.Sleep(delay)
+	}
+
+	return nil, err
 }
 
 type failedFeed struct {
