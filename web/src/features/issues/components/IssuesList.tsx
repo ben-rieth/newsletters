@@ -45,7 +45,9 @@ const IssuesList = ({ issues, nextSendTime }: IssuesListProps) => {
             <div className="min-w-0">
               <p
                 className={cn(
-                  'flex min-w-0 items-center gap-2 group-hover:underline',
+                  // relative contains the sr-only label; otherwise it resolves
+                  // against the initial containing block and stretches the page.
+                  'relative flex min-w-0 items-center gap-2 group-hover:underline',
                   unread ? 'font-semibold' : 'font-medium',
                 )}
               >

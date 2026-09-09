@@ -181,7 +181,11 @@ const IssueListColumn = ({ issues }: Props) => {
                   <div className="flex items-baseline justify-between gap-2">
                     <span
                       className={cn(
-                        'flex min-w-0 items-baseline gap-1.5 text-xs font-semibold uppercase tracking-wide',
+                        // relative keeps the sr-only label's containing block
+                        // inside the scroller — absolute descendants of the
+                        // initial containing block escape the clip and stretch
+                        // the document instead.
+                        'relative flex min-w-0 items-baseline gap-1.5 text-xs font-semibold uppercase tracking-wide',
                         unread ? 'text-primary' : 'text-muted-foreground',
                       )}
                     >
