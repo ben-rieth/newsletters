@@ -43,6 +43,13 @@ func WideLogMiddleware(ctx huma.Context, next func(huma.Context)) {
 	}
 }
 
+func AddMessage(ctx context.Context, message string) {
+	wl, ok := ctx.Value(logKey).(*WideLog)
+	if ok {
+		wl.AddMessage(message)
+	}
+}
+
 func AddLogField(ctx context.Context, key string, value any) {
 	wl, ok := ctx.Value(logKey).(*WideLog)
 	if ok {

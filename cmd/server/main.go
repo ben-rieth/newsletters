@@ -68,14 +68,16 @@ func main() {
 		newsletterService,
 		feedsService,
 		emailService,
+		queries,
 		&cfg,
 		&newsletters.SchedulerConfig{
-			MaxWorkers: 5,
+			MaxWorkers:        5,
+			NewsletterTimeout: 300,
+			TickTimeout:       600,
 		},
 	)
-	if cfg.Environment != "dev" {
-		go scheduler.KickOff(ctx)
-	}
+
+	go scheduler.KickOff(ctx)
 
 	feeds.NewFailurePruner(queries, pool).KickOff(ctx)
 

@@ -59,7 +59,7 @@ func (p *FailurePruner) pruneWithContext() {
 		level = slog.LevelError
 	}
 
-	wl.Slog(pruneCtx, level)
+	wl.SlogAs(pruneCtx, level, "Feed Prune")
 }
 
 func (p *FailurePruner) prune(ctx context.Context) error {

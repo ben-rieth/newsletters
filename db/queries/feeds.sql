@@ -61,6 +61,15 @@ FROM newsletter_feed AS nlf
 INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.newsletter_id = ANY(@newsletter_ids::UUID[]) AND nlf.status = 'active';
 
+-- name: GetSendableFeedsForNewsletter :many
+SELECT
+    f.id AS global_feed_id, nlf.id AS newsletter_feed_id,
+    f.title, f.url, f.html_url, f.last_retrieved_at,
+    nlf.newsletter_id, nlf.alias
+FROM newsletter_feed AS nlf
+INNER JOIN feed AS f ON nlf.feed_id = f.id
+WHERE nlf.newsletter_id = $1 AND nlf.status = 'active';
+
 -- name: GetFeedsForManyNewsletters :many
 SELECT
     f.id AS global_feed_id, nlf.id AS newsletter_feed_id,

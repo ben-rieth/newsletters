@@ -557,6 +557,56 @@ func (q *Queries) GetSendableFeedsForManyNewsletters(ctx context.Context, newsle
 	return items, nil
 }
 
+const getSendableFeedsForNewsletter = `-- name: GetSendableFeedsForNewsletter :many
+SELECT
+    f.id AS global_feed_id, nlf.id AS newsletter_feed_id,
+    f.title, f.url, f.html_url, f.last_retrieved_at,
+    nlf.newsletter_id, nlf.alias
+FROM newsletter_feed AS nlf
+INNER JOIN feed AS f ON nlf.feed_id = f.id
+WHERE nlf.newsletter_id = $1 AND nlf.status = 'active'
+`
+
+type GetSendableFeedsForNewsletterRow struct {
+	GlobalFeedID     string
+	NewsletterFeedID string
+	Title            string
+	Url              string
+	HtmlUrl          string
+	LastRetrievedAt  time.Time
+	NewsletterID     string
+	Alias            string
+}
+
+func (q *Queries) GetSendableFeedsForNewsletter(ctx context.Context, newsletterID string) ([]GetSendableFeedsForNewsletterRow, error) {
+	rows, err := q.db.Query(ctx, getSendableFeedsForNewsletter, newsletterID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetSendableFeedsForNewsletterRow
+	for rows.Next() {
+		var i GetSendableFeedsForNewsletterRow
+		if err := rows.Scan(
+			&i.GlobalFeedID,
+			&i.NewsletterFeedID,
+			&i.Title,
+			&i.Url,
+			&i.HtmlUrl,
+			&i.LastRetrievedAt,
+			&i.NewsletterID,
+			&i.Alias,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const previewFeed = `-- name: PreviewFeed :many
 SELECT item.id AS item_id, item.title, item.url, ff.id AS filter_id, ff.field, ff.operator, ff.pattern
 FROM newsletter_feed AS nlf

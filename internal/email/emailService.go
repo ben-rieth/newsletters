@@ -14,6 +14,7 @@ import (
 
 type EmailService interface {
 	Send(ctx context.Context, subject, sender, recipient, body string) (*SendResult, error)
+	SendIdempotent(ctx context.Context, subject, sender, recipient, body, idempotencyKey string) (*SendResult, error)
 	BackgroundSend(ctx context.Context, subject, sender, recipient, body string)
 	AssembleEmail(templateName string, arguments map[string]any) (string, error)
 }
@@ -35,6 +36,14 @@ func NewResendEmailService(globalConfig *config.Config, tmpl *template.Template,
 }
 
 func (s *ResendEmailService) Send(ctx context.Context, subject, sender, recipient, body string) (*SendResult, error) {
+	return s.SendIdempotent(ctx, subject, sender, recipient, body, "")
+}
+
+// Resend only dedupes when the key is non-empty, so an empty key sends normally.
+func (s *ResendEmailService) SendIdempotent(
+	ctx context.Context,
+	subject, sender, recipient, body, idempotencyKey string,
+) (*SendResult, error) {
 	params := &resend.SendEmailRequest{
 		To:      []string{recipient},
 		From:    sender,
@@ -42,7 +51,9 @@ func (s *ResendEmailService) Send(ctx context.Context, subject, sender, recipien
 		Html:    body,
 	}
 
-	sent, err := s.resendClient.Emails.SendWithContext(ctx, params)
+	sent, err := s.resendClient.Emails.SendWithOptions(ctx, params, &resend.SendEmailOptions{
+		IdempotencyKey: idempotencyKey,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +62,7 @@ func (s *ResendEmailService) Send(ctx context.Context, subject, sender, recipien
 	return &SendResult{
 		ID:   sent.Id,
 		Time: sendTime,
-	}, err
+	}, nil
 }
 
 func (s *ResendEmailService) BackgroundSend(ctx context.Context, subject, sender, recipient, body string) {

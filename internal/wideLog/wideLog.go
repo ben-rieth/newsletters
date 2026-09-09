@@ -33,6 +33,18 @@ func NewWideLog() *WideLog {
 	return &WideLog{fields: make(map[string]logValue)}
 }
 
+func (wl *WideLog) AddMessage(message string) {
+	wl.mu.Lock()
+	defer wl.mu.Unlock()
+
+	existing, _ := wl.fields["messages"].value.([]any)
+
+	wl.fields["messages"] = logValue{
+		value:     append(existing, message),
+		timestamp: time.Now(),
+	}
+}
+
 func (wl *WideLog) AddLogField(key string, value any) {
 	wl.mu.Lock()
 	defer wl.mu.Unlock()
@@ -81,6 +93,10 @@ func (wl *WideLog) AddArrayField(key string, value any) {
 }
 
 func (wl *WideLog) Slog(ctx context.Context, level slog.Level) {
+	wl.SlogAs(ctx, level, "Request")
+}
+
+func (wl *WideLog) SlogAs(ctx context.Context, level slog.Level, msg string) {
 	wl.mu.Lock()
 	entries := make([]logEntry, 0, len(wl.fields))
 	for k, v := range wl.fields {
@@ -97,7 +113,7 @@ func (wl *WideLog) Slog(ctx context.Context, level slog.Level) {
 		args = append(args, entry.Key, entry.Value.value)
 	}
 
-	slog.Log(ctx, level, "Request", args...)
+	slog.Log(ctx, level, msg, args...)
 }
 
 func (wl *WideLog) HasError() bool {

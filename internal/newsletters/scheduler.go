@@ -2,6 +2,7 @@ package newsletters
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -11,51 +12,63 @@ import (
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/ben-rieth/newsletter-api/internal/db"
+	dbgen "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type Scheduler struct {
 	newsletterService *NewsletterService
 	feedService       *feeds.FeedService
 	emailService      email.EmailService
+	queries           *dbgen.Queries
 	cfg               *config.Config
 	schedulerConfig   *SchedulerConfig
+	queue             chan string
+	pollMu            sync.Mutex
 }
 
 type SchedulerConfig struct {
-	MaxWorkers int
+	MaxWorkers        int
+	NewsletterTimeout int
+	TickTimeout       int
 }
 
 func NewScheduler(
 	newsletterService *NewsletterService,
 	feedService *feeds.FeedService,
 	emailService email.EmailService,
+	queries *dbgen.Queries,
 	cfg *config.Config,
 	schedulerConfig *SchedulerConfig,
 ) *Scheduler {
 	return &Scheduler{
-		newsletterService,
-		feedService,
-		emailService,
-		cfg,
-		schedulerConfig,
+		newsletterService: newsletterService,
+		feedService:       feedService,
+		emailService:      emailService,
+		queries:           queries,
+		cfg:               cfg,
+		schedulerConfig:   schedulerConfig,
+		queue:             make(chan string),
 	}
 }
 
 func (sch *Scheduler) KickOff(ctx context.Context) {
+	sch.startSchedulerWorkers(ctx)
+
 	go func() {
 		ticker := time.NewTicker(30 * time.Minute)
 		defer ticker.Stop()
 
-		sch.pollNewslettersWithContext()
+		sch.enqueueDueNewsletters(ctx)
 
 		for {
 			select {
 			case <-ticker.C:
-				sch.pollNewslettersWithContext()
+				sch.enqueueDueNewsletters(ctx)
 			case <-ctx.Done():
 				log.Println("Shutting down newsletter scheduler")
 				return
@@ -64,20 +77,115 @@ func (sch *Scheduler) KickOff(ctx context.Context) {
 	}()
 }
 
-func (sch *Scheduler) ForcePoll() {
-	sch.pollNewslettersWithContext()
+func (sch *Scheduler) ForcePoll(ctx context.Context) {
+	sch.enqueueDueNewsletters(ctx)
 }
 
-func (sch *Scheduler) pollNewslettersWithContext() {
-	tickCtx := context.Background()
-	tickCtx, wl := wideLog.CreateWideLogAndAddToContext(tickCtx)
+func (sch *Scheduler) enqueueDueNewsletters(ctx context.Context) {
+	tickCtx, cancel := context.WithTimeout(ctx, time.Duration(sch.schedulerConfig.TickTimeout)*time.Second)
+	defer cancel()
 
+	tickCtx, wl := wideLog.CreateWideLogAndAddToContext(tickCtx)
 	tickId := uuid.New()
 	wl.AddLogField("tickId", tickId)
 
+	// Skip rather than queue: a waiting poll would only re-send the due set the
+	// running one already covered.
+	if !sch.pollMu.TryLock() {
+		wl.AddMessage("Poll already in progress. Skipping.")
+		wl.SlogAs(tickCtx, slog.LevelWarn, "Scheduler Tick")
+		return
+	}
+	defer sch.pollMu.Unlock()
+
 	startTime := time.Now()
 
-	err := sch.pollNewsletters(tickCtx)
+	if err := db.WaitForDB(tickCtx, sch.newsletterService.db); err != nil {
+		wl.AddErrorField(err)
+		wl.SlogAs(tickCtx, slog.LevelError, "Scheduler Tick")
+		return
+	}
+
+	newsletterIds, err := sch.queries.GetDueNewsletters(tickCtx)
+	if err != nil {
+		wl.AddErrorField(err)
+		wl.SlogAs(tickCtx, slog.LevelError, "Scheduler Tick")
+		return
+	}
+
+	wl.AddLogField("dueNewsletterCount", len(newsletterIds))
+
+	for i, id := range newsletterIds {
+		select {
+		case sch.queue <- id:
+		case <-tickCtx.Done():
+			wl.AddLogField("enqueuedNewsletterCount", i)
+			wl.AddErrorField(tickCtx.Err())
+			wl.AddLogField("duration", time.Since(startTime).String())
+			wl.SlogAs(tickCtx, slog.LevelError, "Scheduler Tick")
+			return
+		}
+	}
+
+	wl.AddLogField("enqueuedNewsletterCount", len(newsletterIds))
+
+	wl.AddLogField("duration", time.Since(startTime).String())
+	shouldKeep, level := shouldKeepSchedulerLog(wl)
+	if shouldKeep {
+		wl.SlogAs(tickCtx, level, "Scheduler Tick")
+	}
+}
+
+func (sch *Scheduler) startSchedulerWorkers(ctx context.Context) {
+	var wg sync.WaitGroup
+
+	for i := 0; i < sch.schedulerConfig.MaxWorkers; i++ {
+		wg.Add(1)
+		go func(workerId int) {
+			defer wg.Done()
+
+			workerCtx, wl := wideLog.CreateWideLogAndAddToContext(ctx)
+			wl.AddLogField("workerId", workerId)
+			wl.AddMessage("Scheduler worker started")
+			wl.SlogAs(workerCtx, slog.LevelInfo, "Scheduler Worker")
+
+			for {
+				select {
+				case newsletterID, ok := <-sch.queue:
+					if !ok {
+						return
+					}
+					sch.processJob(ctx, newsletterID, workerId)
+				case <-ctx.Done():
+					wl.AddMessage("Scheduler worker shutting down")
+					wl.SlogAs(workerCtx, slog.LevelInfo, "Scheduler Worker")
+					return
+				}
+			}
+		}(i)
+	}
+
+	go func() {
+		<-ctx.Done()
+		wg.Wait()
+
+		shutdownCtx, wl := wideLog.CreateWideLogAndAddToContext(ctx)
+		wl.AddMessage("All scheduler workers shut down")
+		wl.SlogAs(shutdownCtx, slog.LevelInfo, "Scheduler Worker")
+	}()
+}
+
+func (sch *Scheduler) processJob(parentCtx context.Context, newsletterID string, workerId int) {
+	jobCtx, cancel := context.WithTimeout(parentCtx, time.Duration(sch.schedulerConfig.NewsletterTimeout)*time.Second)
+	defer cancel()
+
+	jobCtx, wl := wideLog.CreateWideLogAndAddToContext(jobCtx)
+	wl.AddLogField("newsletterId", newsletterID)
+	wl.AddLogField("workerId", workerId)
+
+	startTime := time.Now()
+
+	err := sch.processSingleNewsletter(jobCtx, newsletterID)
 	if err != nil {
 		wl.AddErrorField(err)
 	}
@@ -88,62 +196,24 @@ func (sch *Scheduler) pollNewslettersWithContext() {
 	shouldKeep, level := shouldKeepSchedulerLog(wl)
 
 	if shouldKeep {
-		wl.Slog(tickCtx, level)
+		wl.SlogAs(jobCtx, level, "Newsletter Job")
 	}
 }
 
-func (sch *Scheduler) pollNewsletters(ctx context.Context) error {
-	if err := db.WaitForDB(ctx, sch.newsletterService.db); err != nil {
-		return err
-	}
-
-	dueNewsletters, err := sch.newsletterService.GetDueNewsletters(ctx)
+func (sch *Scheduler) processSingleNewsletter(ctx context.Context, newsletterId string) error {
+	nl, err := sch.newsletterService.GetSendableNewsletter(ctx, newsletterId)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			wideLog.AddMessage(ctx, "Newsletter not found. Maybe deleted or marked inactive.")
+			return nil
+		}
+
 		return err
 	}
 
-	count := len(*dueNewsletters)
-	wideLog.AddLogField(ctx, "nlCount", count)
-	if count == 0 {
-		return nil
-	}
-
-	sem := make(chan struct{}, sch.schedulerConfig.MaxWorkers)
-
-	var nlWaitGroup sync.WaitGroup
-
-	for i, nl := range *dueNewsletters {
-		nlWaitGroup.Add(1)
-		go func(ctx context.Context, index int, nl SendableNewsletter, sem chan struct{}) {
-			defer nlWaitGroup.Done()
-
-			nlCtx, nlLog := wideLog.CreateWideLogAndAddToContext(ctx)
-
-			startTime := time.Now()
-			err := sch.buildAndSendNewsletter(nlCtx, nl, sem)
-			endTime := time.Now()
-			nlLog.AddLogField("duration", endTime.Sub(startTime).String())
-
-			if err != nil {
-				nlLog.AddErrorField(err)
-			}
-
-			shouldKeep, level := shouldKeepSchedulerLog(nlLog)
-			if shouldKeep {
-				nlLog.Slog(ctx, level)
-			}
-		}(ctx, i, nl, sem)
-	}
-
-	nlWaitGroup.Wait()
-	return nil
-}
-
-func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNewsletter, sem chan struct{}) error {
-	wideLog.AddLogField(ctx, "newsletterId", nl.ID)
 	wideLog.AddLogField(ctx, "feedCount", len(nl.Feeds))
 
-	feedResults, err := sch.fetchFeedsForNewsletter(ctx, &nl, sem)
+	feedResults, err := sch.fetchFeedsForNewsletter(ctx, nl)
 	if err != nil {
 		return err
 	}
@@ -153,7 +223,7 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 
 	if !nl.IsOneOffSend && len(feedResults.Succeeded) == 0 && len(feedResults.Failed) == 0 && !nl.SendWhenEmpty {
 		wideLog.AddLogField(ctx, "skippedEmpty", true)
-		return sch.newsletterService.SkipSend(ctx, &nl)
+		return sch.newsletterService.SkipSend(ctx, nl)
 	}
 
 	itemIdToTokenMap := generateTokensForItems(feedResults.Succeeded)
@@ -170,7 +240,7 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 		return err
 	}
 
-	newsletterHtml, err := sch.assembleNewsletter(&nl, feedResults, issueId)
+	newsletterHtml, err := sch.assembleNewsletter(nl, feedResults, issueId)
 	if err != nil {
 		sch.cleanUpAfterSendFailure(ctx, issueId, nl.UserID)
 		return err
@@ -187,7 +257,7 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 
 	sentAt := result.Time
 
-	err = sch.newsletterService.UpdateSendTimes(ctx, &nl, sentAt)
+	err = sch.newsletterService.UpdateSendTimes(ctx, nl, sentAt)
 	if err != nil {
 		return err
 	}
@@ -195,7 +265,7 @@ func (sch *Scheduler) buildAndSendNewsletter(ctx context.Context, nl SendableNew
 	return nil
 }
 
-func (sch *Scheduler) sendEmailWithRetry(ctx context.Context, nl SendableNewsletter, html string) (*email.SendResult, error) {
+func (sch *Scheduler) sendEmailWithRetry(ctx context.Context, nl *SendableNewsletter, html string) (*email.SendResult, error) {
 
 	var err error
 	var result *email.SendResult
@@ -203,21 +273,36 @@ func (sch *Scheduler) sendEmailWithRetry(ctx context.Context, nl SendableNewslet
 	maxAttempts := 3
 	delay := time.Second * 2
 
-	for attempt := 1; attempt < maxAttempts; attempt++ {
-		result, err = sch.emailService.Send(
+	// Keyed on the send window, not the attempt, so a retry after a timeout that
+	// actually delivered does not send twice.
+	idempotencyKey := fmt.Sprintf("newsletter-%s-%d", nl.ID, nl.NextSendTime.Unix())
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		result, err = sch.emailService.SendIdempotent(
 			ctx,
 			nl.Name,
 			sch.cfg.NewsletterSenderEmail.Address,
 			nl.Email,
 			html,
+			idempotencyKey,
 		)
 
 		if err == nil {
 			return result, nil
 		}
 
-		wideLog.AddArrayField(ctx, "sendEmailAttempts", fmt.Sprintf("Attept %d failed: %w. Retrying.", attempt, err))
-		time.Sleep(delay)
+		if attempt == maxAttempts {
+			wideLog.AddArrayField(ctx, "sendEmailAttempts", fmt.Sprintf("Attempt %d failed: %v. Giving up.", attempt, err))
+			break
+		}
+
+		wideLog.AddArrayField(ctx, "sendEmailAttempts", fmt.Sprintf("Attempt %d failed: %v. Retrying.", attempt, err))
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(delay):
+		}
 	}
 
 	return nil, err
@@ -237,7 +322,6 @@ type newsletterFetchFeedResult struct {
 func (sch *Scheduler) fetchFeedsForNewsletter(
 	ctx context.Context,
 	nl *SendableNewsletter,
-	sem chan struct{},
 ) (newsletterFetchFeedResult, error) {
 	var wg sync.WaitGroup
 
@@ -246,11 +330,9 @@ func (sch *Scheduler) fetchFeedsForNewsletter(
 
 	for i, feed := range nl.Feeds {
 		wg.Add(1)
-		sem <- struct{}{}
 
 		go func(index int, feed feeds.BaseFeed) {
 			defer wg.Done()
-			defer func() { <-sem }()
 
 			feedResult, err := sch.feedService.GetFeedDataSince(ctx, feed, nl.LastSendTime, nl.UserID)
 			if err != nil {

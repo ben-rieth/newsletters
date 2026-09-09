@@ -38,44 +38,36 @@ func NewNewsletterService(queries *dbgen.Queries, db *pgxpool.Pool) *NewsletterS
 	return &NewsletterService{queries, db}
 }
 
-func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]SendableNewsletter, error) {
-	newsletterResult, err := service.queries.GetDueNewsletters(ctx)
+func (s *NewsletterService) GetSendableNewsletter(ctx context.Context, newsletterID string) (*SendableNewsletter, error) {
+	newsletterResult, err := s.queries.GetSendableNewsletter(ctx, newsletterID)
 	if err != nil {
 		return nil, err
 	}
 
-	newsletterIds := make([]string, 0)
-	lastSendTimeByNewsletter := make(map[string]time.Time)
-	for _, row := range newsletterResult {
-		var lastSentAt time.Time
-		if row.LastSentAt.Valid {
-			lastSentAt = row.LastSentAt.Time
-		} else {
-			computedLastSentAt, lastErr := ComputeLastSendTime(
-				row.Frequency,
-				int(row.SendDay), int(row.SendHour), int(row.SendMinute),
-				row.SendTimezone, time.Now(),
-			)
+	var lastSentAt time.Time
+	if newsletterResult.LastSentAt.Valid {
+		lastSentAt = newsletterResult.LastSentAt.Time
+	} else {
+		computedLastSentAt, lastErr := ComputeLastSendTime(
+			newsletterResult.Frequency,
+			int(newsletterResult.SendDay), int(newsletterResult.SendHour), int(newsletterResult.SendMinute),
+			newsletterResult.SendTimezone, time.Now(),
+		)
 
-			if lastErr != nil {
-				wideLog.AddErrorField(ctx, lastErr)
-				continue
-			}
-
-			lastSentAt = computedLastSentAt
+		if lastErr != nil {
+			wideLog.AddErrorField(ctx, lastErr)
+			return nil, lastErr
 		}
 
-		newsletterIds = append(newsletterIds, row.ID)
-
-		lastSendTimeByNewsletter[row.ID] = lastSentAt
+		lastSentAt = computedLastSentAt
 	}
 
-	feedsResult, err := service.queries.GetSendableFeedsForManyNewsletters(ctx, newsletterIds)
+	feedsResult, err := s.queries.GetSendableFeedsForNewsletter(ctx, newsletterID)
 	if err != nil {
 		return nil, err
 	}
 
-	feedsByNewsletter := make(map[string][]feeds.BaseFeed)
+	var sendableFeeds []feeds.BaseFeed
 	for _, row := range feedsResult {
 		baseFeed := feeds.BaseFeed{
 			GlobalFeedId:     row.GlobalFeedID,
@@ -90,39 +82,29 @@ func (service *NewsletterService) GetDueNewsletters(ctx context.Context) (*[]Sen
 			baseFeed.Name = row.Alias
 		}
 
-		feedsByNewsletter[row.NewsletterID] = append(
-			feedsByNewsletter[row.NewsletterID],
+		sendableFeeds = append(
+			sendableFeeds,
 			baseFeed,
 		)
 	}
 
-	dueNewsletters := make([]SendableNewsletter, 0)
-	for _, row := range newsletterResult {
-		lastSentAt, ok := lastSendTimeByNewsletter[row.ID]
-
-		if !ok {
-			continue
-		}
-
-		dueNewsletters = append(dueNewsletters, SendableNewsletter{
-			ID:               row.ID,
-			Name:             row.Name,
-			Frequency:        string(row.Frequency),
-			SendDay:          int(row.SendDay),
-			SendHour:         int(row.SendHour),
-			SendMinute:       int(row.SendMinute),
-			SendTimezone:     row.SendTimezone,
-			Email:            row.Email,
-			UserID:           row.UserID,
-			LastSendTime:     lastSentAt,
-			UnsubscribeToken: row.UnsubscribeToken,
-			SendWhenEmpty:    row.SendWhenEmpty,
-			IsOneOffSend:     row.IsOneOffSend,
-			Feeds:            feedsByNewsletter[row.ID],
-		})
-	}
-
-	return &dueNewsletters, nil
+	return &SendableNewsletter{
+		ID:               newsletterResult.ID,
+		Name:             newsletterResult.Name,
+		Frequency:        string(newsletterResult.Frequency),
+		SendDay:          int(newsletterResult.SendDay),
+		SendHour:         int(newsletterResult.SendHour),
+		SendMinute:       int(newsletterResult.SendMinute),
+		SendTimezone:     newsletterResult.SendTimezone,
+		Email:            newsletterResult.Email,
+		UserID:           newsletterResult.UserID,
+		LastSendTime:     lastSentAt,
+		NextSendTime:     newsletterResult.NextSendTime,
+		UnsubscribeToken: newsletterResult.UnsubscribeToken,
+		SendWhenEmpty:    newsletterResult.SendWhenEmpty,
+		IsOneOffSend:     newsletterResult.IsOneOffSend,
+		Feeds:            sendableFeeds,
+	}, nil
 }
 
 func nextSendTimeFor(nl *SendableNewsletter) (time.Time, error) {

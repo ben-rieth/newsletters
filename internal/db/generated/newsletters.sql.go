@@ -130,59 +130,23 @@ func (q *Queries) ForceSendNewsletter(ctx context.Context, arg ForceSendNewslett
 }
 
 const getDueNewsletters = `-- name: GetDueNewsletters :many
-SELECT 
-    nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, 
-    last_sent_at, nl.unsubscribe_token, nl.send_when_empty, 
-    (nl.original_next_send_time IS NOT NULL)::bool AS is_one_off_send,
-    u.email, u.id AS user_id
-FROM newsletter AS nl
-INNER JOIN app_user AS u ON nl.user_id = u.id
-WHERE nl.next_send_time <= NOW() AND nl.status = 'active'
+SELECT id FROM newsletter
+WHERE next_send_time <= NOW() AND status = 'active'
 `
 
-type GetDueNewslettersRow struct {
-	ID               string
-	Name             string
-	SendDay          int32
-	SendMinute       int32
-	SendHour         int32
-	SendTimezone     string
-	Frequency        Frequency
-	LastSentAt       pgtype.Timestamptz
-	UnsubscribeToken string
-	SendWhenEmpty    bool
-	IsOneOffSend     bool
-	Email            string
-	UserID           string
-}
-
-func (q *Queries) GetDueNewsletters(ctx context.Context) ([]GetDueNewslettersRow, error) {
+func (q *Queries) GetDueNewsletters(ctx context.Context) ([]string, error) {
 	rows, err := q.db.Query(ctx, getDueNewsletters)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetDueNewslettersRow
+	var items []string
 	for rows.Next() {
-		var i GetDueNewslettersRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.SendDay,
-			&i.SendMinute,
-			&i.SendHour,
-			&i.SendTimezone,
-			&i.Frequency,
-			&i.LastSentAt,
-			&i.UnsubscribeToken,
-			&i.SendWhenEmpty,
-			&i.IsOneOffSend,
-			&i.Email,
-			&i.UserID,
-		); err != nil {
+		var id string
+		if err := rows.Scan(&id); err != nil {
 			return nil, err
 		}
-		items = append(items, i)
+		items = append(items, id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -243,6 +207,56 @@ func (q *Queries) GetNewsletterByUnsubscribeToken(ctx context.Context, unsubscri
 	err := row.Scan(
 		&i.NewsletterID,
 		&i.Name,
+		&i.Email,
+		&i.UserID,
+	)
+	return i, err
+}
+
+const getSendableNewsletter = `-- name: GetSendableNewsletter :one
+SELECT 
+    nl.id, name, send_day, send_minute, send_hour, send_timezone, frequency, 
+    last_sent_at, nl.next_send_time, nl.unsubscribe_token, nl.send_when_empty,
+    (nl.original_next_send_time IS NOT NULL)::bool AS is_one_off_send,
+    u.email, u.id AS user_id
+FROM newsletter AS nl
+INNER JOIN app_user AS u ON nl.user_id = u.id
+WHERE nl.id = $1 AND status = 'active'
+`
+
+type GetSendableNewsletterRow struct {
+	ID               string
+	Name             string
+	SendDay          int32
+	SendMinute       int32
+	SendHour         int32
+	SendTimezone     string
+	Frequency        Frequency
+	LastSentAt       pgtype.Timestamptz
+	NextSendTime     time.Time
+	UnsubscribeToken string
+	SendWhenEmpty    bool
+	IsOneOffSend     bool
+	Email            string
+	UserID           string
+}
+
+func (q *Queries) GetSendableNewsletter(ctx context.Context, id string) (GetSendableNewsletterRow, error) {
+	row := q.db.QueryRow(ctx, getSendableNewsletter, id)
+	var i GetSendableNewsletterRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.SendDay,
+		&i.SendMinute,
+		&i.SendHour,
+		&i.SendTimezone,
+		&i.Frequency,
+		&i.LastSentAt,
+		&i.NextSendTime,
+		&i.UnsubscribeToken,
+		&i.SendWhenEmpty,
+		&i.IsOneOffSend,
 		&i.Email,
 		&i.UserID,
 	)

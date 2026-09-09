@@ -17,6 +17,7 @@ type SendableNewsletter struct {
 	SendMinute       int
 	SendTimezone     string
 	LastSendTime     time.Time
+	NextSendTime     time.Time
 	Email            string
 	UserID           string
 	UnsubscribeToken string

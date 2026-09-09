@@ -42,7 +42,7 @@ func StartJobQueue(ctx context.Context, cfg config.Config) JobQueue {
 
 				shouldLog, level := shouldLog(wl)
 				if shouldLog {
-					wl.Slog(jobCtx, level)
+					wl.SlogAs(jobCtx, level, "Job")
 				}
 			}
 		})

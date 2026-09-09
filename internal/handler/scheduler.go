@@ -30,7 +30,7 @@ func (h *SchedulerHandler) RegisterRoutes(api huma.API) {
 		DefaultStatus: http.StatusNoContent,
 	}, func(_ context.Context, i *struct{}) (*struct{}, error) {
 		h.jobQueue <- func(ctx context.Context) {
-			h.scheduler.ForcePoll()
+			h.scheduler.ForcePoll(ctx)
 		}
 		return nil, nil
 	})
