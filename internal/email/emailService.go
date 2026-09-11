@@ -27,10 +27,10 @@ type SendResult struct {
 type ResendEmailService struct {
 	resendClient *resend.Client
 	tmpl         *template.Template
-	jobQueue     jobs.JobQueue
+	jobQueue     *jobs.JobQueue
 }
 
-func NewResendEmailService(globalConfig *config.Config, tmpl *template.Template, jobQueue jobs.JobQueue) *ResendEmailService {
+func NewResendEmailService(globalConfig *config.Config, tmpl *template.Template, jobQueue *jobs.JobQueue) *ResendEmailService {
 	resendClient := resend.NewClient(globalConfig.ResendAPIKey)
 	return &ResendEmailService{resendClient, tmpl, jobQueue}
 }
@@ -66,14 +66,14 @@ func (s *ResendEmailService) SendIdempotent(
 }
 
 func (s *ResendEmailService) BackgroundSend(ctx context.Context, subject, sender, recipient, body string) {
-	s.jobQueue <- func(ctx context.Context) {
+	s.jobQueue.Enqueue(func(ctx context.Context) {
 		result, err := s.Send(ctx, subject, sender, recipient, body)
 		if err != nil {
 			wideLog.AddErrorField(ctx, err)
 		}
 
 		wideLog.AddLogField(ctx, "sendResult", result)
-	}
+	})
 }
 
 func (s *ResendEmailService) AssembleEmail(templateName string, arguments map[string]any) (string, error) {

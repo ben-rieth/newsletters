@@ -15,16 +15,22 @@ import (
 )
 
 type Job func(context.Context)
-type JobQueue chan Job
 
-func StartJobQueue(ctx context.Context, cfg config.Config) JobQueue {
-	jobChannel := make(chan Job, cfg.JobQueueSize*10)
+type JobQueue struct {
+	jobs   chan Job
+	wg     sync.WaitGroup
+	mu     sync.RWMutex
+	closed bool
+}
 
-	wg := sync.WaitGroup{}
+func StartJobQueue(cfg config.Config) *JobQueue {
+	q := &JobQueue{
+		jobs: make(chan Job, cfg.JobQueueSize*10),
+	}
 
 	for range cfg.JobQueueSize {
-		wg.Go(func() {
-			for job := range jobChannel {
+		q.wg.Go(func() {
+			for job := range q.jobs {
 				jobCtx := context.Background()
 				jobCtx, wl := wideLog.CreateWideLogAndAddToContext(jobCtx)
 
@@ -48,16 +54,59 @@ func StartJobQueue(ctx context.Context, cfg config.Config) JobQueue {
 		})
 	}
 
-	go func() {
-		<-ctx.Done()
-		close(jobChannel)
-		log.Printf("Waiting for final jobs to complete before shutting down job queue")
-		wg.Wait()
-		log.Println("Jobs complete. Shutting down job queue")
+	return q
+}
 
+// Enqueue drops the job once the queue is shutting down: sending on the closed
+// channel would panic, and an in-flight request enqueueing during drain is
+// normal rather than exceptional.
+func (q *JobQueue) Enqueue(job Job) {
+	q.mu.RLock()
+	defer q.mu.RUnlock()
+
+	if q.closed {
+		log.Println("Job rejected: job queue is shutting down")
+		return
+	}
+
+	q.jobs <- job
+}
+
+// The lock is released before the drain wait so that jobs still enqueueing are
+// rejected rather than blocked behind it.
+func (q *JobQueue) closeChannel() (closedByCaller bool) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+
+	if q.closed {
+		return false
+	}
+
+	q.closed = true
+	close(q.jobs)
+	return true
+}
+
+func (q *JobQueue) Shutdown(ctx context.Context) error {
+	if !q.closeChannel() {
+		return nil
+	}
+
+	log.Println("Waiting for final jobs to complete before shutting down job queue")
+
+	drained := make(chan struct{})
+	go func() {
+		q.wg.Wait()
+		close(drained)
 	}()
 
-	return jobChannel
+	select {
+	case <-drained:
+		log.Println("Jobs complete. Shutting down job queue")
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func runJob(jobCtx context.Context, job Job) {

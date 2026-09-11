@@ -18,12 +18,12 @@ type FeedService struct {
 	rssService *RssService
 	queries    *db.Queries
 	db         *pgxpool.Pool
-	jobQueue   jobs.JobQueue
+	jobQueue   *jobs.JobQueue
 }
 
 var FeedCacheStaleError = errors.New("Feed cache is stale.")
 
-func NewFeedService(rssService *RssService, queries *db.Queries, db *pgxpool.Pool, jobQueue jobs.JobQueue) *FeedService {
+func NewFeedService(rssService *RssService, queries *db.Queries, db *pgxpool.Pool, jobQueue *jobs.JobQueue) *FeedService {
 	return &FeedService{
 		rssService,
 		queries,

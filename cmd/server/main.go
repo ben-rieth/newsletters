@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"log/slog"
@@ -9,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
 	"github.com/ben-rieth/newsletter-api/internal/config"
@@ -28,6 +30,8 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const shutdownTimeout = 30 * time.Second
+
 func main() {
 	godotenv.Load()
 	cfg := config.Load()
@@ -45,7 +49,7 @@ func main() {
 
 	queries := db.New(pool)
 
-	jobQueue := jobs.StartJobQueue(ctx, cfg)
+	jobQueue := jobs.StartJobQueue(cfg)
 
 	rssService := feeds.NewRssService()
 
@@ -152,14 +156,30 @@ func main() {
 		Handler: csrf.Handler(mux),
 	}
 
+	serverErr := make(chan error, 1)
 	go func() {
-		<-ctx.Done()
-		if err := srv.Shutdown(context.Background()); err != nil {
-			log.Printf("server shutdown error: %v", err)
-		}
+		serverErr <- srv.ListenAndServe()
 	}()
 
-	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
-		log.Fatal(err)
+	select {
+	case err := <-serverErr:
+		if !errors.Is(err, http.ErrServerClosed) {
+			log.Fatal(err)
+		}
+	case <-ctx.Done():
+		log.Println("Shutdown signal received")
+	}
+
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancelShutdown()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("server shutdown error: %v", err)
+	}
+
+	// Jobs outlive the request that queued them, so the queue drains after the
+	// server stops accepting rather than alongside it.
+	if err := jobQueue.Shutdown(shutdownCtx); err != nil {
+		log.Printf("job queue shutdown error: %v", err)
 	}
 }

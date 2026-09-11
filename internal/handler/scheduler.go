@@ -11,10 +11,10 @@ import (
 
 type SchedulerHandler struct {
 	scheduler *newsletters.Scheduler
-	jobQueue  jobs.JobQueue
+	jobQueue  *jobs.JobQueue
 }
 
-func NewSchedulerHandler(scheduler *newsletters.Scheduler, jobQueue jobs.JobQueue) *SchedulerHandler {
+func NewSchedulerHandler(scheduler *newsletters.Scheduler, jobQueue *jobs.JobQueue) *SchedulerHandler {
 	return &SchedulerHandler{
 		scheduler,
 		jobQueue,
@@ -29,9 +29,9 @@ func (h *SchedulerHandler) RegisterRoutes(api huma.API) {
 		Summary:       "Runs the scheduler immediately - for debugging",
 		DefaultStatus: http.StatusNoContent,
 	}, func(_ context.Context, i *struct{}) (*struct{}, error) {
-		h.jobQueue <- func(ctx context.Context) {
+		h.jobQueue.Enqueue(func(ctx context.Context) {
 			h.scheduler.ForcePoll(ctx)
-		}
+		})
 		return nil, nil
 	})
 }
