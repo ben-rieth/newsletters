@@ -114,7 +114,7 @@ func (h *UserHandler) handleUpdatePassword(
 	i *struct {
 		Body struct {
 			CurrentPassword string `json:"currentPassword"`
-			NewPassword     string `json:"newPassword" minLength:"8" maxLength:"72"`
+			NewPassword     string `json:"newPassword" minLength:"12" maxLength:"72"`
 		}
 	},
 ) (*updatePasswordOutput, error) {

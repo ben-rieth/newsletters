@@ -20,6 +20,7 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/handler"
 	"github.com/ben-rieth/newsletter-api/internal/jobs"
 	"github.com/ben-rieth/newsletter-api/internal/newsletters"
+	"github.com/ben-rieth/newsletter-api/internal/security"
 	"github.com/ben-rieth/newsletter-api/internal/templates"
 	"github.com/ben-rieth/newsletter-api/internal/ui"
 	"github.com/ben-rieth/newsletter-api/internal/users"
@@ -88,6 +89,15 @@ func main() {
 	apiMux := http.NewServeMux()
 
 	humaConfig := huma.DefaultConfig("Newsletter API", "1.0.0")
+
+	// The spec exists to feed `pnpm api:generate`, which runs against a dev server.
+	// Served in production it is an unauthenticated map of every route and payload.
+	if cfg.Environment != "dev" {
+		humaConfig.OpenAPIPath = ""
+		humaConfig.DocsPath = ""
+		humaConfig.SchemasPath = ""
+	}
+
 	api := humago.New(apiMux, humaConfig)
 	api.UseMiddleware(wideLog.WideLogMiddleware)
 
@@ -151,9 +161,12 @@ func main() {
 
 	csrf := http.NewCrossOriginProtection()
 
+	// Outermost, so a rejected cross-origin request is answered with the headers too.
+	handler := security.Headers(csrf.Handler(mux), cfg.Environment == "prod")
+
 	srv := &http.Server{
 		Addr:    fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
-		Handler: csrf.Handler(mux),
+		Handler: handler,
 	}
 
 	serverErr := make(chan error, 1)
