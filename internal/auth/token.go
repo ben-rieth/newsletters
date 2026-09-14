@@ -23,6 +23,9 @@ const ClaimsKey contextKey = "claims"
 const AccessTokenTTL time.Duration = time.Hour * 1
 const RefreshTokenTTL time.Duration = time.Hour * 24 * 30
 
+const tokenIssuer = "newsletters"
+const tokenAudience = "newsletters-api"
+
 func ClaimsFromContext(ctx context.Context) (*Claims, bool) {
 	claims, ok := ctx.Value(ClaimsKey).(*Claims)
 	return claims, ok
@@ -37,6 +40,8 @@ func GenerateToken(
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(AccessTokenTTL)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   userID,
+			Issuer:    tokenIssuer,
+			Audience:  jwt.ClaimStrings{tokenAudience},
 		},
 	}
 
@@ -45,13 +50,16 @@ func GenerateToken(
 }
 
 func ParseToken(tokenString, tokenSecret string) (*Claims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (any, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("Unexpected signing method: %v", token.Header["alg"])
-		}
-
-		return []byte(tokenSecret), nil
-	})
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		&Claims{},
+		func(token *jwt.Token) (any, error) { return []byte(tokenSecret), nil },
+		jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}),
+		jwt.WithExpirationRequired(),
+		jwt.WithIssuedAt(),
+		jwt.WithIssuer(tokenIssuer),
+		jwt.WithAudience(tokenAudience),
+	)
 
 	if err != nil {
 		return nil, err
@@ -60,6 +68,16 @@ func ParseToken(tokenString, tokenSecret string) (*Claims, error) {
 	claims, ok := token.Claims.(*Claims)
 	if !ok || !token.Valid {
 		return nil, fmt.Errorf("Invalid token")
+	}
+
+	if claims.Subject == "" {
+		return nil, fmt.Errorf("Token has no subject")
+	}
+
+	// Revocation works by comparing IssuedAt against the account's session
+	// cutoff, so a token without one could never be revoked.
+	if claims.IssuedAt == nil {
+		return nil, fmt.Errorf("Token has no issued-at")
 	}
 
 	return claims, nil

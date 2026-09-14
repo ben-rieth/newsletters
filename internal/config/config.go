@@ -7,6 +7,8 @@ import (
 	"strconv"
 )
 
+const minJWTSecretLength = 32
+
 type Config struct {
 	DatabaseURL           string
 	Port                  string
@@ -57,8 +59,10 @@ func Load() Config {
 		log.Fatal("WEB_URL is required")
 	}
 
-	if cfg.JWTSecret == "" {
-		log.Fatal("JWT_SECRET is required")
+	// A short secret is recoverable offline from one captured token, and whoever
+	// recovers it can mint a session for any user id.
+	if len(cfg.JWTSecret) < minJWTSecretLength {
+		log.Fatalf("JWT_SECRET is required and must be at least %d characters", minJWTSecretLength)
 	}
 
 	if cfg.ResendAPIKey == "" {

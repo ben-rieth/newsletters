@@ -7,6 +7,9 @@ package db
 
 import (
 	"context"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const addPendingEmailUpdate = `-- name: AddPendingEmailUpdate :exec
@@ -20,6 +23,21 @@ type AddPendingEmailUpdateParams struct {
 
 func (q *Queries) AddPendingEmailUpdate(ctx context.Context, arg AddPendingEmailUpdateParams) error {
 	_, err := q.db.Exec(ctx, addPendingEmailUpdate, arg.PendingEmail, arg.ID)
+	return err
+}
+
+const carryVerifyLockout = `-- name: CarryVerifyLockout :exec
+UPDATE app_user SET verify_attempts = $2, verify_locked_until = $3 WHERE id = $1
+`
+
+type CarryVerifyLockoutParams struct {
+	ID                string
+	VerifyAttempts    int32
+	VerifyLockedUntil pgtype.Timestamptz
+}
+
+func (q *Queries) CarryVerifyLockout(ctx context.Context, arg CarryVerifyLockoutParams) error {
+	_, err := q.db.Exec(ctx, carryVerifyLockout, arg.ID, arg.VerifyAttempts, arg.VerifyLockedUntil)
 	return err
 }
 
@@ -59,8 +77,19 @@ func (q *Queries) DoesUserWithEmailExist(ctx context.Context, email string) (boo
 	return exists, err
 }
 
+const getUserAuthState = `-- name: GetUserAuthState :one
+SELECT sessions_valid_from FROM app_user WHERE id = $1
+`
+
+func (q *Queries) GetUserAuthState(ctx context.Context, id string) (time.Time, error) {
+	row := q.db.QueryRow(ctx, getUserAuthState, id)
+	var sessions_valid_from time.Time
+	err := row.Scan(&sessions_valid_from)
+	return sessions_valid_from, err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email FROM app_user WHERE email = $1
+SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email, sessions_valid_from, verify_attempts, verify_locked_until, failed_signin_attempts, signin_locked_until FROM app_user WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, error) {
@@ -74,12 +103,17 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, er
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PendingEmail,
+		&i.SessionsValidFrom,
+		&i.VerifyAttempts,
+		&i.VerifyLockedUntil,
+		&i.FailedSigninAttempts,
+		&i.SigninLockedUntil,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email FROM app_user WHERE id = $1
+SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email, sessions_valid_from, verify_attempts, verify_locked_until, failed_signin_attempts, signin_locked_until FROM app_user WHERE id = $1
 `
 
 func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
@@ -93,8 +127,33 @@ func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.PendingEmail,
+		&i.SessionsValidFrom,
+		&i.VerifyAttempts,
+		&i.VerifyLockedUntil,
+		&i.FailedSigninAttempts,
+		&i.SigninLockedUntil,
 	)
 	return i, err
+}
+
+const getUserVerifyLock = `-- name: GetUserVerifyLock :one
+SELECT verify_locked_until FROM app_user WHERE id = $1
+`
+
+func (q *Queries) GetUserVerifyLock(ctx context.Context, id string) (pgtype.Timestamptz, error) {
+	row := q.db.QueryRow(ctx, getUserVerifyLock, id)
+	var verify_locked_until pgtype.Timestamptz
+	err := row.Scan(&verify_locked_until)
+	return verify_locked_until, err
+}
+
+const invalidateUserSessions = `-- name: InvalidateUserSessions :exec
+UPDATE app_user SET sessions_valid_from = NOW(), updated_at = NOW() WHERE id = $1
+`
+
+func (q *Queries) InvalidateUserSessions(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, invalidateUserSessions, id)
+	return err
 }
 
 const isWhiteListedEmail = `-- name: IsWhiteListedEmail :one
@@ -117,13 +176,101 @@ func (q *Queries) MarkUserEmailAsVerified(ctx context.Context, id string) error 
 	return err
 }
 
-const markUserEmailUpdateAsVerified = `-- name: MarkUserEmailUpdateAsVerified :exec
-UPDATE app_user SET email_verified_at = NOW(), email = pending_email, pending_email = ''
-WHERE id = $1
+const markUserEmailUpdateAsVerified = `-- name: MarkUserEmailUpdateAsVerified :one
+UPDATE app_user AS u SET email_verified_at = NOW(), email = u.pending_email, pending_email = '', updated_at = NOW()
+WHERE u.id = $1 AND u.pending_email <> ''
+  AND EXISTS (SELECT 1 FROM white_listed_email w WHERE w.email = u.pending_email)
+  AND NOT EXISTS (SELECT 1 FROM app_user o WHERE o.email = u.pending_email AND o.id <> u.id)
+RETURNING u.id
 `
 
-func (q *Queries) MarkUserEmailUpdateAsVerified(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, markUserEmailUpdateAsVerified, id)
+// The whitelist and uniqueness checks that gated the request go stale while the
+// code sits in the user's inbox, so they are re-asserted where the email actually
+// moves. No row back means the update is no longer valid.
+func (q *Queries) MarkUserEmailUpdateAsVerified(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRow(ctx, markUserEmailUpdateAsVerified, id)
+	var id_2 string
+	err := row.Scan(&id_2)
+	return id_2, err
+}
+
+const recordFailedSignIn = `-- name: RecordFailedSignIn :exec
+UPDATE app_user SET
+    failed_signin_attempts = CASE
+        WHEN failed_signin_attempts + 1 >= $1::int THEN 0
+        ELSE failed_signin_attempts + 1
+    END,
+    signin_locked_until = CASE
+        WHEN failed_signin_attempts + 1 >= $1::int THEN $2::timestamptz
+        ELSE signin_locked_until
+    END,
+    updated_at = NOW()
+WHERE id = $3
+`
+
+type RecordFailedSignInParams struct {
+	MaxAttempts int32
+	LockedUntil time.Time
+	ID          string
+}
+
+func (q *Queries) RecordFailedSignIn(ctx context.Context, arg RecordFailedSignInParams) error {
+	_, err := q.db.Exec(ctx, recordFailedSignIn, arg.MaxAttempts, arg.LockedUntil, arg.ID)
+	return err
+}
+
+const recordFailedVerifyAttempt = `-- name: RecordFailedVerifyAttempt :one
+UPDATE app_user SET
+    verify_attempts = CASE
+        WHEN verify_attempts + 1 >= $1::int THEN 0
+        ELSE verify_attempts + 1
+    END,
+    verify_locked_until = CASE
+        WHEN verify_attempts + 1 >= $1::int THEN $2::timestamptz
+        ELSE verify_locked_until
+    END,
+    updated_at = NOW()
+WHERE id = $3
+RETURNING verify_attempts, verify_locked_until
+`
+
+type RecordFailedVerifyAttemptParams struct {
+	MaxAttempts int32
+	LockedUntil time.Time
+	ID          string
+}
+
+type RecordFailedVerifyAttemptRow struct {
+	VerifyAttempts    int32
+	VerifyLockedUntil pgtype.Timestamptz
+}
+
+// Counting up and arming the lock in one statement keeps concurrent wrong
+// guesses from each reading the same pre-increment count.
+func (q *Queries) RecordFailedVerifyAttempt(ctx context.Context, arg RecordFailedVerifyAttemptParams) (RecordFailedVerifyAttemptRow, error) {
+	row := q.db.QueryRow(ctx, recordFailedVerifyAttempt, arg.MaxAttempts, arg.LockedUntil, arg.ID)
+	var i RecordFailedVerifyAttemptRow
+	err := row.Scan(&i.VerifyAttempts, &i.VerifyLockedUntil)
+	return i, err
+}
+
+const resetSignInAttempts = `-- name: ResetSignInAttempts :exec
+UPDATE app_user SET failed_signin_attempts = 0, signin_locked_until = NULL, updated_at = NOW()
+WHERE id = $1 AND (failed_signin_attempts <> 0 OR signin_locked_until IS NOT NULL)
+`
+
+func (q *Queries) ResetSignInAttempts(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, resetSignInAttempts, id)
+	return err
+}
+
+const resetVerifyAttempts = `-- name: ResetVerifyAttempts :exec
+UPDATE app_user SET verify_attempts = 0, verify_locked_until = NULL, updated_at = NOW()
+WHERE id = $1 AND (verify_attempts <> 0 OR verify_locked_until IS NOT NULL)
+`
+
+func (q *Queries) ResetVerifyAttempts(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, resetVerifyAttempts, id)
 	return err
 }
 

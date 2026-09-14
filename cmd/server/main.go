@@ -58,7 +58,7 @@ func main() {
 		log.Fatalf("Could not get email templates: %v", err)
 	}
 	emailService := email.NewResendEmailService(&cfg, tmpl, jobQueue)
-	emailVerifyService := email.NewEmailVerifyService(queries, cfg, emailService)
+	emailVerifyService := email.NewEmailVerifyService(queries, pool, cfg, emailService)
 
 	newsletterService := newsletters.NewNewsletterService(queries, pool)
 	issuesService := newsletters.NewIssuesService(queries, pool)
@@ -95,7 +95,7 @@ func main() {
 	authApiRateLimiting := auth.NewRateLimitMiddleware(ctx, api, &cfg, 1, 5)
 	authApi.UseMiddleware(authApiRateLimiting)
 
-	authHandler := handler.NewAuthHandler(queries, &cfg, emailVerifyService, userService)
+	authHandler := handler.NewAuthHandler(queries, pool, &cfg, emailVerifyService, userService)
 	authHandler.RegisterRoutes(authApi)
 
 	rateLimiting := auth.NewRateLimitMiddleware(ctx, api, &cfg, 10, 30)
@@ -111,7 +111,7 @@ func main() {
 
 	protectedApi := huma.NewGroup(api)
 	protectedApi.UseMiddleware(rateLimiting)
-	protectedApi.UseMiddleware(auth.AuthMiddleware(api, &cfg))
+	protectedApi.UseMiddleware(auth.AuthMiddleware(api, &cfg, queries))
 
 	newsletterHandler := handler.NewNewsletterHandler(queries, newsletterService)
 	newsletterHandler.RegisterRoutes(protectedApi)
@@ -125,7 +125,7 @@ func main() {
 		// Newsletter debug routes are user-scoped, so they need auth.
 		protectedDebugApi := huma.NewGroup(api)
 		protectedDebugApi.UseMiddleware(rateLimiting)
-		protectedDebugApi.UseMiddleware(auth.AuthMiddleware(api, &cfg))
+		protectedDebugApi.UseMiddleware(auth.AuthMiddleware(api, &cfg, queries))
 		newsletterDebugHandler := handler.NewNewsletterDebugHandler(queries)
 		newsletterDebugHandler.RegisterRoutes(protectedDebugApi)
 	}
@@ -136,7 +136,7 @@ func main() {
 	feedFilterHandler := handler.NewFeedFilterHandler(queries)
 	feedFilterHandler.RegisterRoutes(protectedApi)
 
-	userHandler := handler.NewUserHandler(queries, userService, emailVerifyService)
+	userHandler := handler.NewUserHandler(queries, &cfg, userService, emailVerifyService)
 	userHandler.RegisterRoutes(protectedApi)
 
 	exportHandler := handler.NewExportHandler(queries)

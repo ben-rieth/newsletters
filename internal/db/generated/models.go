@@ -354,13 +354,18 @@ func (ns NullTokenPurpose) Value() (driver.Value, error) {
 }
 
 type AppUser struct {
-	ID              string
-	Email           string
-	Password        string
-	EmailVerifiedAt pgtype.Timestamptz
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
-	PendingEmail    string
+	ID                   string
+	Email                string
+	Password             string
+	EmailVerifiedAt      pgtype.Timestamptz
+	CreatedAt            time.Time
+	UpdatedAt            time.Time
+	PendingEmail         string
+	SessionsValidFrom    time.Time
+	VerifyAttempts       int32
+	VerifyLockedUntil    pgtype.Timestamptz
+	FailedSigninAttempts int32
+	SigninLockedUntil    pgtype.Timestamptz
 }
 
 type Feed struct {

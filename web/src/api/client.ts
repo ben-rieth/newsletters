@@ -13,6 +13,26 @@ const client = createClient<paths>({
 // after a token refresh.
 const requestClones = new WeakMap<Request, Request>();
 
+// Refreshing rotates the token, and a second call presenting the token the server
+// just revoked is indistinguishable from a stolen one, so it drops every session
+// for the account. A page load firing several requests at once against an expired
+// access token would do exactly that, so callers share one in-flight refresh.
+let refreshInFlight: Promise<boolean> | null = null;
+
+export const refreshSession = () => {
+  refreshInFlight ??= fetch(`${BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+  })
+    .then((response) => response.ok)
+    .catch(() => false)
+    .finally(() => {
+      refreshInFlight = null;
+    });
+
+  return refreshInFlight;
+};
+
 client.use({
   onRequest({ request }) {
     if (!request.url.includes('/auth/')) {
@@ -25,12 +45,9 @@ client.use({
       return response;
     }
 
-    const refreshResponse = await fetch(`${BASE_URL}/auth/refresh`, {
-      method: 'POST',
-      credentials: 'include',
-    });
+    const refreshed = await refreshSession();
 
-    if (!refreshResponse.ok) {
+    if (!refreshed) {
       clearSession();
       return response;
     }

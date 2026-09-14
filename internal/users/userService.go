@@ -6,6 +6,7 @@ import (
 
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -87,6 +88,10 @@ func deleteUser(ctx context.Context, qtx *db.Queries, userId string) error {
 // inbox still decides who gets it — so signing up again replaces it. Otherwise
 // anyone could permanently squat a whitelisted address by registering it first.
 func (s *UserService) CreateUser(ctx context.Context, email, password string) (string, error) {
+	if err := ValidatePassword(password); err != nil {
+		return "", err
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
@@ -105,10 +110,17 @@ func (s *UserService) CreateUser(ctx context.Context, email, password string) (s
 		return "", err
 	}
 
+	var carriedAttempts int32
+	var carriedLock pgtype.Timestamptz
+
 	if err == nil {
 		if existing.EmailVerifiedAt.Valid {
 			return "", EmailInUseError
 		}
+
+		// The replacement row would start with a clean verification budget, which
+		// would make signing up again the way to clear a lockout.
+		carriedAttempts, carriedLock = existing.VerifyAttempts, existing.VerifyLockedUntil
 
 		if err := deleteUser(ctx, qtx, existing.ID); err != nil {
 			return "", err
@@ -123,10 +135,24 @@ func (s *UserService) CreateUser(ctx context.Context, email, password string) (s
 		return "", err
 	}
 
+	if carriedAttempts != 0 || carriedLock.Valid {
+		if err := qtx.CarryVerifyLockout(ctx, db.CarryVerifyLockoutParams{
+			ID:                id,
+			VerifyAttempts:    carriedAttempts,
+			VerifyLockedUntil: carriedLock,
+		}); err != nil {
+			return "", err
+		}
+	}
+
 	return id, tx.Commit(ctx)
 }
 
 func (s *UserService) UpdatePassword(ctx context.Context, userId, newPassword string) error {
+	if err := ValidatePassword(newPassword); err != nil {
+		return err
+	}
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return err
@@ -141,6 +167,12 @@ func (s *UserService) UpdatePassword(ctx context.Context, userId, newPassword st
 	qtx := s.queries.WithTx(tx)
 
 	if err := qtx.DeleteAllRefreshTokensForUser(ctx, userId); err != nil {
+		return err
+	}
+
+	// Refresh tokens are rows and are gone above. Access tokens are not, so the
+	// old password's sessions only die if the cutoff moves too.
+	if err := qtx.InvalidateUserSessions(ctx, userId); err != nil {
 		return err
 	}
 

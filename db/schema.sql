@@ -1,7 +1,7 @@
-\restrict UNwmCIwnfIG1PAjL3KkYrzlRQkoauHRrtC031jOo6VHshhkvSeb06jF99BVKLgN
+\restrict Voo2C9VwdzITewU9SA1DYPgucvH85ReokiwFDTIQeHXEEPBt5B9ZoYvfrN43KZv
 
--- Dumped from database version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
--- Dumped by pg_dump version 16.14 (Ubuntu 16.14-0ubuntu0.24.04.1)
+-- Dumped from database version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
+-- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -114,7 +114,12 @@ CREATE TABLE public.app_user (
     email_verified_at timestamp with time zone,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
-    pending_email text DEFAULT ''::text NOT NULL
+    pending_email text DEFAULT ''::text NOT NULL,
+    sessions_valid_from timestamp with time zone DEFAULT now() NOT NULL,
+    verify_attempts integer DEFAULT 0 NOT NULL,
+    verify_locked_until timestamp with time zone,
+    failed_signin_attempts integer DEFAULT 0 NOT NULL,
+    signin_locked_until timestamp with time zone
 );
 
 
@@ -653,7 +658,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict UNwmCIwnfIG1PAjL3KkYrzlRQkoauHRrtC031jOo6VHshhkvSeb06jF99BVKLgN
+\unrestrict Voo2C9VwdzITewU9SA1DYPgucvH85ReokiwFDTIQeHXEEPBt5B9ZoYvfrN43KZv
 
 
 --
@@ -673,4 +678,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260807120000'),
     ('20260807120100'),
     ('20260807120200'),
-    ('20260809120000');
+    ('20260809120000'),
+    ('20260905120000');

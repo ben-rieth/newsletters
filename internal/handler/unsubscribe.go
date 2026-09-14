@@ -38,8 +38,6 @@ func (h *UnsubscribeHandler) RegisterRoutes(api huma.API) {
 	}, func(ctx context.Context, i *struct {
 		UnsubscribeToken string `query:"unsubscribeToken"`
 	}) (*struct{}, error) {
-		wideLog.AddLogField(ctx, "unsubscribeToken", i.UnsubscribeToken)
-
 		if i.UnsubscribeToken == "" {
 			return nil, badRequestError("Invalid token")
 		}

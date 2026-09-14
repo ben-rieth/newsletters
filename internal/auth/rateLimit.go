@@ -14,6 +14,14 @@ import (
 	"golang.org/x/time/rate"
 )
 
+// One IPv6 allocation holds more addresses than the map ever could, so v6
+// clients are bucketed by routed prefix rather than by address.
+const ipv6BucketBits = 64
+
+// Past the ceiling a bucket is evicted rather than the new client refused, since
+// refusing would make the ceiling itself a way to lock everyone else out.
+const maxLimiters = 10_000
+
 type Limiter struct {
 	limiter  *rate.Limiter
 	lastSeen time.Time
@@ -26,13 +34,17 @@ type IPRateLimiter struct {
 	burst    int
 }
 
-func (i *IPRateLimiter) GetLimiter(ip string) *Limiter {
+func (i *IPRateLimiter) GetLimiter(key string) *Limiter {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	if limiter, exists := i.limiters[ip]; exists {
+	if limiter, exists := i.limiters[key]; exists {
 		limiter.lastSeen = time.Now()
 		return limiter
+	}
+
+	if len(i.limiters) >= maxLimiters {
+		i.evictSampled()
 	}
 
 	limiter := &Limiter{
@@ -40,8 +52,35 @@ func (i *IPRateLimiter) GetLimiter(ip string) *Limiter {
 		lastSeen: time.Now(),
 	}
 
-	i.limiters[ip] = limiter
+	i.limiters[key] = limiter
 	return limiter
+}
+
+// Whoever fills the map is cycling keys faster than they expire, so eviction
+// runs on their every request. Scanning it whole would hold the mutex for all of
+// it and slow down everyone else, so the victim is the oldest of a small sample.
+// Go randomises map iteration order, which is what makes the sample worth taking.
+const evictionSampleSize = 8
+
+// Callers must hold i.mu.
+func (i *IPRateLimiter) evictSampled() {
+	var oldestKey string
+	var oldestSeen time.Time
+
+	sampled := 0
+	for key, limiter := range i.limiters {
+		if oldestKey == "" || limiter.lastSeen.Before(oldestSeen) {
+			oldestKey, oldestSeen = key, limiter.lastSeen
+		}
+
+		if sampled++; sampled >= evictionSampleSize {
+			break
+		}
+	}
+
+	if oldestKey != "" {
+		delete(i.limiters, oldestKey)
+	}
 }
 
 func (i *IPRateLimiter) cleanUp() {
@@ -59,13 +98,13 @@ func (i *IPRateLimiter) cleanUp() {
 
 // peerIP is the address of whoever actually opened the connection, so it can
 // never be forged by the client.
-func peerIP(ctx huma.Context) (string, error) {
-	ip, _, err := net.SplitHostPort(ctx.RemoteAddr())
+func peerIP(ctx huma.Context) (netip.Addr, error) {
+	host, _, err := net.SplitHostPort(ctx.RemoteAddr())
 	if err != nil {
-		return "", err
+		return netip.Addr{}, err
 	}
 
-	return ip, nil
+	return netip.ParseAddr(host)
 }
 
 func forwardedForChain(ctx huma.Context) []string {
@@ -90,10 +129,10 @@ func forwardedForChain(ctx huma.Context) []string {
 // further left in X-Forwarded-For was appended by an untrusted party and is
 // attacker-controlled, so a short or malformed chain falls back to the peer
 // address rather than trusting what the client sent.
-func clientIP(ctx huma.Context, trustedProxyCount int) (string, error) {
+func clientIP(ctx huma.Context, trustedProxyCount int) (netip.Addr, error) {
 	peer, err := peerIP(ctx)
 	if err != nil {
-		return "", err
+		return netip.Addr{}, err
 	}
 
 	if trustedProxyCount == 0 {
@@ -107,10 +146,25 @@ func clientIP(ctx huma.Context, trustedProxyCount int) (string, error) {
 	}
 
 	if addr, err := netip.ParseAddr(chain[i]); err == nil {
-		return addr.String(), nil
+		return addr.Unmap(), nil
 	}
 
 	return peer, nil
+}
+
+func rateLimitKey(addr netip.Addr) string {
+	addr = addr.Unmap()
+
+	if addr.Is4() {
+		return addr.String()
+	}
+
+	prefix, err := addr.Prefix(ipv6BucketBits)
+	if err != nil {
+		return addr.String()
+	}
+
+	return prefix.String()
 }
 
 func NewRateLimitMiddleware(ctx context.Context, api huma.API, cfg *config.Config, limit, burst int) func(ctx huma.Context, next func(huma.Context)) {
@@ -137,13 +191,13 @@ func NewRateLimitMiddleware(ctx context.Context, api huma.API, cfg *config.Confi
 	}()
 
 	return func(ctx huma.Context, next func(huma.Context)) {
-		ip, err := clientIP(ctx, cfg.TrustedProxyCount)
+		addr, err := clientIP(ctx, cfg.TrustedProxyCount)
 		if err != nil {
 			huma.WriteErr(api, ctx, http.StatusInternalServerError, "Something went wrong.")
 			return
 		}
 
-		limiter := ipRateLimiter.GetLimiter(ip)
+		limiter := ipRateLimiter.GetLimiter(rateLimitKey(addr))
 
 		if limiter.limiter.Allow() {
 			next(ctx)

@@ -12,6 +12,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const claimRefreshToken = `-- name: ClaimRefreshToken :one
+UPDATE refresh_token SET revoked_at = NOW(), updated_at = NOW()
+WHERE token = $1 AND revoked_at IS NULL AND expires_at > NOW()
+RETURNING user_id
+`
+
+func (q *Queries) ClaimRefreshToken(ctx context.Context, token string) (string, error) {
+	row := q.db.QueryRow(ctx, claimRefreshToken, token)
+	var user_id string
+	err := row.Scan(&user_id)
+	return user_id, err
+}
+
 const createRefreshToken = `-- name: CreateRefreshToken :exec
 INSERT INTO refresh_token (token, user_id, expires_at) VALUES ($1, $2, $3)
 `
@@ -72,6 +85,8 @@ const findUnexpiredToken = `-- name: FindUnexpiredToken :one
 SELECT id, user_id, code, purpose, created_at, expires_at, attempts FROM verification_token
 WHERE user_id = $1 AND purpose = $2
 AND expires_at > $3
+ORDER BY created_at DESC
+LIMIT 1
 `
 
 type FindUnexpiredTokenParams struct {
@@ -129,13 +144,19 @@ func (q *Queries) RecordFailedTokenAttempt(ctx context.Context, id string) (int3
 	return attempts, err
 }
 
-const revokeToken = `-- name: RevokeToken :exec
-UPDATE refresh_token SET revoked_at = NOW(), updated_at = NOW() WHERE token = $1
+const revokeToken = `-- name: RevokeToken :one
+UPDATE refresh_token SET revoked_at = NOW(), updated_at = NOW()
+WHERE token = $1 AND revoked_at IS NULL RETURNING user_id
 `
 
-func (q *Queries) RevokeToken(ctx context.Context, token string) error {
-	_, err := q.db.Exec(ctx, revokeToken, token)
-	return err
+// Guarded like ClaimRefreshToken: without the state check, anyone still holding a
+// long-rotated token could replay it here to keep dropping the real user's
+// access tokens.
+func (q *Queries) RevokeToken(ctx context.Context, token string) (string, error) {
+	row := q.db.QueryRow(ctx, revokeToken, token)
+	var user_id string
+	err := row.Scan(&user_id)
+	return user_id, err
 }
 
 const saveVerificationToken = `-- name: SaveVerificationToken :exec

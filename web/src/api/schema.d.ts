@@ -981,7 +981,7 @@ export interface operations {
       header?: never;
       path?: never;
       cookie?: {
-        refresh_token?: string;
+        '__Host-refresh_token'?: string;
       };
     };
     requestBody?: never;
@@ -1013,7 +1013,7 @@ export interface operations {
       header?: never;
       path?: never;
       cookie?: {
-        refresh_token?: string;
+        '__Host-refresh_token'?: string;
       };
     };
     requestBody?: never;
@@ -2248,6 +2248,7 @@ export interface operations {
       /** @description No Content */
       204: {
         headers: {
+          'Set-Cookie'?: string;
           [name: string]: unknown;
         };
         content?: never;

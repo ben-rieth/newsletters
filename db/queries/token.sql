@@ -4,8 +4,17 @@ INSERT INTO refresh_token (token, user_id, expires_at) VALUES ($1, $2, $3);
 -- name: GetRefreshToken :one
 SELECT token, revoked_at, expires_at, user_id FROM refresh_token WHERE token = $1;
 
--- name: RevokeToken :exec
-UPDATE refresh_token SET revoked_at = NOW(), updated_at = NOW() WHERE token = $1;
+-- name: ClaimRefreshToken :one
+UPDATE refresh_token SET revoked_at = NOW(), updated_at = NOW()
+WHERE token = $1 AND revoked_at IS NULL AND expires_at > NOW()
+RETURNING user_id;
+
+-- Guarded like ClaimRefreshToken: without the state check, anyone still holding a
+-- long-rotated token could replay it here to keep dropping the real user's
+-- access tokens.
+-- name: RevokeToken :one
+UPDATE refresh_token SET revoked_at = NOW(), updated_at = NOW()
+WHERE token = $1 AND revoked_at IS NULL RETURNING user_id;
 
 -- name: DeleteAllRefreshTokensForUser :exec
 DELETE FROM refresh_token WHERE user_id = $1;
@@ -23,7 +32,9 @@ DELETE FROM verification_token WHERE user_id = $1;
 -- name: FindUnexpiredToken :one
 SELECT * FROM verification_token
 WHERE user_id = $1 AND purpose = $2
-AND expires_at > @expires_at_greater_than;
+AND expires_at > @expires_at_greater_than
+ORDER BY created_at DESC
+LIMIT 1;
 
 -- name: RecordFailedTokenAttempt :one
 UPDATE verification_token SET attempts = attempts + 1 WHERE id = $1 RETURNING attempts;

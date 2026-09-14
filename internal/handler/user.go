@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ben-rieth/newsletter-api/internal/auth"
+	"github.com/ben-rieth/newsletter-api/internal/config"
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/users"
@@ -16,16 +17,18 @@ import (
 
 type UserHandler struct {
 	queries            *db.Queries
+	config             *config.Config
 	userService        *users.UserService
 	emailVerifyService *email.EmailVerifyService
 }
 
 func NewUserHandler(
 	queries *db.Queries,
+	config *config.Config,
 	userService *users.UserService,
 	emailVerifyService *email.EmailVerifyService,
 ) *UserHandler {
-	return &UserHandler{queries, userService, emailVerifyService}
+	return &UserHandler{queries, config, userService, emailVerifyService}
 }
 
 type visibleUser struct {
@@ -102,15 +105,19 @@ func (h *UserHandler) handleGetUser(ctx context.Context, i *struct{}) (*getUserO
 	}, nil
 }
 
+type updatePasswordOutput struct {
+	SetCookie []http.Cookie `header:"Set-Cookie"`
+}
+
 func (h *UserHandler) handleUpdatePassword(
 	ctx context.Context,
 	i *struct {
 		Body struct {
 			CurrentPassword string `json:"currentPassword"`
-			NewPassword     string `json:"newPassword"`
+			NewPassword     string `json:"newPassword" minLength:"8" maxLength:"72"`
 		}
 	},
-) (*struct{}, error) {
+) (*updatePasswordOutput, error) {
 	claims, ok := auth.ClaimsFromContext(ctx)
 	if !ok || claims == nil {
 		return nil, huma.Error401Unauthorized("Not authorized")
@@ -127,10 +134,22 @@ func (h *UserHandler) handleUpdatePassword(
 
 	err = h.userService.UpdatePassword(ctx, claims.Subject, i.Body.NewPassword)
 	if err != nil {
+		if errors.Is(err, users.PasswordTooShortError) || errors.Is(err, users.PasswordTooLongError) {
+			return nil, badRequestError(err.Error())
+		}
+
 		return nil, internalServerError(ctx, err)
 	}
 
-	return nil, nil
+	// The change just signed out every session, this one included. Reissuing here
+	// keeps the device that supplied the current password signed in while the
+	// others stay out.
+	tokenResult, err := issueTokens(ctx, h.queries, h.config, claims.Subject)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return &updatePasswordOutput{SetCookie: buildAuthCookies(tokenResult)}, nil
 }
 
 func (h *UserHandler) handleDeleteUser(
@@ -239,6 +258,10 @@ func (h *UserHandler) handleVerifyEmailUpdate(ctx context.Context, i *struct {
 	if err != nil {
 		if errors.Is(err, email.InvalidTokenError) {
 			return nil, badRequestError("Token or email is invalid.")
+		}
+
+		if errors.Is(err, email.EmailUpdateNoLongerValidError) {
+			return nil, huma.Error409Conflict("That email is no longer available. Please start the change again.")
 		}
 
 		return nil, internalServerError(ctx, err)

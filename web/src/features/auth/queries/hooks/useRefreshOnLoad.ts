@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import client from '#/api/client';
+import { refreshSession } from '#/api/client';
 import {
   getIsSignedIn,
   clearSession,
@@ -11,9 +11,9 @@ export const useRefreshOnLoad = () => {
     if (!getIsSignedIn()) return;
 
     const refresh = async () => {
-      const { error } = await client.POST('/auth/refresh');
+      const refreshed = await refreshSession();
 
-      if (error) {
+      if (!refreshed) {
         clearSession();
         return;
       }
