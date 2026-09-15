@@ -20,9 +20,15 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+const maxSendAttempts = 3
+
+type feedFetcher interface {
+	GetFeedDataSince(ctx context.Context, feed feeds.BaseFeed, since time.Time, userId string) (*feeds.FeedView, error)
+}
+
 type Scheduler struct {
 	newsletterService *NewsletterService
-	feedService       *feeds.FeedService
+	feedService       feedFetcher
 	emailService      email.EmailService
 	queries           *dbgen.Queries
 	cfg               *config.Config
@@ -35,11 +41,12 @@ type SchedulerConfig struct {
 	MaxWorkers        int
 	NewsletterTimeout int
 	TickTimeout       int
+	SendRetryDelay    time.Duration
 }
 
 func NewScheduler(
 	newsletterService *NewsletterService,
-	feedService *feeds.FeedService,
+	feedService feedFetcher,
 	emailService email.EmailService,
 	queries *dbgen.Queries,
 	cfg *config.Config,
@@ -221,7 +228,7 @@ func (sch *Scheduler) processSingleNewsletter(ctx context.Context, newsletterId 
 	wideLog.AddLogField(ctx, "nonEmptyFeedCount", len(feedResults.Succeeded))
 	wideLog.AddLogField(ctx, "emptyFeedCount", len(feedResults.SucceededNoItems))
 
-	if !nl.IsOneOffSend && len(feedResults.Succeeded) == 0 && len(feedResults.Failed) == 0 && !nl.SendWhenEmpty {
+	if shouldSkipEmptySend(nl, feedResults) {
 		wideLog.AddLogField(ctx, "skippedEmpty", true)
 		return sch.newsletterService.SkipSend(ctx, nl)
 	}
@@ -270,14 +277,13 @@ func (sch *Scheduler) sendEmailWithRetry(ctx context.Context, nl *SendableNewsle
 	var err error
 	var result *email.SendResult
 
-	maxAttempts := 3
-	delay := time.Second * 2
+	delay := sch.schedulerConfig.SendRetryDelay
 
 	// Keyed on the send window, not the attempt, so a retry after a timeout that
 	// actually delivered does not send twice.
 	idempotencyKey := fmt.Sprintf("newsletter-%s-%d", nl.ID, nl.NextSendTime.Unix())
 
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
+	for attempt := 1; attempt <= maxSendAttempts; attempt++ {
 		result, err = sch.emailService.SendIdempotent(
 			ctx,
 			nl.Name,
@@ -291,7 +297,7 @@ func (sch *Scheduler) sendEmailWithRetry(ctx context.Context, nl *SendableNewsle
 			return result, nil
 		}
 
-		if attempt == maxAttempts {
+		if attempt == maxSendAttempts {
 			wideLog.AddArrayField(ctx, "sendEmailAttempts", fmt.Sprintf("Attempt %d failed: %v. Giving up.", attempt, err))
 			break
 		}
@@ -317,6 +323,17 @@ type newsletterFetchFeedResult struct {
 	Succeeded        []feeds.FeedView
 	SucceededNoItems []feeds.FeedView
 	Failed           []failedFeed
+}
+
+// A failed feed is worth an issue on its own, so the reader learns the feed broke
+// rather than assuming it went quiet. A one-off send was asked for explicitly and
+// is never withheld.
+func shouldSkipEmptySend(nl *SendableNewsletter, fetchResults newsletterFetchFeedResult) bool {
+	if nl.IsOneOffSend || nl.SendWhenEmpty {
+		return false
+	}
+
+	return len(fetchResults.Succeeded) == 0 && len(fetchResults.Failed) == 0
 }
 
 func (sch *Scheduler) fetchFeedsForNewsletter(

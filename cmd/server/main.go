@@ -79,6 +79,7 @@ func main() {
 			MaxWorkers:        5,
 			NewsletterTimeout: 300,
 			TickTimeout:       600,
+			SendRetryDelay:    2 * time.Second,
 		},
 	)
 

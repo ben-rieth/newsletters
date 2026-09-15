@@ -61,7 +61,17 @@ func (wl *WideLog) AddErrorField(errs ...error) {
 
 	errorStrings := make([]string, 0, len(errs))
 	for _, err := range errs {
+		if err == nil {
+			continue
+		}
+
 		errorStrings = append(errorStrings, err.Error())
+	}
+
+	// HasError only tests whether the field exists, so writing an empty one would
+	// report the whole request or job as failed and log it at error level.
+	if len(errorStrings) == 0 {
+		return
 	}
 
 	errLogValue := wl.fields["error"]

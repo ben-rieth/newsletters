@@ -41,7 +41,7 @@ func ComputeNextSendTime(
 
 	switch frequency {
 	case db.FrequencyMonthly:
-		clampedSendDay := clampSendDayToLastDayOfMonth(localBase.Year(), localBase.Month(), sendDay)
+		clampedSendDay := clampSendDayToMonth(localBase.Year(), localBase.Month(), sendDay)
 		candidate := time.Date(localBase.Year(), localBase.Month(), clampedSendDay, sendHour, sendMinute, 0, 0, location)
 
 		if candidate.Before(localBase) {
@@ -53,7 +53,7 @@ func ComputeNextSendTime(
 				nextYear++
 			}
 
-			clampedSendDay = clampSendDayToLastDayOfMonth(nextYear, nextMonth, sendDay)
+			clampedSendDay = clampSendDayToMonth(nextYear, nextMonth, sendDay)
 			candidate = time.Date(nextYear, nextMonth, clampedSendDay, sendHour, sendMinute, 0, 0, location)
 		}
 
@@ -96,7 +96,7 @@ func ComputeLastSendTime(
 
 	switch frequency {
 	case db.FrequencyMonthly:
-		clampedSendDay := clampSendDayToLastDayOfMonth(localBase.Year(), localBase.Month(), sendDay)
+		clampedSendDay := clampSendDayToMonth(localBase.Year(), localBase.Month(), sendDay)
 		candidate := time.Date(localBase.Year(), localBase.Month(), clampedSendDay, sendHour, sendMinute, 0, 0, location)
 
 		if candidate.After(localBase) {
@@ -108,7 +108,7 @@ func ComputeLastSendTime(
 				prevYear--
 			}
 
-			clampedSendDay = clampSendDayToLastDayOfMonth(prevYear, prevMonth, sendDay)
+			clampedSendDay = clampSendDayToMonth(prevYear, prevMonth, sendDay)
 			candidate = time.Date(prevYear, prevMonth, clampedSendDay, sendHour, sendMinute, 0, 0, location)
 		}
 
@@ -136,7 +136,11 @@ func ComputeLastSendTime(
 	}
 }
 
-func clampSendDayToLastDayOfMonth(year int, month time.Month, day int) int {
+func clampSendDayToMonth(year int, month time.Month, day int) int {
+	if day < 1 {
+		return 1
+	}
+
 	lastDay := time.Date(year, month+1, 0, 0, 0, 0, 0, time.UTC).Day()
 	if day > lastDay {
 		return lastDay
