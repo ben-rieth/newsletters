@@ -47,6 +47,23 @@ func (q *Queries) DeleteFeedFilter(ctx context.Context, arg DeleteFeedFilterPara
 	return err
 }
 
+const deleteFeedFiltersForNewsletter = `-- name: DeleteFeedFiltersForNewsletter :exec
+DELETE FROM newsletter_feed_filter AS f
+WHERE f.newsletter_feed_id IN (
+    SELECT nf.id FROM newsletter_feed AS nf WHERE nf.newsletter_id = $1
+) AND f.user_id = $2
+`
+
+type DeleteFeedFiltersForNewsletterParams struct {
+	NewsletterID string
+	UserID       string
+}
+
+func (q *Queries) DeleteFeedFiltersForNewsletter(ctx context.Context, arg DeleteFeedFiltersForNewsletterParams) error {
+	_, err := q.db.Exec(ctx, deleteFeedFiltersForNewsletter, arg.NewsletterID, arg.UserID)
+	return err
+}
+
 const deleteFeedFiltersForUser = `-- name: DeleteFeedFiltersForUser :exec
 DELETE FROM newsletter_feed_filter WHERE user_id = $1
 `

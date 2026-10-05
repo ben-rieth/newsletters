@@ -16,6 +16,9 @@ UPDATE app_user SET email = $1, updated_at = NOW() WHERE id = $2;
 -- name: UpdateUserPassword :exec
 UPDATE app_user SET password = $1, updated_at = NOW() WHERE id = $2;
 
+-- name: UpdateUserIssueRetention :exec
+UPDATE app_user SET issue_retention_days = $1, updated_at = NOW() WHERE id = $2;
+
 -- name: DeleteUser :exec
 DELETE FROM app_user WHERE id = $1;
 

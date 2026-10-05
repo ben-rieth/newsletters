@@ -366,6 +366,7 @@ type AppUser struct {
 	VerifyLockedUntil    pgtype.Timestamptz
 	FailedSigninAttempts int32
 	SigninLockedUntil    pgtype.Timestamptz
+	IssueRetentionDays   int32
 }
 
 type Feed struct {

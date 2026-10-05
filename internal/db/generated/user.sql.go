@@ -89,7 +89,7 @@ func (q *Queries) GetUserAuthState(ctx context.Context, id string) (time.Time, e
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email, sessions_valid_from, verify_attempts, verify_locked_until, failed_signin_attempts, signin_locked_until FROM app_user WHERE email = $1
+SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email, sessions_valid_from, verify_attempts, verify_locked_until, failed_signin_attempts, signin_locked_until, issue_retention_days FROM app_user WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, error) {
@@ -108,12 +108,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, er
 		&i.VerifyLockedUntil,
 		&i.FailedSigninAttempts,
 		&i.SigninLockedUntil,
+		&i.IssueRetentionDays,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email, sessions_valid_from, verify_attempts, verify_locked_until, failed_signin_attempts, signin_locked_until FROM app_user WHERE id = $1
+SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email, sessions_valid_from, verify_attempts, verify_locked_until, failed_signin_attempts, signin_locked_until, issue_retention_days FROM app_user WHERE id = $1
 `
 
 func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
@@ -132,6 +133,7 @@ func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
 		&i.VerifyLockedUntil,
 		&i.FailedSigninAttempts,
 		&i.SigninLockedUntil,
+		&i.IssueRetentionDays,
 	)
 	return i, err
 }
@@ -285,6 +287,20 @@ type UpdateUserEmailParams struct {
 
 func (q *Queries) UpdateUserEmail(ctx context.Context, arg UpdateUserEmailParams) error {
 	_, err := q.db.Exec(ctx, updateUserEmail, arg.Email, arg.ID)
+	return err
+}
+
+const updateUserIssueRetention = `-- name: UpdateUserIssueRetention :exec
+UPDATE app_user SET issue_retention_days = $1, updated_at = NOW() WHERE id = $2
+`
+
+type UpdateUserIssueRetentionParams struct {
+	IssueRetentionDays int32
+	ID                 string
+}
+
+func (q *Queries) UpdateUserIssueRetention(ctx context.Context, arg UpdateUserIssueRetentionParams) error {
+	_, err := q.db.Exec(ctx, updateUserIssueRetention, arg.IssueRetentionDays, arg.ID)
 	return err
 }
 

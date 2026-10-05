@@ -71,6 +71,7 @@ func main() {
 
 	scheduler := newsletters.NewScheduler(
 		newsletterService,
+		issuesService,
 		feedsService,
 		emailService,
 		queries,
@@ -86,6 +87,8 @@ func main() {
 	go scheduler.KickOff(ctx)
 
 	feeds.NewFailurePruner(queries, pool).KickOff(ctx)
+
+	newsletters.NewIssuePruner(queries, pool).KickOff(ctx)
 
 	apiMux := http.NewServeMux()
 

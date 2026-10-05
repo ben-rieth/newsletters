@@ -39,6 +39,15 @@ func (h *IssuesHandler) RegisterRoutes(api huma.API) {
 	}, h.handleGetIssue)
 
 	huma.Register(api, huma.Operation{
+		OperationID:   "delete-issue",
+		Method:        http.MethodDelete,
+		Path:          "/issues/{issueId}",
+		Summary:       "Delete an issue and all of its items",
+		DefaultStatus: http.StatusNoContent,
+		Middlewares:   huma.Middlewares{doesIssueExistMiddleware},
+	}, h.handleDeleteIssue)
+
+	huma.Register(api, huma.Operation{
 		OperationID:   "update-issue-state",
 		Method:        "PUT",
 		Path:          "/issues/{issueId}/state",
@@ -122,6 +131,24 @@ func (h *IssuesHandler) handleGetIssue(
 	return &getIssueOutput{
 		Body: issue,
 	}, nil
+}
+
+func (h *IssuesHandler) handleDeleteIssue(
+	ctx context.Context,
+	i *struct {
+		IssueID string `path:"issueId" format:"uuid"`
+	},
+) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	if err := h.issuesService.DeleteIssue(ctx, i.IssueID, claims.Subject); err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
 }
 
 type issueStateBody struct {

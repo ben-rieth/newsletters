@@ -28,6 +28,7 @@ type feedFetcher interface {
 
 type Scheduler struct {
 	newsletterService *NewsletterService
+	issuesService     *IssuesService
 	feedService       feedFetcher
 	emailService      email.EmailService
 	queries           *dbgen.Queries
@@ -46,6 +47,7 @@ type SchedulerConfig struct {
 
 func NewScheduler(
 	newsletterService *NewsletterService,
+	issuesService *IssuesService,
 	feedService feedFetcher,
 	emailService email.EmailService,
 	queries *dbgen.Queries,
@@ -54,6 +56,7 @@ func NewScheduler(
 ) *Scheduler {
 	return &Scheduler{
 		newsletterService: newsletterService,
+		issuesService:     issuesService,
 		feedService:       feedService,
 		emailService:      emailService,
 		queries:           queries,
@@ -412,7 +415,7 @@ func (sch *Scheduler) assembleNewsletter(
 }
 
 func (sch *Scheduler) cleanUpAfterSendFailure(ctx context.Context, issueId, userId string) {
-	deleteErr := sch.newsletterService.DeleteIssue(ctx, issueId, userId)
+	deleteErr := sch.issuesService.DeleteIssue(ctx, issueId, userId)
 
 	if deleteErr != nil {
 		wideLog.AddErrorField(

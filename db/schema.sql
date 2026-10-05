@@ -1,4 +1,4 @@
-\restrict Voo2C9VwdzITewU9SA1DYPgucvH85ReokiwFDTIQeHXEEPBt5B9ZoYvfrN43KZv
+\restrict ZMsjQCPPRi7fsD65Gdl6uT700ywYHqizzlu8BKLBM7P8oXWzVMRMQdiHO4Q2biQ
 
 -- Dumped from database version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -119,7 +119,8 @@ CREATE TABLE public.app_user (
     verify_attempts integer DEFAULT 0 NOT NULL,
     verify_locked_until timestamp with time zone,
     failed_signin_attempts integer DEFAULT 0 NOT NULL,
-    signin_locked_until timestamp with time zone
+    signin_locked_until timestamp with time zone,
+    issue_retention_days integer DEFAULT 0 NOT NULL
 );
 
 
@@ -658,7 +659,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Voo2C9VwdzITewU9SA1DYPgucvH85ReokiwFDTIQeHXEEPBt5B9ZoYvfrN43KZv
+\unrestrict ZMsjQCPPRi7fsD65Gdl6uT700ywYHqizzlu8BKLBM7P8oXWzVMRMQdiHO4Q2biQ
 
 
 --
@@ -679,4 +680,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260807120100'),
     ('20260807120200'),
     ('20260809120000'),
-    ('20260905120000');
+    ('20260905120000'),
+    ('20260910120000');

@@ -202,7 +202,8 @@ export interface paths {
     get: operations['get-issue'];
     put?: never;
     post?: never;
-    delete?: never;
+    /** Delete an issue and all of its items */
+    delete: operations['delete-issue'];
     options?: never;
     head?: never;
     patch?: never;
@@ -537,6 +538,23 @@ export interface paths {
     options?: never;
     head?: never;
     patch?: never;
+    trace?: never;
+  };
+  '/user/issue-retention': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Set how long sent issues are kept before being deleted */
+    patch: operations['update-issue-retention'];
     trace?: never;
   };
   '/user/password': {
@@ -899,6 +917,16 @@ export interface components {
       email: string;
       password: string;
     };
+    'Update-issue-retentionRequest': {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/Update-issue-retentionRequest.json
+       */
+      readonly $schema?: string;
+      /** Format: int32 */
+      issueRetentionDays: number;
+    };
     'Update-newsletter-send-when-emptyRequest': {
       /**
        * Format: uri
@@ -965,6 +993,8 @@ export interface components {
        */
       readonly $schema?: string;
       email: string;
+      /** Format: int32 */
+      issueRetentionDays: number;
     };
   };
   responses: never;
@@ -1338,6 +1368,35 @@ export interface operations {
         content: {
           'application/json': components['schemas']['DetailedIssue'];
         };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'delete-issue': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        issueId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Error */
       default: {
@@ -2211,6 +2270,37 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['Verify-email-updateRequest'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'update-issue-retention': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['Update-issue-retentionRequest'];
       };
     };
     responses: {
