@@ -9,6 +9,7 @@ import { userOptions } from '#/features/auth/queries/user';
 import { useMobileHeader } from '#/components/MobileHeader';
 import useLogout from '#/features/auth/queries/hooks/useLogout';
 import useExportNewsletters from '#/features/newsletters/queries/hooks/useExportNewsletters';
+import IssueRetentionSetting from '#/features/issues/components/IssueRetentionSetting';
 
 const ProfilePage = () => {
   const { data: user } = useSuspenseQuery(userOptions);
@@ -52,6 +53,13 @@ const ProfilePage = () => {
       </SettingsSection>
 
       <SettingsSection>
+        <SettingsRow
+          title="Keep issues for"
+          description="Issues older than this are deleted automatically, read or not. Deleting an issue doesn't affect the feeds it came from."
+        >
+          <IssueRetentionSetting issueRetentionDays={user.issueRetentionDays} />
+        </SettingsRow>
+
         <SettingsRow
           title="Export newsletters"
           description="Download all of your newsletters and their feeds as a JSON file."

@@ -77,6 +77,27 @@ DELETE FROM issue_item WHERE issue_id = $1 AND user_id = $2;
 -- name: DeleteIssue :exec
 DELETE FROM newsletter_issue WHERE id = $1 AND user_id = $2;
 
+-- The RESTRICT FK on issue_item is a non-deferrable, end-of-statement check, so
+-- both deletes ride in one statement regardless of CTE execution order.
+-- name: DeleteExpiredIssues :execrows
+WITH expired AS (
+    SELECT i.id FROM newsletter_issue AS i
+    INNER JOIN app_user AS u ON u.id = i.user_id
+    WHERE u.issue_retention_days > 0
+      AND i.sent_at < NOW() - make_interval(days => u.issue_retention_days)
+), cleared AS (
+    DELETE FROM issue_item WHERE issue_id IN (SELECT id FROM expired)
+)
+DELETE FROM newsletter_issue WHERE id IN (SELECT id FROM expired);
+
+-- name: DeleteIssuesForNewsletter :exec
+WITH doomed AS (
+    SELECT i.id FROM newsletter_issue AS i WHERE i.newsletter_id = $1 AND i.user_id = $2
+), cleared AS (
+    DELETE FROM issue_item AS ii WHERE ii.issue_id IN (SELECT id FROM doomed)
+)
+DELETE FROM newsletter_issue AS target WHERE target.id IN (SELECT id FROM doomed);
+
 -- name: DeleteAllIssueItemsForUser :exec
 DELETE FROM issue_item WHERE user_id = $1;
 

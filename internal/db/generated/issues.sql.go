@@ -28,6 +28,28 @@ func (q *Queries) DeleteAllIssuesForUser(ctx context.Context, userID string) err
 	return err
 }
 
+const deleteExpiredIssues = `-- name: DeleteExpiredIssues :execrows
+WITH expired AS (
+    SELECT i.id FROM newsletter_issue AS i
+    INNER JOIN app_user AS u ON u.id = i.user_id
+    WHERE u.issue_retention_days > 0
+      AND i.sent_at < NOW() - make_interval(days => u.issue_retention_days)
+), cleared AS (
+    DELETE FROM issue_item WHERE issue_id IN (SELECT id FROM expired)
+)
+DELETE FROM newsletter_issue WHERE id IN (SELECT id FROM expired)
+`
+
+// The RESTRICT FK on issue_item is a non-deferrable, end-of-statement check, so
+// both deletes ride in one statement regardless of CTE execution order.
+func (q *Queries) DeleteExpiredIssues(ctx context.Context) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredIssues)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const deleteIssue = `-- name: DeleteIssue :exec
 DELETE FROM newsletter_issue WHERE id = $1 AND user_id = $2
 `
@@ -39,6 +61,25 @@ type DeleteIssueParams struct {
 
 func (q *Queries) DeleteIssue(ctx context.Context, arg DeleteIssueParams) error {
 	_, err := q.db.Exec(ctx, deleteIssue, arg.ID, arg.UserID)
+	return err
+}
+
+const deleteIssuesForNewsletter = `-- name: DeleteIssuesForNewsletter :exec
+WITH doomed AS (
+    SELECT i.id FROM newsletter_issue AS i WHERE i.newsletter_id = $1 AND i.user_id = $2
+), cleared AS (
+    DELETE FROM issue_item AS ii WHERE ii.issue_id IN (SELECT id FROM doomed)
+)
+DELETE FROM newsletter_issue AS target WHERE target.id IN (SELECT id FROM doomed)
+`
+
+type DeleteIssuesForNewsletterParams struct {
+	NewsletterID string
+	UserID       string
+}
+
+func (q *Queries) DeleteIssuesForNewsletter(ctx context.Context, arg DeleteIssuesForNewsletterParams) error {
+	_, err := q.db.Exec(ctx, deleteIssuesForNewsletter, arg.NewsletterID, arg.UserID)
 	return err
 }
 

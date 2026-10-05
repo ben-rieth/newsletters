@@ -161,6 +161,24 @@ func (s *NewsletterService) DeleteNewsletter(
 
 	qtx := s.queries.WithTx(tx)
 
+	// Everything pointing at the newsletter is ON DELETE RESTRICT, so the filters
+	// and the sent archive have to be cleared before the rows they hang off of.
+	err = qtx.DeleteFeedFiltersForNewsletter(ctx, dbgen.DeleteFeedFiltersForNewsletterParams{
+		NewsletterID: id,
+		UserID:       userId,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = qtx.DeleteIssuesForNewsletter(ctx, dbgen.DeleteIssuesForNewsletterParams{
+		NewsletterID: id,
+		UserID:       userId,
+	})
+	if err != nil {
+		return err
+	}
+
 	err = qtx.DeleteAllFeedsInNewsletter(ctx, id)
 	if err != nil {
 		return err
@@ -220,30 +238,4 @@ func (s *NewsletterService) StoreNewsletterIssue(
 	}
 
 	return issueId, nil
-}
-
-func (s *NewsletterService) DeleteIssue(ctx context.Context, issueID, userID string) error {
-	tx, err := s.db.Begin(ctx)
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback(ctx)
-
-	qtx := s.queries.WithTx(tx)
-
-	if err := qtx.DeleteItemsForIssue(ctx, dbgen.DeleteItemsForIssueParams{
-		IssueID: issueID,
-		UserID:  userID,
-	}); err != nil {
-		return err
-	}
-
-	if err := qtx.DeleteIssue(ctx, dbgen.DeleteIssueParams{
-		ID:     issueID,
-		UserID: userID,
-	}); err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
 }

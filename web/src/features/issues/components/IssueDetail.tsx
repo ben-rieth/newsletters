@@ -1,7 +1,19 @@
-import { Check, Circle, CircleCheck } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
+import { Check, Circle, CircleCheck, Trash2 } from 'lucide-react';
 import { formatRelativeTime } from '#/utils/format';
 import { Button } from '#/components/ui/button';
 import { MobileHeaderAction } from '#/components/MobileHeader';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '#/components/ui/alert-dialog';
 import { cn } from '#/lib/utils';
 import type {
   DetailedIssue,
@@ -10,14 +22,20 @@ import type {
 } from '#/features/issues/queries/issues';
 import useUpdateIssueState from '#/features/issues/queries/hooks/useUpdateIssueState';
 import useUpdateIssueItemState from '#/features/issues/queries/hooks/useUpdateIssueItemState';
+import useDeleteIssue from '#/features/issues/queries/hooks/useDeleteIssue';
 
 interface IssueDetailProps {
   issue: DetailedIssue;
 }
 
 const IssueDetail = ({ issue }: IssueDetailProps) => {
+  const navigate = useNavigate();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const updateIssueState = useUpdateIssueState(issue.issueId);
   const updateItemState = useUpdateIssueItemState(issue.issueId);
+  const deleteIssue = useDeleteIssue(issue.issueId, () => {
+    navigate({ to: '/issues' });
+  });
 
   const feeds = issue.feeds ?? [];
   const feedCount = feeds.length;
@@ -67,26 +85,40 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
 
   return (
     <div className="space-y-8">
-      {itemCount > 0 && (
-        <MobileHeaderAction>
+      <MobileHeaderAction>
+        <>
+          {itemCount > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-11"
+              aria-label={issueRead ? 'Mark all unread' : 'Mark all read'}
+              aria-pressed={issueRead}
+              disabled={updateIssueState.isPending}
+              focusableWhenDisabled
+              onClick={toggleIssueRead}
+            >
+              {issueRead ? (
+                <CircleCheck className="size-5" />
+              ) : (
+                <Check className="size-5" />
+              )}
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             size="icon"
-            className="size-11"
-            aria-label={issueRead ? 'Mark all unread' : 'Mark all read'}
-            aria-pressed={issueRead}
-            disabled={updateIssueState.isPending}
+            className="size-11 text-muted-foreground hover:text-destructive"
+            aria-label="Delete issue"
+            disabled={deleteIssue.isPending}
             focusableWhenDisabled
-            onClick={toggleIssueRead}
+            onClick={() => setDeleteDialogOpen(true)}
           >
-            {issueRead ? (
-              <CircleCheck className="size-5" />
-            ) : (
-              <Check className="size-5" />
-            )}
+            <Trash2 className="size-5" />
           </Button>
-        </MobileHeaderAction>
-      )}
+        </>
+      </MobileHeaderAction>
 
       <header className="flex items-start justify-between gap-4 border-b border-border pb-6">
         <div className="min-w-0">
@@ -100,23 +132,36 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
           </p>
         </div>
 
-        {itemCount > 0 && (
+        <div className="hidden shrink-0 items-center gap-2 md:flex">
+          {itemCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={updateIssueState.isPending}
+              focusableWhenDisabled
+              onClick={toggleIssueRead}
+            >
+              {issueRead ? (
+                <CircleCheck data-icon="inline-start" />
+              ) : (
+                <Check data-icon="inline-start" />
+              )}
+              {issueRead ? 'Mark all unread' : 'Mark all read'}
+            </Button>
+          )}
+
           <Button
             variant="outline"
             size="sm"
-            className="hidden shrink-0 md:inline-flex"
-            disabled={updateIssueState.isPending}
+            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            disabled={deleteIssue.isPending}
             focusableWhenDisabled
-            onClick={toggleIssueRead}
+            onClick={() => setDeleteDialogOpen(true)}
           >
-            {issueRead ? (
-              <CircleCheck data-icon="inline-start" />
-            ) : (
-              <Check data-icon="inline-start" />
-            )}
-            {issueRead ? 'Mark all unread' : 'Mark all read'}
+            <Trash2 data-icon="inline-start" />
+            Delete
           </Button>
-        )}
+        </div>
       </header>
 
       {feeds.length === 0 ? (
@@ -195,6 +240,29 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
           ))}
         </div>
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this issue?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The {sentDate} issue of &ldquo;{issue.newsletterName}&rdquo; and
+              all {itemCount} of its {itemCount === 1 ? 'item' : 'items'} will
+              be permanently deleted. The feeds it came from are not affected.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleteIssue.isPending}
+              onClick={() => deleteIssue.mutate()}
+            >
+              {deleteIssue.isPending ? 'Deleting…' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

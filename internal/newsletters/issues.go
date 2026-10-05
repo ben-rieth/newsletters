@@ -16,6 +16,32 @@ func NewIssuesService(queries *db.Queries, pool *pgxpool.Pool) *IssuesService {
 	return &IssuesService{queries, pool}
 }
 
+func (s *IssuesService) DeleteIssue(ctx context.Context, issueID, userID string) error {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	qtx := s.queries.WithTx(tx)
+
+	if err := qtx.DeleteItemsForIssue(ctx, db.DeleteItemsForIssueParams{
+		IssueID: issueID,
+		UserID:  userID,
+	}); err != nil {
+		return err
+	}
+
+	if err := qtx.DeleteIssue(ctx, db.DeleteIssueParams{
+		ID:     issueID,
+		UserID: userID,
+	}); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
 func (s *IssuesService) GetIssue(ctx context.Context, issueID, userID string) (*DetailedIssue, error) {
 	issue, err := s.queries.GetIssue(ctx, db.GetIssueParams{
 		ID:     issueID,

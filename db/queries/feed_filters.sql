@@ -25,5 +25,11 @@ WHERE id = $4;
 -- name: DeleteFeedFilter :exec
 DELETE FROM newsletter_feed_filter WHERE id = $1 AND user_id = $2;
 
+-- name: DeleteFeedFiltersForNewsletter :exec
+DELETE FROM newsletter_feed_filter AS f
+WHERE f.newsletter_feed_id IN (
+    SELECT nf.id FROM newsletter_feed AS nf WHERE nf.newsletter_id = $1
+) AND f.user_id = $2;
+
 -- name: DeleteFeedFiltersForUser :exec
 DELETE FROM newsletter_feed_filter WHERE user_id = $1;

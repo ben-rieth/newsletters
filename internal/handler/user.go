@@ -32,7 +32,8 @@ func NewUserHandler(
 }
 
 type visibleUser struct {
-	Email string `json:"email"`
+	Email              string `json:"email"`
+	IssueRetentionDays int32  `json:"issueRetentionDays"`
 }
 
 type getUserOutput struct {
@@ -54,6 +55,14 @@ func (h *UserHandler) RegisterRoutes(api huma.API) {
 		Summary:       "Update user's password",
 		DefaultStatus: http.StatusNoContent,
 	}, h.handleUpdatePassword)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "update-issue-retention",
+		Method:        http.MethodPatch,
+		Path:          "/user/issue-retention",
+		Summary:       "Set how long sent issues are kept before being deleted",
+		DefaultStatus: http.StatusNoContent,
+	}, h.handleUpdateIssueRetention)
 
 	huma.Register(api, huma.Operation{
 		OperationID:   "delete-user",
@@ -100,9 +109,33 @@ func (h *UserHandler) handleGetUser(ctx context.Context, i *struct{}) (*getUserO
 
 	return &getUserOutput{
 		Body: visibleUser{
-			Email: user.Email,
+			Email:              user.Email,
+			IssueRetentionDays: user.IssueRetentionDays,
 		},
 	}, nil
+}
+
+func (h *UserHandler) handleUpdateIssueRetention(
+	ctx context.Context,
+	i *struct {
+		Body struct {
+			IssueRetentionDays int32 `json:"issueRetentionDays" minimum:"0" maximum:"3650"`
+		}
+	},
+) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	if err := h.queries.UpdateUserIssueRetention(ctx, db.UpdateUserIssueRetentionParams{
+		IssueRetentionDays: i.Body.IssueRetentionDays,
+		ID:                 claims.Subject,
+	}); err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
 }
 
 type updatePasswordOutput struct {
