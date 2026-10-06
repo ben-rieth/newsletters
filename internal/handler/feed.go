@@ -185,6 +185,15 @@ func (h *FeedHandler) RegisterRoutes(api huma.API) {
 		DefaultStatus: http.StatusNoContent,
 		Middlewares:   huma.Middlewares{doesFeedExistMiddleware},
 	}, h.handleUpdateFeedStatus)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "move-feed",
+		Method:        http.MethodPost,
+		Path:          "/newsletter/{newsletterId}/feed/{feedId}/move",
+		Summary:       "Move a feed to another newsletter",
+		DefaultStatus: http.StatusNoContent,
+		Middlewares:   huma.Middlewares{doesFeedExistMiddleware},
+	}, h.handleMoveFeed)
 }
 
 func (h *FeedHandler) handleAddFeed(ctx context.Context, input *addFeedInput) (*struct{}, error) {
@@ -491,6 +500,52 @@ func (h *FeedHandler) handleUpdateFeedStatus(ctx context.Context, i *updateFeedS
 		Status:       db.NewsletterStatus(i.Body.Status),
 	}); err != nil {
 		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
+}
+
+type moveFeedInput struct {
+	NewsletterID string `path:"newsletterId"`
+	FeedID       string `path:"feedId"`
+	Body         struct {
+		NewsletterID string `json:"newsletterId" format:"uuid"`
+	}
+}
+
+func (h *FeedHandler) handleMoveFeed(ctx context.Context, i *moveFeedInput) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	targetID := i.Body.NewsletterID
+	if targetID == i.NewsletterID {
+		return nil, badRequestError("The feed is already in this newsletter.")
+	}
+
+	exists, err := h.queries.DoesNewsletterExist(ctx, db.DoesNewsletterExistParams{
+		ID:     targetID,
+		UserID: claims.Subject,
+	})
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+	if !exists {
+		return nil, notFoundError("Newsletter")
+	}
+
+	moved, err := h.queries.MoveNewsletterFeed(ctx, db.MoveNewsletterFeedParams{
+		TargetNewsletterID: targetID,
+		ID:                 i.FeedID,
+		NewsletterID:       i.NewsletterID,
+		UserID:             claims.Subject,
+	})
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+	if moved == 0 {
+		return nil, huma.Error409Conflict("That newsletter already includes this feed.")
 	}
 
 	return nil, nil

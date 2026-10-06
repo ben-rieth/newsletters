@@ -332,6 +332,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/newsletter/{newsletterId}/feed/{feedId}/move': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Move a feed to another newsletter */
+    post: operations['move-feed'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/newsletter/{newsletterId}/feed/{feedId}/preview': {
     parameters: {
       query?: never;
@@ -779,6 +796,15 @@ export interface components {
       matchedFilter?: components['schemas']['FeedFilter'];
       title: string;
       url: string;
+    };
+    MoveFeedInputBody: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/MoveFeedInputBody.json
+       */
+      readonly $schema?: string;
+      newsletterId: string;
     };
     Newsletter: {
       /**
@@ -1747,6 +1773,40 @@ export interface operations {
       cookie?: never;
     };
     requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'move-feed': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        newsletterId: string;
+        feedId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['MoveFeedInputBody'];
+      };
+    };
     responses: {
       /** @description No Content */
       204: {

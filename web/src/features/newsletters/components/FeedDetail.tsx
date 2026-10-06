@@ -3,16 +3,19 @@ import { useNavigate } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { feedDetailOptions } from '../queries/feeds';
+import { newslettersOptions } from '../queries/newsletters';
 import useUpdateFeed from '../queries/hooks/useUpdateFeed';
 import useAddFeedFilter from '../queries/hooks/useAddFeedFilter';
 import useDeleteFeed from '../queries/hooks/useDeleteFeed';
 import useUpdateFeedStatus from '../queries/hooks/useUpdateFeedStatus';
+import useMoveFeed from '../queries/hooks/useMoveFeed';
 import { EditFeedForm } from './EditFeedForm';
 import { FeedFilterForm } from './FeedFilterForm';
 import { FeedFiltersList } from './FeedFiltersList';
 import { FeedPreview } from './FeedPreview';
 import { FeedHealthAlert, FeedHealthBadge } from './FeedHealth';
 import { FeedStatusBadge } from './FeedStatusBadge';
+import { MoveFeedDialog } from './MoveFeedDialog';
 import { Button } from '#/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs';
 import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
@@ -41,6 +44,9 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
     feedDetailOptions(newsletterId, feedId),
   );
 
+  const { data: newsletters } = useSuspenseQuery(newslettersOptions);
+  const otherNewsletters = newsletters.filter((n) => n.id !== newsletterId);
+
   const filterCount = feed.filters?.length ?? 0;
   const isActive = feed.status === 'active';
 
@@ -55,6 +61,15 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
 
   const updateStatus = useUpdateFeedStatus(newsletterId, (status) => {
     toast.success(status === 'active' ? 'Feed resumed!' : 'Feed paused.');
+  });
+
+  const moveFeed = useMoveFeed(newsletterId, feedId, (targetNewsletterId) => {
+    const target = newsletters.find((n) => n.id === targetNewsletterId);
+    toast.success(`Feed moved to ${target?.name ?? 'newsletter'}.`);
+    navigate({
+      to: '/newsletters/$newsletterId/feeds/$feedId',
+      params: { newsletterId: targetNewsletterId, feedId },
+    });
   });
 
   const deleteFeed = useDeleteFeed(newsletterId, () => {
@@ -144,6 +159,21 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
                       : 'Resume feed'}
                 </Button>
               </SettingsRow>
+
+              {otherNewsletters.length > 0 && (
+                <SettingsRow
+                  title="Move feed"
+                  description="Send this feed's items to a different newsletter instead."
+                >
+                  <MoveFeedDialog
+                    key={newsletterId}
+                    feedName={feed.alias || feed.title}
+                    newsletters={otherNewsletters}
+                    isPending={moveFeed.isPending}
+                    onMove={moveFeed.mutate}
+                  />
+                </SettingsRow>
+              )}
 
               <SettingsRow
                 title="Delete feed"

@@ -183,3 +183,12 @@ WHERE id = $1 AND (disabled_until IS NOT NULL OR disable_count > 0);
 
 -- name: UpdateNewsletterFeedStatus :exec
 UPDATE newsletter_feed SET status = $1, updated_at = NOW() WHERE newsletter_id = $2 AND id = $3 AND user_id = $4;
+
+-- name: MoveNewsletterFeed :execrows
+UPDATE newsletter_feed AS nlf
+SET newsletter_id = @target_newsletter_id, updated_at = NOW()
+WHERE nlf.id = @id AND nlf.newsletter_id = @newsletter_id AND nlf.user_id = @user_id
+    AND NOT EXISTS (
+        SELECT 1 FROM newsletter_feed AS dup
+        WHERE dup.newsletter_id = @target_newsletter_id AND dup.feed_id = nlf.feed_id
+    );

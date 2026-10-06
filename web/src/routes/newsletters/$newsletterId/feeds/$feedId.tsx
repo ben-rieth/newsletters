@@ -3,7 +3,10 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
 import { FeedDetail } from '#/features/newsletters/components/FeedDetail';
 import { feedDetailOptions } from '#/features/newsletters/queries/feeds';
-import { newsletterOptions } from '#/features/newsletters/queries/newsletters';
+import {
+  newsletterOptions,
+  newslettersOptions,
+} from '#/features/newsletters/queries/newsletters';
 import { useMobileHeader } from '#/components/MobileHeader';
 
 const FeedDetailPage = () => {
@@ -48,6 +51,7 @@ export const Route = createFileRoute(
       context.queryClient.ensureQueryData(
         newsletterOptions(params.newsletterId),
       ),
+      context.queryClient.ensureQueryData(newslettersOptions),
       context.queryClient.ensureQueryData(
         feedDetailOptions(params.newsletterId, params.feedId),
       ),

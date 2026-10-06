@@ -607,6 +607,36 @@ func (q *Queries) GetSendableFeedsForNewsletter(ctx context.Context, newsletterI
 	return items, nil
 }
 
+const moveNewsletterFeed = `-- name: MoveNewsletterFeed :execrows
+UPDATE newsletter_feed AS nlf
+SET newsletter_id = $1, updated_at = NOW()
+WHERE nlf.id = $2 AND nlf.newsletter_id = $3 AND nlf.user_id = $4
+    AND NOT EXISTS (
+        SELECT 1 FROM newsletter_feed AS dup
+        WHERE dup.newsletter_id = $1 AND dup.feed_id = nlf.feed_id
+    )
+`
+
+type MoveNewsletterFeedParams struct {
+	TargetNewsletterID string
+	ID                 string
+	NewsletterID       string
+	UserID             string
+}
+
+func (q *Queries) MoveNewsletterFeed(ctx context.Context, arg MoveNewsletterFeedParams) (int64, error) {
+	result, err := q.db.Exec(ctx, moveNewsletterFeed,
+		arg.TargetNewsletterID,
+		arg.ID,
+		arg.NewsletterID,
+		arg.UserID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const previewFeed = `-- name: PreviewFeed :many
 SELECT item.id AS item_id, item.title, item.url, ff.id AS filter_id, ff.field, ff.operator, ff.pattern
 FROM newsletter_feed AS nlf
