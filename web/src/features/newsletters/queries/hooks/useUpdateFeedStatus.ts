@@ -1,8 +1,28 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useMutationState,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { feedsKeys, feedDetailKeys } from '../feeds';
 import client from '#/api/client';
 import { getErrorMessage } from '#/lib/errors';
+
+type Variables = {
+  feedId: string;
+  status: 'active' | 'inactive';
+};
+
+export const usePendingFeedStatusIds = (newsletterId: string) =>
+  new Set(
+    useMutationState({
+      filters: {
+        mutationKey: feedsKeys.status(newsletterId),
+        status: 'pending',
+      },
+      select: (mutation) => (mutation.state.variables as Variables).feedId,
+    }),
+  );
 
 const useUpdateFeedStatus = (
   newsletterId: string,
@@ -11,13 +31,8 @@ const useUpdateFeedStatus = (
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({
-      feedId,
-      status,
-    }: {
-      feedId: string;
-      status: 'active' | 'inactive';
-    }) => {
+    mutationKey: feedsKeys.status(newsletterId),
+    mutationFn: async ({ feedId, status }: Variables) => {
       const { error } = await client.PATCH(
         '/newsletter/{newsletterId}/feed/{feedId}/status',
         {

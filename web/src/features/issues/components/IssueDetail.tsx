@@ -248,7 +248,7 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
             <AlertDialogDescription>
               The {sentDate} issue of &ldquo;{issue.newsletterName}&rdquo; and
               all {itemCount} of its {itemCount === 1 ? 'item' : 'items'} will
-              be permanently deleted. The feeds it came from are not affected.
+              be permanently deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

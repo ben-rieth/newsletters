@@ -38,7 +38,9 @@ import { AddFeedDialog } from './AddFeedDialog';
 import { FeedHealthBadge } from './FeedHealth';
 import { FeedStatusBadge } from './FeedStatusBadge';
 import useDeleteFeed from '../queries/hooks/useDeleteFeed';
-import useUpdateFeedStatus from '../queries/hooks/useUpdateFeedStatus';
+import useUpdateFeedStatus, {
+  usePendingFeedStatusIds,
+} from '../queries/hooks/useUpdateFeedStatus';
 
 type Props = {
   newsletterId: string;
@@ -86,6 +88,7 @@ export const FeedsList = ({ newsletterId }: Props) => {
   const updateStatus = useUpdateFeedStatus(newsletterId, (status) => {
     toast.success(status === 'active' ? 'Feed resumed!' : 'Feed paused.');
   });
+  const pendingStatusFeedIds = usePendingFeedStatusIds(newsletterId);
 
   const buildFeedActions = (feed: Feed): FeedAction[] => {
     const isActive = feed.status === 'active';
@@ -110,7 +113,7 @@ export const FeedsList = ({ newsletterId }: Props) => {
         key: 'status',
         label: isActive ? 'Pause feed' : 'Resume feed',
         icon: isActive ? Pause : Play,
-        disabled: updateStatus.isPending,
+        disabled: pendingStatusFeedIds.has(feed.id),
         onSelect: () =>
           updateStatus.mutate({
             feedId: feed.id,
@@ -368,7 +371,7 @@ export const FeedsList = ({ newsletterId }: Props) => {
       <AlertDialog
         open={!!deletingFeed}
         onOpenChange={(open) => {
-          if (!open) {
+          if (!open && !deleteFeed.isPending) {
             setDeletingFeed(null);
           }
         }}
@@ -382,15 +385,18 @@ export const FeedsList = ({ newsletterId }: Props) => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleteFeed.isPending}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
+              disabled={deleteFeed.isPending}
               onClick={() => {
                 if (deletingFeed) {
                   deleteFeed.mutate(deletingFeed.id);
                 }
               }}
             >
-              Delete
+              {deleteFeed.isPending ? 'Deleting…' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

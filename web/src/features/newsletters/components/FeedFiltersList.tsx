@@ -5,7 +5,9 @@ import { Button } from '#/components/ui/button';
 import { ListPanel, listRowClass } from '#/components/ListPanel';
 import { EmptyState } from '#/components/EmptyState';
 import type { components } from '#/api/schema';
-import useDeleteFeedFilter from '../queries/hooks/useDeleteFeedFilter';
+import useDeleteFeedFilter, {
+  usePendingFilterDeleteIds,
+} from '../queries/hooks/useDeleteFeedFilter';
 import useUpdateFeedFilter from '../queries/hooks/useUpdateFeedFilter';
 import { FeedFilterForm } from './FeedFilterForm';
 import { getErrorMessage } from '#/lib/errors';
@@ -34,11 +36,17 @@ export const FeedFiltersList = ({ newsletterId, feedId, filters }: Props) => {
   const deleteFilter = useDeleteFeedFilter(newsletterId, feedId, () => {
     toast.success('Filter deleted!');
   });
+  const pendingDeleteIds = usePendingFilterDeleteIds(newsletterId, feedId);
 
   const updateFilter = useUpdateFeedFilter(newsletterId, feedId, () => {
     toast.success('Filter updated!');
     setEditingId(null);
   });
+
+  const startEditing = (filterId: string | null) => {
+    updateFilter.reset();
+    setEditingId(filterId);
+  };
 
   if (filters.length === 0) {
     return (
@@ -63,7 +71,7 @@ export const FeedFiltersList = ({ newsletterId, feedId, filters }: Props) => {
                   body: values,
                 });
               }}
-              onCancel={() => setEditingId(null)}
+              onCancel={() => startEditing(null)}
               isPending={updateFilter.isPending}
               error={
                 updateFilter.isError
@@ -90,8 +98,10 @@ export const FeedFiltersList = ({ newsletterId, feedId, filters }: Props) => {
                 variant="ghost"
                 size="icon-sm"
                 aria-label="Edit filter"
-                disabled={deleteFilter.isPending}
-                onClick={() => setEditingId(filter.id)}
+                disabled={
+                  updateFilter.isPending || pendingDeleteIds.has(filter.id)
+                }
+                onClick={() => startEditing(filter.id)}
               >
                 <Pencil />
               </Button>
@@ -99,7 +109,7 @@ export const FeedFiltersList = ({ newsletterId, feedId, filters }: Props) => {
                 variant="ghost"
                 size="icon-sm"
                 aria-label="Delete filter"
-                disabled={deleteFilter.isPending}
+                disabled={pendingDeleteIds.has(filter.id)}
                 onClick={() => deleteFilter.mutate(filter.id)}
               >
                 <Trash2 />

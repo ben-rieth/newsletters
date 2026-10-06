@@ -12,11 +12,14 @@ export type FeedHealth = components['schemas']['FeedHealth'];
 export const feedsKeys = {
   list: (newsletterId: string) => ['feeds', newsletterId] as const,
   metadata: (url: string) => ['feedMetadata', url] as const,
+  status: (newsletterId: string) => ['feeds', newsletterId, 'status'] as const,
 };
 
 export const feedDetailKeys = {
   detail: (newsletterId: string, feedId: string) =>
     ['feedDetail', newsletterId, feedId] as const,
+  deleteFilter: (newsletterId: string, feedId: string) =>
+    ['feedDetail', newsletterId, feedId, 'deleteFilter'] as const,
 };
 
 export const feedPreviewKeys = {
