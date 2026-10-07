@@ -284,6 +284,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => newsletterDelete.mutate(newsletter.id)}
+              disabled={newsletterDelete.isPending}
             >
               Delete
             </AlertDialogAction>
