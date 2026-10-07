@@ -2,3 +2,4 @@ allowBuilds:
   lightningcss: true
   msw: true
   unrs-resolver: true
+minimumReleaseAge: 4320
