@@ -11,7 +11,7 @@ export const fetchAndDownload = async (
   }
 
   const disposition = response.headers.get('Content-Disposition') ?? '';
-  const match = disposition.match(/filename=([^\s;]+)/);
+  const match = disposition.match(/filename="?([^";]+)"?/);
   const filename = match ? match[1] : fallbackFilename;
   const blob = await response.blob();
   const url = URL.createObjectURL(blob);
