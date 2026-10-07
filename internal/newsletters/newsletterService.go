@@ -161,6 +161,14 @@ func (s *NewsletterService) DeleteNewsletter(
 
 	qtx := s.queries.WithTx(tx)
 
+	err = qtx.DeleteFeedImportsForNewsletter(ctx, dbgen.DeleteFeedImportsForNewsletterParams{
+		NewsletterID: id,
+		UserID:       userId,
+	})
+	if err != nil {
+		return err
+	}
+
 	// Everything pointing at the newsletter is ON DELETE RESTRICT, so the filters
 	// and the sent archive have to be cleared before the rows they hang off of.
 	err = qtx.DeleteFeedFiltersForNewsletter(ctx, dbgen.DeleteFeedFiltersForNewsletterParams{

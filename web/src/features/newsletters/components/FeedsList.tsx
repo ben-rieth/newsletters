@@ -33,8 +33,10 @@ import {
 } from '#/components/ui/alert-dialog';
 import { Sheet, SheetContent, SheetTitle } from '#/components/ui/sheet';
 import { feedsOptions } from '../queries/feeds';
+import { feedImportsOptions } from '../queries/feedImports';
 import type { Feed } from '../queries/feeds';
 import { AddFeedDialog } from './AddFeedDialog';
+import { FeedImportsList } from './FeedImportsList';
 import { FeedHealthBadge } from './FeedHealth';
 import { FeedStatusBadge } from './FeedStatusBadge';
 import useDeleteFeed from '../queries/hooks/useDeleteFeed';
@@ -68,7 +70,12 @@ export const FeedsList = ({ newsletterId }: Props) => {
   const [search, setSearch] = useState('');
 
   const { data: feeds } = useSuspenseQuery(feedsOptions(newsletterId));
+  const { data: feedImports } = useSuspenseQuery(
+    feedImportsOptions(newsletterId),
+  );
 
+  const isEmpty = feeds.length === 0;
+  const showEmptyState = isEmpty && feedImports.length === 0;
   const query = search.trim().toLowerCase();
   const filteredFeeds = (
     query
@@ -154,7 +161,9 @@ export const FeedsList = ({ newsletterId }: Props) => {
         </Button>
       </div>
 
-      {feeds.length === 0 ? (
+      <FeedImportsList newsletterId={newsletterId} imports={feedImports} />
+
+      {showEmptyState && (
         <EmptyState
           className="px-0 md:px-0"
           title="No feeds yet"
@@ -165,124 +174,127 @@ export const FeedsList = ({ newsletterId }: Props) => {
             </Button>
           }
         />
-      ) : query && filteredFeeds.length === 0 ? (
-        <EmptyState
-          className="px-0 md:px-0"
-          title="No matches"
-          description={
-            <>
-              None of your {feeds.length} feeds match &ldquo;{query}&rdquo;.
-            </>
-          }
-          action={
-            <Button variant="outline" onClick={() => setSearch('')}>
-              Clear search
-            </Button>
-          }
-        />
-      ) : (
-        <ListPanel>
-          {filteredFeeds.map((feed) => {
-            const isActive = feed.status === 'active';
-
-            return (
-              <div key={feed.id} className={cn('group', listRowClass)}>
-                <Link
-                  to="/newsletters/$newsletterId/feeds/$feedId"
-                  params={{ newsletterId, feedId: feed.id }}
-                  className="min-w-0 flex-1"
-                >
-                  <p className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        'truncate font-medium group-hover:underline',
-                        !isActive && 'text-muted-foreground',
-                      )}
-                    >
-                      {feed.alias || feed.title}
-                    </span>
-                    <FeedStatusBadge status={feed.status} />
-                    <FeedHealthBadge health={feed.health} />
-                  </p>
-                  <p className="mt-0.5 hidden truncate font-mono text-xs text-muted-foreground md:block">
-                    {feed.url}
-                  </p>
-                  {feed.description && (
-                    <p className="mt-0.5 truncate text-sm text-muted-foreground md:hidden">
-                      {feed.description}
-                    </p>
-                  )}
-                </Link>
-
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-11 shrink-0 text-muted-foreground md:hidden"
-                  onClick={() => setActionsFeed(feed)}
-                  aria-label={`Actions for ${feed.alias || feed.title}`}
-                >
-                  <MoreVertical className="size-5" />
-                </Button>
-
-                <div className="hidden shrink-0 items-center gap-0.5 text-muted-foreground md:flex">
-                  {buildFeedActions(feed).map((action) => {
-                    const Icon = action.icon;
-                    const iconButtonClass = buttonVariants({
-                      variant: 'ghost',
-                      size: 'icon-sm',
-                    });
-
-                    if (action.kind === 'external') {
-                      return (
-                        <a
-                          key={action.key}
-                          href={action.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={action.label}
-                          title={action.label}
-                          className={iconButtonClass}
-                        >
-                          <Icon />
-                        </a>
-                      );
-                    }
-
-                    if (action.kind === 'configure') {
-                      return (
-                        <Link
-                          key={action.key}
-                          to="/newsletters/$newsletterId/feeds/$feedId"
-                          params={{ newsletterId, feedId: action.feedId }}
-                          aria-label={action.label}
-                          title={action.label}
-                          className={iconButtonClass}
-                        >
-                          <Icon />
-                        </Link>
-                      );
-                    }
-
-                    return (
-                      <Button
-                        key={action.key}
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={action.onSelect}
-                        disabled={action.disabled}
-                        aria-label={action.label}
-                        title={action.label}
-                      >
-                        <Icon />
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </ListPanel>
       )}
+
+      {!isEmpty &&
+        (query && filteredFeeds.length === 0 ? (
+          <EmptyState
+            className="px-0 md:px-0"
+            title="No matches"
+            description={
+              <>
+                None of your {feeds.length} feeds match &ldquo;{query}&rdquo;.
+              </>
+            }
+            action={
+              <Button variant="outline" onClick={() => setSearch('')}>
+                Clear search
+              </Button>
+            }
+          />
+        ) : (
+          <ListPanel>
+            {filteredFeeds.map((feed) => {
+              const isActive = feed.status === 'active';
+
+              return (
+                <div key={feed.id} className={cn('group', listRowClass)}>
+                  <Link
+                    to="/newsletters/$newsletterId/feeds/$feedId"
+                    params={{ newsletterId, feedId: feed.id }}
+                    className="min-w-0 flex-1"
+                  >
+                    <p className="flex items-center gap-2">
+                      <span
+                        className={cn(
+                          'truncate font-medium group-hover:underline',
+                          !isActive && 'text-muted-foreground',
+                        )}
+                      >
+                        {feed.alias || feed.title}
+                      </span>
+                      <FeedStatusBadge status={feed.status} />
+                      <FeedHealthBadge health={feed.health} />
+                    </p>
+                    <p className="mt-0.5 hidden truncate font-mono text-xs text-muted-foreground md:block">
+                      {feed.url}
+                    </p>
+                    {feed.description && (
+                      <p className="mt-0.5 truncate text-sm text-muted-foreground md:hidden">
+                        {feed.description}
+                      </p>
+                    )}
+                  </Link>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-11 shrink-0 text-muted-foreground md:hidden"
+                    onClick={() => setActionsFeed(feed)}
+                    aria-label={`Actions for ${feed.alias || feed.title}`}
+                  >
+                    <MoreVertical className="size-5" />
+                  </Button>
+
+                  <div className="hidden shrink-0 items-center gap-0.5 text-muted-foreground md:flex">
+                    {buildFeedActions(feed).map((action) => {
+                      const Icon = action.icon;
+                      const iconButtonClass = buttonVariants({
+                        variant: 'ghost',
+                        size: 'icon-sm',
+                      });
+
+                      if (action.kind === 'external') {
+                        return (
+                          <a
+                            key={action.key}
+                            href={action.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={action.label}
+                            title={action.label}
+                            className={iconButtonClass}
+                          >
+                            <Icon />
+                          </a>
+                        );
+                      }
+
+                      if (action.kind === 'configure') {
+                        return (
+                          <Link
+                            key={action.key}
+                            to="/newsletters/$newsletterId/feeds/$feedId"
+                            params={{ newsletterId, feedId: action.feedId }}
+                            aria-label={action.label}
+                            title={action.label}
+                            className={iconButtonClass}
+                          >
+                            <Icon />
+                          </Link>
+                        );
+                      }
+
+                      return (
+                        <Button
+                          key={action.key}
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={action.onSelect}
+                          disabled={action.disabled}
+                          aria-label={action.label}
+                          title={action.label}
+                        >
+                          <Icon />
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </ListPanel>
+        ))}
 
       <Sheet
         open={!!actionsFeed}

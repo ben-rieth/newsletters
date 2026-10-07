@@ -12,6 +12,37 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const addImportedNewsletterFeed = `-- name: AddImportedNewsletterFeed :one
+INSERT INTO newsletter_feed (newsletter_id, feed_id, user_id, alias, status)
+SELECT $1::UUID, $2::UUID, $3::UUID, $4::TEXT, $5::newsletter_status
+WHERE NOT EXISTS (
+    SELECT 1 FROM newsletter_feed AS dup
+    WHERE dup.newsletter_id = $1::UUID AND dup.feed_id = $2::UUID
+)
+RETURNING id
+`
+
+type AddImportedNewsletterFeedParams struct {
+	NewsletterID string
+	FeedID       string
+	UserID       string
+	Alias        string
+	Status       NewsletterStatus
+}
+
+func (q *Queries) AddImportedNewsletterFeed(ctx context.Context, arg AddImportedNewsletterFeedParams) (string, error) {
+	row := q.db.QueryRow(ctx, addImportedNewsletterFeed,
+		arg.NewsletterID,
+		arg.FeedID,
+		arg.UserID,
+		arg.Alias,
+		arg.Status,
+	)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const addNewsletterFeed = `-- name: AddNewsletterFeed :exec
 INSERT INTO newsletter_feed (newsletter_id, feed_id, user_id, alias) VALUES ($1, $2, $3, $4)
 `
@@ -263,6 +294,35 @@ func (q *Queries) GetFeedById(ctx context.Context, arg GetFeedByIdParams) (GetFe
 		&i.LastRetrievedAt,
 	)
 	return i, err
+}
+
+const getFeedIdsForUrls = `-- name: GetFeedIdsForUrls :many
+SELECT url, feed_id FROM feed_url WHERE url = ANY($1::TEXT[])
+`
+
+type GetFeedIdsForUrlsRow struct {
+	Url    string
+	FeedID string
+}
+
+func (q *Queries) GetFeedIdsForUrls(ctx context.Context, urls []string) ([]GetFeedIdsForUrlsRow, error) {
+	rows, err := q.db.Query(ctx, getFeedIdsForUrls, urls)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetFeedIdsForUrlsRow
+	for rows.Next() {
+		var i GetFeedIdsForUrlsRow
+		if err := rows.Scan(&i.Url, &i.FeedID); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getFeedItemsPublishedAfter = `-- name: GetFeedItemsPublishedAfter :many

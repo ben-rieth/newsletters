@@ -27,17 +27,24 @@ type BaseFeed struct {
 
 type FeedFilter struct {
 	Id       string            `json:"id"`
-	Field    db.FilterField    `json:"field"`
-	Operator db.FilterOperator `json:"operator"`
+	Field    db.FilterField    `json:"field" enum:"title,url"`
+	Operator db.FilterOperator `json:"operator" enum:"contains,does_not_contain"`
 	Pattern  string            `json:"pattern"`
 }
 
 type ExportableFeed struct {
-	ID       string       `json:"id"`
-	GlobalID string       `json:"globalId"`
-	Name     string       `json:"name"`
-	Alias    string       `json:"alias"`
-	URL      string       `json:"url"`
-	Status   string       `json:"status"`
-	Filters  []FeedFilter `json:"filters"`
+	ID       string             `json:"id" required:"false"`
+	GlobalID string             `json:"globalId" required:"false"`
+	Name     string             `json:"name" required:"false"`
+	Alias    string             `json:"alias" required:"false"`
+	URL      string             `json:"url" minLength:"1" maxLength:"2048"`
+	Status   string             `json:"status" enum:"active,inactive" required:"false"`
+	Filters  []ExportableFilter `json:"filters" required:"false"`
+}
+
+type ExportableFilter struct {
+	Id       string            `json:"id" required:"false"`
+	Field    db.FilterField    `json:"field" enum:"title,url"`
+	Operator db.FilterOperator `json:"operator" enum:"contains,does_not_contain"`
+	Pattern  string            `json:"pattern"`
 }

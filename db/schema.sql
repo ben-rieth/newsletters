@@ -1,4 +1,4 @@
-\restrict ZMsjQCPPRi7fsD65Gdl6uT700ywYHqizzlu8BKLBM7P8oXWzVMRMQdiHO4Q2biQ
+\restrict oYLItstV2wpb0wQn4vF5sdJLcAYgNuTPSfne26g2llQuWCUMu10BhShxuDdV1K7
 
 -- Dumped from database version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)
@@ -23,6 +23,16 @@ CREATE TYPE public.feed_fetch_failure_kind AS ENUM (
     'transport',
     'parse',
     'unsafe_url'
+);
+
+
+--
+-- Name: feed_import_state; Type: TYPE; Schema: public; Owner: -
+--
+
+CREATE TYPE public.feed_import_state AS ENUM (
+    'pending',
+    'failed'
 );
 
 
@@ -260,6 +270,25 @@ CREATE TABLE public.newsletter_feed_filter (
 
 
 --
+-- Name: newsletter_feed_import; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.newsletter_feed_import (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    newsletter_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    url text NOT NULL,
+    alias text DEFAULT ''::text NOT NULL,
+    status public.newsletter_status DEFAULT 'active'::public.newsletter_status NOT NULL,
+    filters jsonb DEFAULT '[]'::jsonb NOT NULL,
+    state public.feed_import_state DEFAULT 'pending'::public.feed_import_state NOT NULL,
+    error text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+--
 -- Name: newsletter_issue; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -417,6 +446,14 @@ ALTER TABLE ONLY public.feed_url
 
 ALTER TABLE ONLY public.newsletter_feed_filter
     ADD CONSTRAINT newsletter_feed_filter_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: newsletter_feed_import newsletter_feed_import_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed_import
+    ADD CONSTRAINT newsletter_feed_import_pkey PRIMARY KEY (id);
 
 
 --
@@ -584,6 +621,22 @@ ALTER TABLE ONLY public.newsletter_feed_filter
 
 
 --
+-- Name: newsletter_feed_import newsletter_feed_import_newsletter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed_import
+    ADD CONSTRAINT newsletter_feed_import_newsletter_id_fkey FOREIGN KEY (newsletter_id) REFERENCES public.newsletter(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
+-- Name: newsletter_feed_import newsletter_feed_import_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.newsletter_feed_import
+    ADD CONSTRAINT newsletter_feed_import_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
 -- Name: issue_item newsletter_feed_item_status_item_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -659,7 +712,7 @@ ALTER TABLE ONLY public.verification_token
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ZMsjQCPPRi7fsD65Gdl6uT700ywYHqizzlu8BKLBM7P8oXWzVMRMQdiHO4Q2biQ
+\unrestrict oYLItstV2wpb0wQn4vF5sdJLcAYgNuTPSfne26g2llQuWCUMu10BhShxuDdV1K7
 
 
 --
@@ -681,4 +734,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20260807120200'),
     ('20260809120000'),
     ('20260905120000'),
-    ('20260910120000');
+    ('20260910120000'),
+    ('20261006120000');

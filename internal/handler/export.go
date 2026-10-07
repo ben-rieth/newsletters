@@ -53,23 +53,11 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 
 		exportableNls := make([]newsletters.ExportableNewsletter, 0, len(nls))
 		for _, nl := range nls {
-			exportableNls = append(
-				exportableNls,
-				newsletters.ExportableNewsletter{
-					ID:           nl.ID,
-					Name:         nl.Name,
-					Frequency:    string(nl.Frequency),
-					SendDay:      int(nl.SendDay),
-					SendHour:     int(nl.SendHour),
-					SendMinute:   int(nl.SendMinute),
-					SendTimezone: nl.SendTimezone,
-					Feeds:        feedsByNl[nl.ID],
-				},
-			)
+			exportableNls = append(exportableNls, newsletters.DbNewsletterToExportable(nl, feedsByNl[nl.ID]))
 		}
 
 		export := newsletters.NewslettersExport{
-			Version:     1,
+			Version:     newsletters.ExportVersion,
 			ExportedAt:  time.Now(),
 			Newsletters: exportableNls,
 		}
@@ -119,18 +107,11 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 		}
 
 		export := newsletters.NewslettersExport{
-			Version:    1,
+			Version:    newsletters.ExportVersion,
 			ExportedAt: time.Now(),
-			Newsletters: []newsletters.ExportableNewsletter{{
-				ID:           nl.ID,
-				Name:         nl.Name,
-				Frequency:    string(nl.Frequency),
-				SendDay:      int(nl.SendDay),
-				SendHour:     int(nl.SendHour),
-				SendMinute:   int(nl.SendMinute),
-				SendTimezone: nl.SendTimezone,
-				Feeds:        feedsByNl[nl.ID],
-			}},
+			Newsletters: []newsletters.ExportableNewsletter{
+				newsletters.DbNewsletterToExportable(nl, feedsByNl[nl.ID]),
+			},
 		}
 
 		return &huma.StreamResponse{
@@ -172,11 +153,11 @@ func (h *ExportHander) getFeedsByNl(
 		return nil, err
 	}
 
-	filtersByFeed := make(map[string][]feeds.FeedFilter)
+	filtersByFeed := make(map[string][]feeds.ExportableFilter)
 	for _, filter := range filters {
 		filtersByFeed[filter.NewsletterFeedID] = append(
 			filtersByFeed[filter.NewsletterFeedID],
-			feeds.FeedFilter{
+			feeds.ExportableFilter{
 				Id:       filter.ID,
 				Field:    filter.Field,
 				Operator: filter.Operator,

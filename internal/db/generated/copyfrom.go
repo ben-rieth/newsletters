@@ -9,6 +9,43 @@ import (
 	"context"
 )
 
+// iteratorForCreateFeedImports implements pgx.CopyFromSource.
+type iteratorForCreateFeedImports struct {
+	rows                 []CreateFeedImportsParams
+	skippedFirstNextCall bool
+}
+
+func (r *iteratorForCreateFeedImports) Next() bool {
+	if len(r.rows) == 0 {
+		return false
+	}
+	if !r.skippedFirstNextCall {
+		r.skippedFirstNextCall = true
+		return true
+	}
+	r.rows = r.rows[1:]
+	return len(r.rows) > 0
+}
+
+func (r iteratorForCreateFeedImports) Values() ([]interface{}, error) {
+	return []interface{}{
+		r.rows[0].NewsletterID,
+		r.rows[0].UserID,
+		r.rows[0].Url,
+		r.rows[0].Alias,
+		r.rows[0].Status,
+		r.rows[0].Filters,
+	}, nil
+}
+
+func (r iteratorForCreateFeedImports) Err() error {
+	return nil
+}
+
+func (q *Queries) CreateFeedImports(ctx context.Context, arg []CreateFeedImportsParams) (int64, error) {
+	return q.db.CopyFrom(ctx, []string{"newsletter_feed_import"}, []string{"newsletter_id", "user_id", "url", "alias", "status", "filters"}, &iteratorForCreateFeedImports{rows: arg})
+}
+
 // iteratorForSaveFeedItemDetails implements pgx.CopyFromSource.
 type iteratorForSaveFeedItemDetails struct {
 	rows                 []SaveFeedItemDetailsParams

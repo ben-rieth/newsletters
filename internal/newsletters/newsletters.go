@@ -7,27 +7,40 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 )
 
-type ExportableNewsletter struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	Frequency    string                 `json:"frequency"`
-	SendDay      int                    `json:"sendDay"`
-	SendHour     int                    `json:"sendHour"`
-	SendMinute   int                    `json:"sendMinute"`
-	SendTimezone string                 `json:"sendTimezone"`
-	Feeds        []feeds.ExportableFeed `json:"feeds"`
-}
+const ExportVersion = 2
 
-type NewsletterExport struct {
-	Version    int                  `json:"version"`
-	ExportedAt time.Time            `json:"exportedAt"`
-	Newsletter ExportableNewsletter `json:"newsletter"`
+type ExportableNewsletter struct {
+	ID            string                 `json:"id" required:"false"`
+	Name          string                 `json:"name" minLength:"1"`
+	Frequency     string                 `json:"frequency" enum:"daily,weekly,monthly"`
+	SendDay       int                    `json:"sendDay" minimum:"0" maximum:"31"`
+	SendHour      int                    `json:"sendHour" minimum:"0" maximum:"23"`
+	SendMinute    int                    `json:"sendMinute" minimum:"0" maximum:"59"`
+	SendTimezone  string                 `json:"sendTimezone"`
+	Status        string                 `json:"status" enum:"active,inactive" required:"false"`
+	SendWhenEmpty bool                   `json:"sendWhenEmpty" required:"false"`
+	Feeds         []feeds.ExportableFeed `json:"feeds" maxItems:"500"`
 }
 
 type NewslettersExport struct {
-	Version     int                    `json:"version"`
-	ExportedAt  time.Time              `json:"exportedAt"`
-	Newsletters []ExportableNewsletter `json:"newsletters"`
+	Version     int                    `json:"version" enum:"1,2"`
+	ExportedAt  time.Time              `json:"exportedAt" required:"false"`
+	Newsletters []ExportableNewsletter `json:"newsletters" maxItems:"100"`
+}
+
+func DbNewsletterToExportable(nl db.Newsletter, nlFeeds []feeds.ExportableFeed) ExportableNewsletter {
+	return ExportableNewsletter{
+		ID:            nl.ID,
+		Name:          nl.Name,
+		Frequency:     string(nl.Frequency),
+		SendDay:       int(nl.SendDay),
+		SendHour:      int(nl.SendHour),
+		SendMinute:    int(nl.SendMinute),
+		SendTimezone:  nl.SendTimezone,
+		Status:        string(nl.Status),
+		SendWhenEmpty: nl.SendWhenEmpty,
+		Feeds:         nlFeeds,
+	}
 }
 
 type Issue struct {

@@ -263,6 +263,43 @@ func (q *Queries) GetSendableNewsletter(ctx context.Context, id string) (GetSend
 	return i, err
 }
 
+const importNewsletter = `-- name: ImportNewsletter :one
+INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time, status, send_when_empty, user_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING id
+`
+
+type ImportNewsletterParams struct {
+	Name          string
+	Frequency     Frequency
+	SendDay       int32
+	SendHour      int32
+	SendMinute    int32
+	SendTimezone  string
+	NextSendTime  time.Time
+	Status        NewsletterStatus
+	SendWhenEmpty bool
+	UserID        string
+}
+
+func (q *Queries) ImportNewsletter(ctx context.Context, arg ImportNewsletterParams) (string, error) {
+	row := q.db.QueryRow(ctx, importNewsletter,
+		arg.Name,
+		arg.Frequency,
+		arg.SendDay,
+		arg.SendHour,
+		arg.SendMinute,
+		arg.SendTimezone,
+		arg.NextSendTime,
+		arg.Status,
+		arg.SendWhenEmpty,
+		arg.UserID,
+	)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const listNewsletters = `-- name: ListNewsletters :many
 SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at, original_next_send_time, send_when_empty FROM newsletter
 WHERE user_id = $1

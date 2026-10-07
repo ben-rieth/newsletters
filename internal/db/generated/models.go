@@ -56,6 +56,48 @@ func (ns NullFeedFetchFailureKind) Value() (driver.Value, error) {
 	return string(ns.FeedFetchFailureKind), nil
 }
 
+type FeedImportState string
+
+const (
+	FeedImportStatePending FeedImportState = "pending"
+	FeedImportStateFailed  FeedImportState = "failed"
+)
+
+func (e *FeedImportState) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = FeedImportState(s)
+	case string:
+		*e = FeedImportState(s)
+	default:
+		return fmt.Errorf("unsupported scan type for FeedImportState: %T", src)
+	}
+	return nil
+}
+
+type NullFeedImportState struct {
+	FeedImportState FeedImportState
+	Valid           bool // Valid is true if FeedImportState is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullFeedImportState) Scan(value interface{}) error {
+	if value == nil {
+		ns.FeedImportState, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.FeedImportState.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullFeedImportState) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.FeedImportState), nil
+}
+
 type FeedUrlSource string
 
 const (
@@ -462,6 +504,20 @@ type NewsletterFeedFilter struct {
 	Pattern          string
 	CreatedAt        time.Time
 	UpdatedAt        time.Time
+}
+
+type NewsletterFeedImport struct {
+	ID           string
+	NewsletterID string
+	UserID       string
+	Url          string
+	Alias        string
+	Status       NewsletterStatus
+	Filters      []byte
+	State        FeedImportState
+	Error        string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type NewsletterIssue struct {

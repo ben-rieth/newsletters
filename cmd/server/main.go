@@ -69,6 +69,11 @@ func main() {
 
 	userService := users.NewUserService(queries, pool)
 
+	importService := newsletters.NewImportService(queries, pool, feedsService, jobQueue)
+	if err := importService.ResumePendingImports(ctx); err != nil {
+		log.Printf("Could not resume pending feed imports: %v", err)
+	}
+
 	scheduler := newsletters.NewScheduler(
 		newsletterService,
 		issuesService,
@@ -155,6 +160,9 @@ func main() {
 
 	exportHandler := handler.NewExportHandler(queries)
 	exportHandler.RegisterRoutes(protectedApi)
+
+	importHandler := handler.NewImportHandler(queries, importService)
+	importHandler.RegisterRoutes(protectedApi)
 
 	issuesHandler := handler.NewIssuesHandler(queries, issuesService)
 	issuesHandler.RegisterRoutes(protectedApi)

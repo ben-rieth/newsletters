@@ -2,6 +2,7 @@ import { createFileRoute, Outlet } from '@tanstack/react-router';
 import { RouteNotFoundComponent } from '#/components/RouteBoundaries';
 import { newsletterOptions } from '#/features/newsletters/queries/newsletters';
 import { feedsOptions } from '#/features/newsletters/queries/feeds';
+import { feedImportsOptions } from '#/features/newsletters/queries/feedImports';
 import { issuesOptions } from '#/features/issues/queries/issues';
 
 export const Route = createFileRoute('/newsletters/$newsletterId')({
@@ -13,6 +14,9 @@ export const Route = createFileRoute('/newsletters/$newsletterId')({
       ),
       context.queryClient.ensureQueryData(feedsOptions(params.newsletterId)),
       context.queryClient.ensureQueryData(issuesOptions),
+      context.queryClient.ensureQueryData(
+        feedImportsOptions(params.newsletterId),
+      ),
     ]);
   },
   notFoundComponent: () => (

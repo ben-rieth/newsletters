@@ -40,7 +40,12 @@ func (s *UserService) DeleteUser(ctx context.Context, userId string) error {
 // Every table referencing app_user is ON DELETE RESTRICT, so the user row can
 // only go once all of these have. Order matters.
 func deleteUser(ctx context.Context, qtx *db.Queries, userId string) error {
-	err := qtx.DeleteNewsletterFeedItemStatuses(ctx, userId)
+	err := qtx.DeleteFeedImportsForUser(ctx, userId)
+	if err != nil {
+		return err
+	}
+
+	err = qtx.DeleteNewsletterFeedItemStatuses(ctx, userId)
 	if err != nil {
 		return err
 	}

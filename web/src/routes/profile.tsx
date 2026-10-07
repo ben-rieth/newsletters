@@ -10,6 +10,7 @@ import { useMobileHeader } from '#/components/MobileHeader';
 import useLogout from '#/features/auth/queries/hooks/useLogout';
 import useExportNewsletters from '#/features/newsletters/queries/hooks/useExportNewsletters';
 import IssueRetentionSetting from '#/features/issues/components/IssueRetentionSetting';
+import { ImportNewslettersButton } from '#/features/newsletters/components/ImportNewslettersButton';
 
 const ProfilePage = () => {
   const { data: user } = useSuspenseQuery(userOptions);
@@ -71,6 +72,13 @@ const ProfilePage = () => {
           >
             {exportAll.isPending ? 'Exporting…' : 'Export all newsletters'}
           </Button>
+        </SettingsRow>
+
+        <SettingsRow
+          title="Import newsletters"
+          description="Recreate newsletters from a Slowfeed export file. Every newsletter in the file is created as new, and feeds not already in Slowfeed are added in the background."
+        >
+          <ImportNewslettersButton />
         </SettingsRow>
       </SettingsSection>
 

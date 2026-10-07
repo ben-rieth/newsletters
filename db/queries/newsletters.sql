@@ -104,3 +104,7 @@ WHERE unsubscribe_token = $1;
 
 -- name: DeactivateNewsletterByUnsubscribeToken :exec
 UPDATE newsletter SET status = 'inactive', unsubscribe_token = gen_random_uuid() WHERE unsubscribe_token = $1;
+-- name: ImportNewsletter :one
+INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time, status, send_when_empty, user_id)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING id;

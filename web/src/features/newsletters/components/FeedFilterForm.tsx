@@ -52,10 +52,8 @@ export const FeedFilterForm = ({
 
   const form = useForm({
     defaultValues: {
-      field: (filter?.field ?? 'title') as 'title' | 'url',
-      operator: (filter?.operator ?? 'contains') as
-        | 'contains'
-        | 'does_not_contain',
+      field: filter?.field ?? 'title',
+      operator: filter?.operator ?? 'contains',
       pattern: filter?.pattern ?? '',
     },
     validators: { onChange: filterSchema },

@@ -174,6 +174,23 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/import': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Creates newsletters from a JSON export; feeds are added in the background */
+    post: operations['import-newsletters'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/issues': {
     parameters: {
       query?: never;
@@ -272,6 +289,54 @@ export interface paths {
     put?: never;
     /** Add a feed to a newsletter */
     post: operations['add-feed'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/newsletter/{newsletterId}/feed-imports': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations['list-feed-imports'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/newsletter/{newsletterId}/feed-imports/{importId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete: operations['delete-feed-import'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/newsletter/{newsletterId}/feed-imports/{importId}/retry': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations['retry-feed-import'];
     delete?: never;
     options?: never;
     head?: never;
@@ -708,10 +773,47 @@ export interface components {
       alias: string;
       newsletterName: string;
     };
+    ExportableFeed: {
+      alias?: string;
+      filters?: components['schemas']['ExportableFilter'][] | null;
+      globalId?: string;
+      id?: string;
+      name?: string;
+      /** @enum {string} */
+      status?: 'active' | 'inactive';
+      url: string;
+    };
+    ExportableFilter: {
+      /** @enum {string} */
+      field: 'title' | 'url';
+      id?: string;
+      /** @enum {string} */
+      operator: 'contains' | 'does_not_contain';
+      pattern: string;
+    };
+    ExportableNewsletter: {
+      feeds: components['schemas']['ExportableFeed'][] | null;
+      /** @enum {string} */
+      frequency: 'daily' | 'weekly' | 'monthly';
+      id?: string;
+      name: string;
+      /** Format: int64 */
+      sendDay: number;
+      /** Format: int64 */
+      sendHour: number;
+      /** Format: int64 */
+      sendMinute: number;
+      sendTimezone: string;
+      sendWhenEmpty?: boolean;
+      /** @enum {string} */
+      status?: 'active' | 'inactive';
+    };
     FeedFilter: {
-      field: string;
+      /** @enum {string} */
+      field: 'title' | 'url';
       id: string;
-      operator: string;
+      /** @enum {string} */
+      operator: 'contains' | 'does_not_contain';
       pattern: string;
     };
     FeedHealth: {
@@ -724,6 +826,14 @@ export interface components {
       lastSuccessAt: string;
       /** @enum {string} */
       status: 'ok' | 'failing' | 'disabled';
+    };
+    FeedImport: {
+      alias: string;
+      error: string;
+      id: string;
+      /** @enum {string} */
+      state: 'pending' | 'failed';
+      url: string;
     };
     FeedMetaData: {
       Description: string;
@@ -752,6 +862,17 @@ export interface components {
         | components['schemas']['ExistingRecievedFeed'][]
         | null;
       metadata: components['schemas']['FeedMetaData'];
+    };
+    ImportResult: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/ImportResult.json
+       */
+      readonly $schema?: string;
+      newsletterIds: string[] | null;
+      /** Format: int64 */
+      pendingFeeds: number;
     };
     Issue: {
       issueId: string;
@@ -804,6 +925,7 @@ export interface components {
        * @example https://example.com/schemas/MoveFeedInputBody.json
        */
       readonly $schema?: string;
+      /** Format: uuid */
       newsletterId: string;
     };
     Newsletter: {
@@ -837,6 +959,22 @@ export interface components {
       status: string;
       /** Format: date-time */
       updatedAt: string;
+    };
+    NewslettersExport: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/NewslettersExport.json
+       */
+      readonly $schema?: string;
+      /** Format: date-time */
+      exportedAt?: string;
+      newsletters: components['schemas']['ExportableNewsletter'][] | null;
+      /**
+       * Format: int64
+       * @enum {integer}
+       */
+      version: 1 | 2;
     };
     OneOffSendInput: {
       /**
@@ -1346,6 +1484,39 @@ export interface operations {
       };
     };
   };
+  'import-newsletters': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['NewslettersExport'];
+      };
+    };
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['ImportResult'];
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
   'get-issues': {
     parameters: {
       query?: never;
@@ -1577,6 +1748,97 @@ export interface operations {
         'application/json': components['schemas']['SubmittableFeedFields'];
       };
     };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'list-feed-imports': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        newsletterId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['FeedImport'][] | null;
+        };
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'delete-feed-import': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        newsletterId: string;
+        importId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'retry-feed-import': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        newsletterId: string;
+        importId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
     responses: {
       /** @description No Content */
       204: {

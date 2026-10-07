@@ -4,6 +4,9 @@ FROM feed_url AS furl
 INNER JOIN feed AS f ON furl.feed_id = f.id 
 WHERE furl.url = $1;
 
+-- name: GetFeedIdsForUrls :many
+SELECT url, feed_id FROM feed_url WHERE url = ANY(@urls::TEXT[]);
+
 -- name: DoesUserAlreadyRecieveFeed :many
 SELECT nlf.alias, n.name FROM newsletter_feed AS nlf
 INNER JOIN newsletter AS n ON nlf.newsletter_id = n.id
@@ -192,3 +195,12 @@ WHERE nlf.id = @id AND nlf.newsletter_id = @newsletter_id AND nlf.user_id = @use
         SELECT 1 FROM newsletter_feed AS dup
         WHERE dup.newsletter_id = @target_newsletter_id AND dup.feed_id = nlf.feed_id
     );
+
+-- name: AddImportedNewsletterFeed :one
+INSERT INTO newsletter_feed (newsletter_id, feed_id, user_id, alias, status)
+SELECT @newsletter_id::UUID, @feed_id::UUID, @user_id::UUID, @alias::TEXT, @status::newsletter_status
+WHERE NOT EXISTS (
+    SELECT 1 FROM newsletter_feed AS dup
+    WHERE dup.newsletter_id = @newsletter_id::UUID AND dup.feed_id = @feed_id::UUID
+)
+RETURNING id;
