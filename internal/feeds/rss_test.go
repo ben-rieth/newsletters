@@ -1,8 +1,10 @@
 package feeds
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
@@ -70,5 +72,54 @@ func TestFetchErrorUnwrapsItsCause(t *testing.T) {
 func TestErrFeedDisabledIsAUserError(t *testing.T) {
 	if !errors.Is(ErrFeedDisabled, utils.UserError) {
 		t.Error("ErrFeedDisabled is not a UserError, so a paused feed would be reported as a server fault")
+	}
+}
+
+// A blocked host and an unresolvable one must read the same to the caller, or
+// the message reveals which hostnames point inside the network.
+func TestFetchFeedDoesNotRevealInternalHosts(t *testing.T) {
+	service := NewRssService()
+
+	_, blockedErr := service.FetchFeed(context.Background(), "https://127.0.0.1/feed")
+
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, unresolvedErr := service.FetchFeed(cancelled, "https://feeds.example.com/feed")
+
+	blocked := DescribeFetchError(blockedErr)
+	unresolved := DescribeFetchError(unresolvedErr)
+	if blocked != unresolved {
+		t.Fatalf("blocked host says %q but unresolvable host says %q", blocked, unresolved)
+	}
+}
+
+func TestParseFeedBodyParsesRSS(t *testing.T) {
+	body := `<?xml version="1.0"?><rss version="2.0"><channel><title>Example</title></channel></rss>`
+
+	feed, err := parseFeedBody(strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("parseFeedBody: %v", err)
+	}
+	if feed.Title != "Example" {
+		t.Errorf("title = %q, want Example", feed.Title)
+	}
+}
+
+func TestParseFeedBodyRejectsOversizedResponses(t *testing.T) {
+	body := strings.NewReader(strings.Repeat("a", maxFeedBytes+1))
+
+	_, err := parseFeedBody(body)
+	if got := DescribeFetchError(err); got != "Feed is larger than 10 MB" {
+		t.Fatalf("got %q, want the size limit message", got)
+	}
+	if !errors.Is(err, utils.UserError) {
+		t.Error("oversized feed should be reported as the feed's fault, not the server's")
+	}
+}
+
+func TestParseFeedBodyRejectsNonFeeds(t *testing.T) {
+	_, err := parseFeedBody(strings.NewReader("<html>not a feed</html>"))
+	if got := DescribeFetchError(err); got != "Feed response was not valid RSS or Atom" {
+		t.Fatalf("got %q, want the parse failure message", got)
 	}
 }

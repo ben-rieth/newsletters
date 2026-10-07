@@ -394,7 +394,7 @@ func (h *FeedHandler) handleGetFeedMetaData(ctx context.Context, i *getFeedMetaD
 		return nil, unauthorizedError()
 	}
 
-	err := feeds.IsSafeFeedUrl(i.Body.URL)
+	err := feeds.IsSafeFeedUrl(ctx, i.Body.URL)
 	if err != nil {
 		return nil, badRequestError("Invalid Url")
 	}

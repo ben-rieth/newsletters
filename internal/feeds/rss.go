@@ -1,9 +1,11 @@
 package feeds
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -80,10 +82,18 @@ func NewRssService() *RssService {
 }
 
 func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResult, error) {
-	err := IsSafeFeedUrl(url)
+	// Unresolvable and internal hosts share one message so the response can't
+	// be used to discover which hostnames point inside the network.
+	err := IsSafeFeedUrl(ctx, url)
 	if errors.Is(err, hostResolutionError) {
 		return nil, &FetchError{
 			Kind:    db.FeedFetchFailureKindTransport,
+			Message: "Feed could not be reached",
+			err:     utils.UserError,
+		}
+	} else if errors.Is(err, invalidIPError) {
+		return nil, &FetchError{
+			Kind:    db.FeedFetchFailureKindUnsafeUrl,
 			Message: "Feed could not be reached",
 			err:     utils.UserError,
 		}
@@ -105,6 +115,13 @@ func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResul
 	}
 
 	res, err := s.httpClient.Do(req)
+	if errors.Is(err, errInsecureRedirect) {
+		return nil, &FetchError{
+			Kind:    db.FeedFetchFailureKindUnsafeUrl,
+			Message: errInsecureRedirect.Error(),
+			err:     utils.UserError,
+		}
+	}
 	if err != nil {
 		wideLog.AddErrorField(ctx, err)
 		return nil, &FetchError{
@@ -130,15 +147,10 @@ func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResul
 
 	finalUrl := res.Request.URL.String()
 
-	fp := gofeed.NewParser()
-	feed, err := fp.Parse(res.Body)
+	feed, err := parseFeedBody(res.Body)
 	if err != nil {
 		wideLog.AddErrorField(ctx, err)
-		return nil, &FetchError{
-			Kind:    db.FeedFetchFailureKindParse,
-			Message: "Feed response was not valid RSS or Atom",
-			err:     utils.SystemError,
-		}
+		return nil, err
 	}
 
 	retrievedAt := time.Now()
@@ -149,4 +161,38 @@ func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResul
 		OriginalUrl: url,
 		RetrievedAt: retrievedAt,
 	}, nil
+}
+
+// Real feeds are well under a megabyte; the cap stops a hostile or broken URL
+// from streaming until the client timeout and holding all of it in memory.
+const maxFeedBytes = 10 << 20
+
+func parseFeedBody(body io.Reader) (*gofeed.Feed, error) {
+	data, err := io.ReadAll(io.LimitReader(body, maxFeedBytes+1))
+	if err != nil {
+		return nil, &FetchError{
+			Kind:    db.FeedFetchFailureKindTransport,
+			Message: "Feed could not be reached",
+			err:     utils.SystemError,
+		}
+	}
+
+	if len(data) > maxFeedBytes {
+		return nil, &FetchError{
+			Kind:    db.FeedFetchFailureKindParse,
+			Message: "Feed is larger than 10 MB",
+			err:     utils.UserError,
+		}
+	}
+
+	feed, err := gofeed.NewParser().Parse(bytes.NewReader(data))
+	if err != nil {
+		return nil, &FetchError{
+			Kind:    db.FeedFetchFailureKindParse,
+			Message: "Feed response was not valid RSS or Atom",
+			err:     utils.SystemError,
+		}
+	}
+
+	return feed, nil
 }

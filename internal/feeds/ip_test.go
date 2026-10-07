@@ -40,12 +40,28 @@ func TestIsSafeIP(t *testing.T) {
 		{name: "ipv6 unique local", ip: "fc00::1", want: false},
 		{name: "ipv6 unique local high", ip: "fdff::1", want: false},
 		{name: "ipv6 link local", ip: "fe80::1", want: false},
+		{name: "cgnat low", ip: "100.64.0.1", want: false},
+		{name: "cgnat high", ip: "100.127.255.254", want: false},
+		{name: "benchmarking", ip: "198.18.0.1", want: false},
+		{name: "benchmarking high", ip: "198.19.255.255", want: false},
+		{name: "multicast", ip: "224.0.0.1", want: false},
+		{name: "limited broadcast", ip: "255.255.255.255", want: false},
+		{name: "reserved", ip: "240.0.0.1", want: false},
+		{name: "ipv6 multicast", ip: "ff02::1", want: false},
+		{name: "nat64 embedding loopback", ip: "64:ff9b::7f00:1", want: false},
+		{name: "local-use nat64", ip: "64:ff9b:1::a00:1", want: false},
+		{name: "6to4 embedding private", ip: "2002:a00:1::1", want: false},
+		{name: "teredo", ip: "2001:0:4136:e378::1", want: false},
 
 		{name: "public dns", ip: "1.1.1.1", want: true},
 		{name: "public host", ip: "93.184.216.34", want: true},
 		{name: "just outside private class b", ip: "172.32.0.1", want: true},
 		{name: "just outside link local", ip: "169.255.0.1", want: true},
 		{name: "public ipv6", ip: "2606:4700::1111", want: true},
+		{name: "just outside cgnat", ip: "100.128.0.1", want: true},
+		{name: "just below cgnat", ip: "100.63.255.255", want: true},
+		{name: "just outside benchmarking", ip: "198.20.0.1", want: true},
+		{name: "public ipv6 sharing teredo's first hextet", ip: "2001:4860:4860::8888", want: true},
 	}
 
 	for _, tt := range tests {

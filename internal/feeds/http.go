@@ -1,12 +1,17 @@
 package feeds
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"syscall"
 	"time"
 )
+
+const maxFeedRedirects = 10
+
+var errInsecureRedirect = errors.New("Feed redirected to a non-HTTPS URL")
 
 func safeDialer() *net.Dialer {
 	return &net.Dialer{
@@ -31,9 +36,24 @@ func safeDialer() *net.Dialer {
 	}
 }
 
+// Feed URLs are checked for HTTPS up front, but Go follows redirects to any
+// scheme by default, so a feed could otherwise quietly downgrade to plain HTTP.
+func checkFeedRedirect(req *http.Request, via []*http.Request) error {
+	if req.URL.Scheme != "https" {
+		return errInsecureRedirect
+	}
+
+	if len(via) >= maxFeedRedirects {
+		return fmt.Errorf("stopped after %d redirects", maxFeedRedirects)
+	}
+
+	return nil
+}
+
 func newSafeFeedClient() *http.Client {
 	return &http.Client{
-		Timeout: 10 * time.Second,
+		Timeout:       10 * time.Second,
+		CheckRedirect: checkFeedRedirect,
 		Transport: &http.Transport{
 			DialContext: safeDialer().DialContext,
 		},
