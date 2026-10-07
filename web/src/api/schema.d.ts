@@ -859,8 +859,7 @@ export interface components {
        */
       readonly $schema?: string;
       existingRecievedFeeds:
-        | components['schemas']['ExistingRecievedFeed'][]
-        | null;
+        components['schemas']['ExistingRecievedFeed'][] | null;
       metadata: components['schemas']['FeedMetaData'];
     };
     ImportResult: {

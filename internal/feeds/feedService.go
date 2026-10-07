@@ -164,6 +164,21 @@ func (s *FeedService) saveFeedDetails(ctx context.Context, feed *FetchFeedResult
 
 	qtx := s.queries.WithTx(tx)
 
+	existing, err := qtx.GetFeedIdsForUrls(ctx, []string{feed.FinalUrl})
+	if err != nil {
+		return "", err
+	}
+	if len(existing) > 0 {
+		feedId := existing[0].FeedID
+		_, err = qtx.SaveFeedUrls(ctx, []db.SaveFeedUrlsParams{
+			buildUrlParams(feed.OriginalUrl, db.FeedUrlSourceUserSubmitted, feedId),
+		})
+		if err != nil {
+			return "", err
+		}
+		return feedId, tx.Commit(ctx)
+	}
+
 	feedId, err := qtx.SaveFeedDetails(ctx, db.SaveFeedDetailsParams{
 		Title:           feed.Feed.Title,
 		HtmlUrl:         feed.Feed.Link,

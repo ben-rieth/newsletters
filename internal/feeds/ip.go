@@ -33,8 +33,9 @@ func InitBlockedIPs() {
 		"224.0.0.0/4",
 		"240.0.0.0/4",
 
-		// IPv6 loopback - equivalent of 127.0.0.1
+		// IPv6 loopback and unspecified - equivalents of 127.0.0.1 and 0.0.0.0
 		"::1/128",
+		"::/128",
 
 		// IPv6 unique local - equivalent of RFC 1918 private ranges
 		"fc00::/7",

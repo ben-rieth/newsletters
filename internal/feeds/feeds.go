@@ -36,15 +36,15 @@ type ExportableFeed struct {
 	ID       string             `json:"id" required:"false"`
 	GlobalID string             `json:"globalId" required:"false"`
 	Name     string             `json:"name" required:"false"`
-	Alias    string             `json:"alias" required:"false"`
+	Alias    string             `json:"alias" required:"false" maxLength:"200"`
 	URL      string             `json:"url" minLength:"1" maxLength:"2048"`
 	Status   string             `json:"status" enum:"active,inactive" required:"false"`
-	Filters  []ExportableFilter `json:"filters" required:"false"`
+	Filters  []ExportableFilter `json:"filters" required:"false" maxItems:"50"`
 }
 
 type ExportableFilter struct {
 	Id       string            `json:"id" required:"false"`
 	Field    db.FilterField    `json:"field" enum:"title,url"`
 	Operator db.FilterOperator `json:"operator" enum:"contains,does_not_contain"`
-	Pattern  string            `json:"pattern"`
+	Pattern  string            `json:"pattern" maxLength:"500"`
 }

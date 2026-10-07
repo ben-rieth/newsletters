@@ -37,6 +37,7 @@ func TestIsSafeIP(t *testing.T) {
 		{name: "link local", ip: "169.254.0.1", want: false},
 		{name: "this network", ip: "0.0.0.0", want: false},
 		{name: "ipv6 loopback", ip: "::1", want: false},
+		{name: "ipv6 unspecified", ip: "::", want: false},
 		{name: "ipv6 unique local", ip: "fc00::1", want: false},
 		{name: "ipv6 unique local high", ip: "fdff::1", want: false},
 		{name: "ipv6 link local", ip: "fe80::1", want: false},

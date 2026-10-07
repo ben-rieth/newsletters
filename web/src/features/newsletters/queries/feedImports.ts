@@ -29,13 +29,13 @@ export const feedImportsOptions = (newsletterId: string) =>
       }
 
       const imports = data ?? [];
-      const stillPending = pendingIds(imports);
+      const currentIds = new Set(imports.map((i) => i.id));
       const previouslyPending = pendingIds(
         queryClient.getQueryData(feedImportsKeys.list(newsletterId)),
       );
       // A pending import that vanished has become a real feed.
-      if ([...previouslyPending].some((id) => !stillPending.has(id))) {
-        await queryClient.invalidateQueries({
+      if ([...previouslyPending].some((id) => !currentIds.has(id))) {
+        void queryClient.invalidateQueries({
           queryKey: feedsKeys.list(newsletterId),
         });
       }

@@ -11,12 +11,12 @@ const ExportVersion = 2
 
 type ExportableNewsletter struct {
 	ID            string                 `json:"id" required:"false"`
-	Name          string                 `json:"name" minLength:"1"`
+	Name          string                 `json:"name" minLength:"1" maxLength:"200"`
 	Frequency     string                 `json:"frequency" enum:"daily,weekly,monthly"`
 	SendDay       int                    `json:"sendDay" minimum:"0" maximum:"31"`
 	SendHour      int                    `json:"sendHour" minimum:"0" maximum:"23"`
 	SendMinute    int                    `json:"sendMinute" minimum:"0" maximum:"59"`
-	SendTimezone  string                 `json:"sendTimezone"`
+	SendTimezone  string                 `json:"sendTimezone" maxLength:"64"`
 	Status        string                 `json:"status" enum:"active,inactive" required:"false"`
 	SendWhenEmpty bool                   `json:"sendWhenEmpty" required:"false"`
 	Feeds         []feeds.ExportableFeed `json:"feeds" maxItems:"500"`
