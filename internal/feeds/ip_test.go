@@ -49,6 +49,7 @@ func TestIsSafeIP(t *testing.T) {
 		{name: "limited broadcast", ip: "255.255.255.255", want: false},
 		{name: "reserved", ip: "240.0.0.1", want: false},
 		{name: "ipv6 multicast", ip: "ff02::1", want: false},
+		{name: "ipv4-compatible embedding loopback", ip: "::7f00:1", want: false},
 		{name: "nat64 embedding loopback", ip: "64:ff9b::7f00:1", want: false},
 		{name: "local-use nat64", ip: "64:ff9b:1::a00:1", want: false},
 		{name: "6to4 embedding private", ip: "2002:a00:1::1", want: false},

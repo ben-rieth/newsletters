@@ -12,6 +12,9 @@ export const DAY_NAMES = [
   'Saturday',
 ];
 
+export const pluralize = (count: number, noun: string) =>
+  `${count} ${noun}${count === 1 ? '' : 's'}`;
+
 const padTime = (n: number) => String(n).padStart(2, '0');
 
 // Assumes sendDay follows JS Date.getDay() convention: 0=Sunday, 6=Saturday

@@ -170,8 +170,10 @@ func (s *FeedService) saveFeedDetails(ctx context.Context, feed *FetchFeedResult
 	}
 	if len(existing) > 0 {
 		feedId := existing[0].FeedID
-		_, err = qtx.SaveFeedUrls(ctx, []db.SaveFeedUrlsParams{
-			buildUrlParams(feed.OriginalUrl, db.FeedUrlSourceUserSubmitted, feedId),
+		err = qtx.SaveFeedUrl(ctx, db.SaveFeedUrlParams{
+			FeedID: feedId,
+			Url:    feed.OriginalUrl,
+			Source: db.FeedUrlSourceUserSubmitted,
 		})
 		if err != nil {
 			return "", err

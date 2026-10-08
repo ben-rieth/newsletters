@@ -28,6 +28,10 @@ INSERT INTO feed_item (feed_id, title, url, publish_date, retrieved_at) VALUES (
 -- name: SaveFeedUrls :copyfrom
 INSERT INTO feed_url (feed_id, url, source) VALUES ($1, $2, $3);
 
+-- name: SaveFeedUrl :exec
+INSERT INTO feed_url (feed_id, url, source) VALUES ($1, $2, $3)
+ON CONFLICT (url) DO NOTHING;
+
 -- name: GetFeedsForNewsletter :many
 SELECT
     f.title, f.description, f.url, f.html_url, 

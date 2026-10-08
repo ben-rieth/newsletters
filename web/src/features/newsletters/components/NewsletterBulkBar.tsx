@@ -13,6 +13,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog';
+import { pluralize } from '../lib/format';
 import type { Newsletter } from '../queries/newsletters';
 import useBulkDeleteNewsletters from '../queries/hooks/useBulkDeleteNewsletters';
 import useBulkUpdateNewsletterStatus from '../queries/hooks/useBulkUpdateNewsletterStatus';
@@ -20,9 +21,6 @@ import useExportNewsletters from '../queries/hooks/useExportNewsletters';
 
 const MAX_NAMES_IN_CONFIRM = 5;
 const MAX_BULK_SELECTION = 100;
-
-const pluralize = (count: number) =>
-  `${count} ${count === 1 ? 'newsletter' : 'newsletters'}`;
 
 type Props = {
   newsletters: Newsletter[];
@@ -47,13 +45,13 @@ export const NewsletterBulkBar = ({
 
   const updateStatus = useBulkUpdateNewsletterStatus(({ ids, status }) => {
     toast.success(
-      `${status === 'active' ? 'Resumed' : 'Paused'} ${pluralize(ids.length)}.`,
+      `${status === 'active' ? 'Resumed' : 'Paused'} ${pluralize(ids.length, 'newsletter')}.`,
     );
     onActionComplete('status');
   });
 
   const bulkDelete = useBulkDeleteNewsletters((ids) => {
-    toast.success(`Deleted ${pluralize(ids.length)}.`);
+    toast.success(`Deleted ${pluralize(ids.length, 'newsletter')}.`);
     setConfirmDeleteOpen(false);
     onActionComplete('delete');
   });
@@ -100,6 +98,7 @@ export const NewsletterBulkBar = ({
         <Button
           variant="outline"
           size="sm"
+          className="max-md:h-11"
           disabled={!hasActive || actionsDisabled}
           onClick={() => changeStatus('inactive')}
         >
@@ -108,6 +107,7 @@ export const NewsletterBulkBar = ({
         <Button
           variant="outline"
           size="sm"
+          className="max-md:h-11"
           disabled={!hasPaused || actionsDisabled}
           onClick={() => changeStatus('active')}
         >
@@ -116,6 +116,7 @@ export const NewsletterBulkBar = ({
         <Button
           variant="outline"
           size="sm"
+          className="max-md:h-11"
           disabled={noneSelected || actionsDisabled}
           onClick={() =>
             exportSelected.mutate(selectedIds, {
@@ -128,7 +129,7 @@ export const NewsletterBulkBar = ({
         <Button
           variant="outline"
           size="sm"
-          className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          className="max-md:h-11 border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
           disabled={noneSelected || actionsDisabled}
           onClick={() => setConfirmDeleteOpen(true)}
         >
@@ -140,7 +141,7 @@ export const NewsletterBulkBar = ({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Delete {pluralize(selected.length)}?
+              Delete {pluralize(selected.length, 'newsletter')}?
             </AlertDialogTitle>
             <AlertDialogDescription>
               These newsletters, their feeds, and their sent issues will be

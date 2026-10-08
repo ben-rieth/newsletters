@@ -845,6 +845,22 @@ type SaveFeedItemDetailsParams struct {
 	RetrievedAt time.Time
 }
 
+const saveFeedUrl = `-- name: SaveFeedUrl :exec
+INSERT INTO feed_url (feed_id, url, source) VALUES ($1, $2, $3)
+ON CONFLICT (url) DO NOTHING
+`
+
+type SaveFeedUrlParams struct {
+	FeedID string
+	Url    string
+	Source FeedUrlSource
+}
+
+func (q *Queries) SaveFeedUrl(ctx context.Context, arg SaveFeedUrlParams) error {
+	_, err := q.db.Exec(ctx, saveFeedUrl, arg.FeedID, arg.Url, arg.Source)
+	return err
+}
+
 type SaveFeedUrlsParams struct {
 	FeedID string
 	Url    string

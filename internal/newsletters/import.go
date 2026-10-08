@@ -45,6 +45,8 @@ func NewImportService(
 }
 
 func (s *ImportService) Import(ctx context.Context, userID string, export NewslettersExport) (*ImportResult, error) {
+	normalizeLegacySendDays(&export)
+
 	if err := validateExport(export); err != nil {
 		return nil, err
 	}
@@ -90,19 +92,20 @@ func (s *ImportService) Import(ctx context.Context, userID string, export Newsle
 			return nil, err
 		}
 
-		pending, err := importFeeds(ctx, qtx, newsletterID, userID, nl.Feeds, knownFeeds)
+		err = importFeeds(ctx, qtx, newsletterID, userID, nl.Feeds, knownFeeds)
 		if err != nil {
 			return nil, err
 		}
 
 		result.NewsletterIDs = append(result.NewsletterIDs, newsletterID)
-		result.PendingFeeds += pending
 	}
 
 	pendingIDs, err := qtx.GetPendingFeedImportIdsForNewsletters(ctx, result.NewsletterIDs)
 	if err != nil {
 		return nil, err
 	}
+
+	result.PendingFeeds = len(pendingIDs)
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, err
@@ -111,6 +114,28 @@ func (s *ImportService) Import(ctx context.Context, userID string, export Newsle
 	s.enqueueResolution(pendingIDs)
 
 	return result, nil
+}
+
+// Version 1 exports predate migration 20261008120000_normalize_send_day and can
+// still hold the send days it rewrote.
+func normalizeLegacySendDays(export *NewslettersExport) {
+	if export.Version != 1 {
+		return
+	}
+
+	for i := range export.Newsletters {
+		nl := &export.Newsletters[i]
+		switch dbgen.Frequency(nl.Frequency) {
+		case dbgen.FrequencyWeekly:
+			if nl.SendDay > 6 {
+				nl.SendDay %= 7
+			}
+		case dbgen.FrequencyMonthly:
+			if nl.SendDay < 1 {
+				nl.SendDay = 1
+			}
+		}
+	}
 }
 
 func validateExport(export NewslettersExport) error {
@@ -179,7 +204,7 @@ func importFeeds(
 	newsletterID, userID string,
 	exported []feeds.ExportableFeed,
 	knownFeeds map[string]string,
-) (int, error) {
+) error {
 	var unknown []feeds.ExportableFeed
 	seenURLs := make(map[string]bool, len(exported))
 	for _, feed := range exported {
@@ -202,20 +227,20 @@ func importFeeds(
 			Status:       statusOrActive(feed.Status),
 		}, feed.Filters)
 		if err != nil {
-			return 0, err
+			return err
 		}
 	}
 
 	feedImports, err := buildFeedImports(newsletterID, userID, unknown)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	if _, err := qtx.CreateFeedImports(ctx, feedImports); err != nil {
-		return 0, err
+		return err
 	}
 
-	return len(feedImports), nil
+	return nil
 }
 
 func attachFeed(
@@ -348,6 +373,9 @@ func (s *ImportService) resolveFeedImport(ctx context.Context, importID string) 
 		feed, err = s.feedService.GetFeedMetaData(ctx, imp.Url, true)
 	}
 	if err != nil {
+		if !isFetchFailure(err) {
+			wideLog.AddErrorField(ctx, err)
+		}
 		wideLog.AddArrayField(ctx, "feedImportFailures", imp.Url)
 		return s.queries.MarkFeedImportFailed(ctx, dbgen.MarkFeedImportFailedParams{
 			ID:    importID,

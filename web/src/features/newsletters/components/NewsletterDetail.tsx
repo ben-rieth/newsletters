@@ -10,7 +10,7 @@ import type { NewsletterFormValues } from './NewsletterForm';
 import useUpdateNewsletter from '../queries/hooks/useUpdateNewsletter';
 import useDeleteNewsletter from '../queries/hooks/useDeleteNewsletter';
 import useExportNewsletters from '../queries/hooks/useExportNewsletters';
-import useUpdateNewsletterStatus from '../queries/hooks/useUpdateNewsletterStatus';
+import useBulkUpdateNewsletterStatus from '../queries/hooks/useBulkUpdateNewsletterStatus';
 import useUpdateNewsletterSendWhenEmpty from '../queries/hooks/useUpdateNewsletterSendWhenEmpty';
 import useCancelOneOffSend from '../queries/hooks/useCancelOneOffSend';
 import { FeedsList } from './FeedsList';
@@ -76,9 +76,9 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
 
   const exportNewsletter = useExportNewsletters();
 
-  const updateStatus = useUpdateNewsletterStatus(() => {
+  const updateStatus = useBulkUpdateNewsletterStatus(({ status }) => {
     toast.success(
-      isActive ? 'Newsletter deactivated.' : 'Newsletter activated!',
+      status === 'active' ? 'Newsletter activated!' : 'Newsletter deactivated.',
     );
   });
 
@@ -202,7 +202,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
                   variant="outline"
                   onClick={() =>
                     updateStatus.mutate({
-                      newsletterId: newsletter.id,
+                      ids: [newsletter.id],
                       status: isActive ? 'inactive' : 'active',
                     })
                   }

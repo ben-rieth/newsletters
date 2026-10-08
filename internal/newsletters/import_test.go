@@ -58,6 +58,25 @@ func TestValidateScheduleRejectsSchedulesTheAppCannotProduce(t *testing.T) {
 	}
 }
 
+func TestNormalizeLegacySendDaysOnlyTouchesVersion1(t *testing.T) {
+	legacy := NewslettersExport{Version: 1, Newsletters: []ExportableNewsletter{
+		{Frequency: "weekly", SendDay: 9},
+		{Frequency: "monthly", SendDay: 0},
+	}}
+	normalizeLegacySendDays(&legacy)
+	if legacy.Newsletters[0].SendDay != 2 || legacy.Newsletters[1].SendDay != 1 {
+		t.Errorf("v1 send days not normalised: %+v", legacy.Newsletters)
+	}
+
+	current := NewslettersExport{Version: 2, Newsletters: []ExportableNewsletter{
+		{Frequency: "weekly", SendDay: 9},
+	}}
+	normalizeLegacySendDays(&current)
+	if current.Newsletters[0].SendDay != 9 {
+		t.Errorf("v2 send day should be left alone, got %d", current.Newsletters[0].SendDay)
+	}
+}
+
 func TestStatusOrActiveDefaultsV1FilesToActive(t *testing.T) {
 	cases := map[string]db.NewsletterStatus{
 		"":         db.NewsletterStatusActive,

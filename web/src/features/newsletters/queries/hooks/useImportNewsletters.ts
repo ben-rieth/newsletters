@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { pluralize } from '../../lib/format';
 import { newslettersKeys } from '../newsletters';
 import type { components } from '#/api/schema';
 import client from '#/api/client';
@@ -7,9 +8,6 @@ import { getErrorMessage } from '#/lib/errors';
 
 type NewslettersExport = components['schemas']['NewslettersExport'];
 type ImportResult = components['schemas']['ImportResult'];
-
-const pluralize = (count: number, noun: string) =>
-  `${count} ${noun}${count === 1 ? '' : 's'}`;
 
 const describeImport = (result: ImportResult) => {
   const newsletterIds = result.newsletterIds ?? [];

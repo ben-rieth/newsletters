@@ -3,6 +3,7 @@ import { CircleAlert, LoaderCircle, RotateCw, X } from 'lucide-react';
 import { ListPanel, listRowClass } from '#/components/ListPanel';
 import { Badge } from '#/components/ui/badge';
 import { Button } from '#/components/ui/button';
+import { pluralize } from '../lib/format';
 import type { FeedImport } from '../queries/feedImports';
 import useRetryFeedImport from '../queries/hooks/useRetryFeedImport';
 import useDeleteFeedImport from '../queries/hooks/useDeleteFeedImport';
@@ -107,9 +108,6 @@ export const FeedImportsList = ({ newsletterId, imports }: Props) => {
   );
 };
 
-const pluralizeFeeds = (count: number) =>
-  `${count} ${count === 1 ? 'feed' : 'feeds'}`;
-
 // Live regions only announce changes to content that was already mounted, so
 // this stays rendered even when there is nothing to say.
 export const FeedImportsStatus = ({ imports }: { imports: FeedImport[] }) => {
@@ -122,8 +120,8 @@ export const FeedImportsStatus = ({ imports }: { imports: FeedImport[] }) => {
   }
 
   const messages = [
-    pending > 0 && `Importing ${pluralizeFeeds(pending)}.`,
-    failed > 0 && `${pluralizeFeeds(failed)} couldn\u2019t be added.`,
+    pending > 0 && `Importing ${pluralize(pending, 'feed')}.`,
+    failed > 0 && `${pluralize(failed, 'feed')} couldn\u2019t be added.`,
     sawPending && pending === 0 && failed === 0 && 'Import finished.',
   ].filter(Boolean);
 

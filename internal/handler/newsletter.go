@@ -115,15 +115,6 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	}, h.handleBulkUpdateNewsletterStatus)
 
 	huma.Register(api, huma.Operation{
-		OperationID:   "update-newsletter-status",
-		Path:          "/newsletter/{newsletterId}/status",
-		Method:        http.MethodPatch,
-		Description:   "Change the status of a newsletter to active or inactive",
-		DefaultStatus: http.StatusNoContent,
-		Middlewares:   huma.Middlewares{doesNewsletterExistMiddleware},
-	}, h.handleUpdateNewsletterStatus)
-
-	huma.Register(api, huma.Operation{
 		OperationID:   "update-newsletter-send-when-empty",
 		Path:          "/newsletter/{newsletterId}/send-when-empty",
 		Method:        http.MethodPatch,
@@ -199,7 +190,7 @@ func (h *NewsletterHandler) handleCreateNewsletter(ctx context.Context, input *c
 
 	sendDay, nextSendTime, nextErr := computeSendSchedule(input.Body)
 	if nextErr != nil {
-		return nil, huma.Error400BadRequest("Invalid input")
+		return nil, badRequestError(nextErr.Error())
 	}
 
 	err := h.queries.CreateNewsletter(ctx, db.CreateNewsletterParams{
@@ -255,7 +246,7 @@ func (h *NewsletterHandler) handleUpdateNewsletter(ctx context.Context, input *s
 
 	sendDay, nextSendTime, err := computeSendSchedule(input.Body)
 	if err != nil {
-		return nil, badRequestError("Cannot update newsletter")
+		return nil, badRequestError(err.Error())
 	}
 
 	err = h.queries.UpdateNewsletter(ctx, db.UpdateNewsletterParams{
@@ -344,28 +335,6 @@ func (h *NewsletterHandler) requireOwnsAll(ctx context.Context, userId string, i
 	}
 
 	return nil
-}
-
-func (h *NewsletterHandler) handleUpdateNewsletterStatus(ctx context.Context, i *struct {
-	NewsletterID string `path:"newsletterId"`
-	Body         struct {
-		Status string `json:"status" enum:"active,inactive"`
-	}
-}) (*struct{}, error) {
-	claims, ok := auth.ClaimsFromContext(ctx)
-	if !ok || claims == nil {
-		return nil, unauthorizedError()
-	}
-
-	err := h.nlService.UpdateStatuses(ctx, []string{i.NewsletterID}, claims.Subject, db.NewsletterStatus(i.Body.Status))
-	if errors.Is(err, newsletters.ErrNewsletterNotFound) {
-		return nil, notFoundError("Newsletter")
-	}
-	if err != nil {
-		return nil, internalServerError(ctx, err)
-	}
-
-	return nil, nil
 }
 
 func (h *NewsletterHandler) handleUpdateNewsletterSendWhenEmpty(ctx context.Context, i *struct {

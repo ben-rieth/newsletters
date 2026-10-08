@@ -466,23 +466,6 @@ export interface paths {
     patch: operations['update-newsletter-send-when-empty'];
     trace?: never;
   };
-  '/newsletter/{newsletterId}/status': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /** @description Change the status of a newsletter to active or inactive */
-    patch: operations['update-newsletter-status'];
-    trace?: never;
-  };
   '/newsletters': {
     parameters: {
       query?: never;
@@ -1135,16 +1118,6 @@ export interface components {
        */
       readonly $schema?: string;
       sendWhenEmpty: boolean;
-    };
-    'Update-newsletter-statusRequest': {
-      /**
-       * Format: uri
-       * @description A URL to the JSON Schema for this object.
-       * @example https://example.com/schemas/Update-newsletter-statusRequest.json
-       */
-      readonly $schema?: string;
-      /** @enum {string} */
-      status: 'active' | 'inactive';
     };
     'Update-passwordRequest': {
       /**
@@ -2238,39 +2211,6 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['Update-newsletter-send-when-emptyRequest'];
-      };
-    };
-    responses: {
-      /** @description No Content */
-      204: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Error */
-      default: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/problem+json': components['schemas']['ErrorModel'];
-        };
-      };
-    };
-  };
-  'update-newsletter-status': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        newsletterId: string;
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': components['schemas']['Update-newsletter-statusRequest'];
       };
     };
     responses: {

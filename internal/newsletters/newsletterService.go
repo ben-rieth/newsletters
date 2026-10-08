@@ -196,6 +196,14 @@ func (s *NewsletterService) UpdateStatuses(
 
 	qtx := s.queries.WithTx(tx)
 
+	previous, err := qtx.ListNewslettersByIds(ctx, dbgen.ListNewslettersByIdsParams{
+		UserID: userId,
+		Ids:    ids,
+	})
+	if err != nil {
+		return err
+	}
+
 	updated, err := qtx.UpdateNewslettersStatus(ctx, dbgen.UpdateNewslettersStatusParams{
 		Status: status,
 		UserID: userId,
@@ -210,7 +218,14 @@ func (s *NewsletterService) UpdateStatuses(
 	}
 
 	if status == dbgen.NewsletterStatusActive {
-		if err := skipMissedSends(ctx, qtx, ids, userId); err != nil {
+		var resumed []dbgen.Newsletter
+		for _, nl := range previous {
+			if nl.Status == dbgen.NewsletterStatusInactive {
+				resumed = append(resumed, nl)
+			}
+		}
+
+		if err := skipMissedSends(ctx, qtx, resumed, userId); err != nil {
 			return err
 		}
 	}
@@ -220,15 +235,7 @@ func (s *NewsletterService) UpdateStatuses(
 
 // A paused newsletter's next_send_time goes stale; left alone, resuming would
 // send immediately instead of waiting for the next scheduled slot.
-func skipMissedSends(ctx context.Context, qtx *dbgen.Queries, ids []string, userId string) error {
-	nls, err := qtx.ListNewslettersByIds(ctx, dbgen.ListNewslettersByIdsParams{
-		UserID: userId,
-		Ids:    ids,
-	})
-	if err != nil {
-		return err
-	}
-
+func skipMissedSends(ctx context.Context, qtx *dbgen.Queries, nls []dbgen.Newsletter, userId string) error {
 	now := time.Now()
 	for _, nl := range nls {
 		if !nl.NextSendTime.Before(now) {

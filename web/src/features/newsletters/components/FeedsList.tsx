@@ -162,7 +162,7 @@ export const FeedsList = ({ newsletterId }: Props) => {
       </div>
 
       <FeedImportsStatus imports={feedImports} />
-      {!query && (
+      {!(query && !isEmpty) && (
         <FeedImportsList newsletterId={newsletterId} imports={feedImports} />
       )}
 
