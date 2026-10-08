@@ -9,56 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as BadLinkRouteImport } from './routes/bad-link'
-import { Route as IssuesRouteRouteImport } from './routes/issues/route'
-import { Route as NewslettersRouteRouteImport } from './routes/newsletters/route'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as SignUpRouteImport } from './routes/sign-up'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
-import { Route as IssuesIndexRouteImport } from './routes/issues/index'
-import { Route as IssuesIssueIdRouteImport } from './routes/issues/$issueId'
-import { Route as NewslettersIndexRouteImport } from './routes/newsletters/index'
-import { Route as NewslettersNewsletterIdRouteImport } from './routes/newsletters/$newsletterId'
+import { Route as SignUpRouteImport } from './routes/sign-up'
+import { Route as SignInRouteImport } from './routes/sign-in'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as BadLinkRouteImport } from './routes/bad-link'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as NewslettersRouteRouteImport } from './routes/newsletters/route'
+import { Route as IssuesRouteRouteImport } from './routes/issues/route'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as UnsubscribeIndexRouteImport } from './routes/unsubscribe/index'
+import { Route as NewslettersIndexRouteImport } from './routes/newsletters/index'
+import { Route as IssuesIndexRouteImport } from './routes/issues/index'
+import { Route as NewslettersNewsletterIdRouteImport } from './routes/newsletters/$newsletterId'
+import { Route as IssuesIssueIdRouteImport } from './routes/issues/$issueId'
 import { Route as NewslettersNewsletterIdIndexRouteImport } from './routes/newsletters/$newsletterId/index'
 import { Route as NewslettersNewsletterIdFeedsFeedIdRouteImport } from './routes/newsletters/$newsletterId/feeds/$feedId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BadLinkRoute = BadLinkRouteImport.update({
-  id: '/bad-link',
-  path: '/bad-link',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IssuesRouteRoute = IssuesRouteRouteImport.update({
-  id: '/issues',
-  path: '/issues',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NewslettersRouteRoute = NewslettersRouteRouteImport.update({
-  id: '/newsletters',
-  path: '/newsletters',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignUpRoute = SignUpRouteImport.update({
@@ -66,35 +36,65 @@ const SignUpRoute = SignUpRouteImport.update({
   path: '/sign-up',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VerifyEmailRoute = VerifyEmailRouteImport.update({
-  id: '/verify-email',
-  path: '/verify-email',
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IssuesIndexRoute = IssuesIndexRouteImport.update({
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BadLinkRoute = BadLinkRouteImport.update({
+  id: '/bad-link',
+  path: '/bad-link',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const NewslettersRouteRoute = NewslettersRouteRouteImport.update({
+  id: '/newsletters',
+  path: '/newsletters',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IssuesRouteRoute = IssuesRouteRouteImport.update({
+  id: '/issues',
+  path: '/issues',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => IssuesRouteRoute,
+  getParentRoute: () => rootRouteImport,
 } as any)
-const IssuesIssueIdRoute = IssuesIssueIdRouteImport.update({
-  id: '/$issueId',
-  path: '/$issueId',
-  getParentRoute: () => IssuesRouteRoute,
+const UnsubscribeIndexRoute = UnsubscribeIndexRouteImport.update({
+  id: '/unsubscribe/',
+  path: '/unsubscribe/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const NewslettersIndexRoute = NewslettersIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => NewslettersRouteRoute,
 } as any)
+const IssuesIndexRoute = IssuesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => IssuesRouteRoute,
+} as any)
 const NewslettersNewsletterIdRoute = NewslettersNewsletterIdRouteImport.update({
   id: '/$newsletterId',
   path: '/$newsletterId',
   getParentRoute: () => NewslettersRouteRoute,
 } as any)
-const UnsubscribeIndexRoute = UnsubscribeIndexRouteImport.update({
-  id: '/unsubscribe/',
-  path: '/unsubscribe/',
-  getParentRoute: () => rootRouteImport,
+const IssuesIssueIdRoute = IssuesIssueIdRouteImport.update({
+  id: '/$issueId',
+  path: '/$issueId',
+  getParentRoute: () => IssuesRouteRoute,
 } as any)
 const NewslettersNewsletterIdIndexRoute =
   NewslettersNewsletterIdIndexRouteImport.update({
@@ -230,53 +230,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bad-link': {
-      id: '/bad-link'
-      path: '/bad-link'
-      fullPath: '/bad-link'
-      preLoaderRoute: typeof BadLinkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/issues': {
-      id: '/issues'
-      path: '/issues'
-      fullPath: '/issues'
-      preLoaderRoute: typeof IssuesRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/newsletters': {
-      id: '/newsletters'
-      path: '/newsletters'
-      fullPath: '/newsletters'
-      preLoaderRoute: typeof NewslettersRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/sign-up': {
@@ -286,26 +244,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SignUpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/verify-email': {
-      id: '/verify-email'
-      path: '/verify-email'
-      fullPath: '/verify-email'
-      preLoaderRoute: typeof VerifyEmailRouteImport
+    '/sign-in': {
+      id: '/sign-in'
+      path: '/sign-in'
+      fullPath: '/sign-in'
+      preLoaderRoute: typeof SignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/issues/': {
-      id: '/issues/'
-      path: '/'
-      fullPath: '/issues/'
-      preLoaderRoute: typeof IssuesIndexRouteImport
-      parentRoute: typeof IssuesRouteRoute
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/issues/$issueId': {
-      id: '/issues/$issueId'
-      path: '/$issueId'
-      fullPath: '/issues/$issueId'
-      preLoaderRoute: typeof IssuesIssueIdRouteImport
-      parentRoute: typeof IssuesRouteRoute
+    '/bad-link': {
+      id: '/bad-link'
+      path: '/bad-link'
+      fullPath: '/bad-link'
+      preLoaderRoute: typeof BadLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/newsletters': {
+      id: '/newsletters'
+      path: '/newsletters'
+      fullPath: '/newsletters'
+      preLoaderRoute: typeof NewslettersRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/issues': {
+      id: '/issues'
+      path: '/issues'
+      fullPath: '/issues'
+      preLoaderRoute: typeof IssuesRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unsubscribe/': {
+      id: '/unsubscribe/'
+      path: '/unsubscribe'
+      fullPath: '/unsubscribe/'
+      preLoaderRoute: typeof UnsubscribeIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/newsletters/': {
       id: '/newsletters/'
@@ -314,6 +307,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewslettersIndexRouteImport
       parentRoute: typeof NewslettersRouteRoute
     }
+    '/issues/': {
+      id: '/issues/'
+      path: '/'
+      fullPath: '/issues/'
+      preLoaderRoute: typeof IssuesIndexRouteImport
+      parentRoute: typeof IssuesRouteRoute
+    }
     '/newsletters/$newsletterId': {
       id: '/newsletters/$newsletterId'
       path: '/$newsletterId'
@@ -321,12 +321,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NewslettersNewsletterIdRouteImport
       parentRoute: typeof NewslettersRouteRoute
     }
-    '/unsubscribe/': {
-      id: '/unsubscribe/'
-      path: '/unsubscribe'
-      fullPath: '/unsubscribe/'
-      preLoaderRoute: typeof UnsubscribeIndexRouteImport
-      parentRoute: typeof rootRouteImport
+    '/issues/$issueId': {
+      id: '/issues/$issueId'
+      path: '/$issueId'
+      fullPath: '/issues/$issueId'
+      preLoaderRoute: typeof IssuesIssueIdRouteImport
+      parentRoute: typeof IssuesRouteRoute
     }
     '/newsletters/$newsletterId/': {
       id: '/newsletters/$newsletterId/'
