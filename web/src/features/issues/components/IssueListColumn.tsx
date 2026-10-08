@@ -92,7 +92,7 @@ const IssuesEmpty = () => {
         title="Everything is paused"
         description={`You have ${newsletters.length} ${
           newsletters.length === 1 ? 'newsletter' : 'newsletters'
-        }, but none are sending. Activate one to start receiving issues.`}
+        }, but none are sending. Resume one to start receiving issues.`}
         action={
           <Link
             to="/newsletters"

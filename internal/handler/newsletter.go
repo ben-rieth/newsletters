@@ -173,10 +173,15 @@ func (h *NewsletterHandler) handleListNewsletters(ctx context.Context, input *st
 		return nil, internalServerError(ctx, err)
 	}
 
+	imports, err := h.feedImportCounts(ctx, claims.Subject)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
 	out := &listNewslettersOutput{}
 
 	for _, newsletter := range nls {
-		out.Body = append(out.Body, newsletters.DbNewsletterToNewsletterType(newsletter))
+		out.Body = append(out.Body, newsletters.DbNewsletterToNewsletterType(newsletter, imports[newsletter.ID]))
 	}
 
 	return out, nil
@@ -230,9 +235,27 @@ func (h *NewsletterHandler) handleGetNewsletter(ctx context.Context, input *base
 		return nil, internalServerError(ctx, err)
 	}
 
+	imports, err := h.feedImportCounts(ctx, claims.Subject)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
 	return &getNewsletterOutput{
-		Body: newsletters.DbNewsletterToNewsletterType(newsletter),
+		Body: newsletters.DbNewsletterToNewsletterType(newsletter, imports[newsletter.ID]),
 	}, nil
+}
+
+func (h *NewsletterHandler) feedImportCounts(ctx context.Context, userId string) (map[string]db.CountFeedImportsByNewsletterRow, error) {
+	rows, err := h.queries.CountFeedImportsByNewsletter(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	counts := make(map[string]db.CountFeedImportsByNewsletterRow, len(rows))
+	for _, row := range rows {
+		counts[row.NewsletterID] = row
+	}
+	return counts, nil
 }
 
 func (h *NewsletterHandler) handleUpdateNewsletter(ctx context.Context, input *struct {

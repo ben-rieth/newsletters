@@ -34,12 +34,12 @@ export const FeedFiltersList = ({ newsletterId, feedId, filters }: Props) => {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const deleteFilter = useDeleteFeedFilter(newsletterId, feedId, () => {
-    toast.success('Filter deleted!');
+    toast.success('Filter deleted.');
   });
   const pendingDeleteIds = usePendingFilterDeleteIds(newsletterId, feedId);
 
   const updateFilter = useUpdateFeedFilter(newsletterId, feedId, () => {
-    toast.success('Filter updated!');
+    toast.success('Filter updated.');
     setEditingId(null);
   });
 

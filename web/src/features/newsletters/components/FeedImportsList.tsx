@@ -5,6 +5,7 @@ import { Badge } from '#/components/ui/badge';
 import { Button } from '#/components/ui/button';
 import { pluralize } from '../lib/format';
 import type { FeedImport } from '../queries/feedImports';
+import type { Newsletter } from '../queries/newsletters';
 import useRetryFeedImport from '../queries/hooks/useRetryFeedImport';
 import useDeleteFeedImport from '../queries/hooks/useDeleteFeedImport';
 
@@ -131,3 +132,25 @@ export const FeedImportsStatus = ({ imports }: { imports: FeedImport[] }) => {
     </p>
   );
 };
+
+type CountsProps = {
+  newsletter: Pick<Newsletter, 'pendingFeedImports' | 'failedFeedImports'>;
+};
+
+export const FeedImportCounts = ({ newsletter }: CountsProps) => (
+  <>
+    {newsletter.pendingFeedImports > 0 && (
+      <span>
+        {' · '}
+        {pluralize(newsletter.pendingFeedImports, 'feed')} importing
+      </span>
+    )}
+    {newsletter.failedFeedImports > 0 && (
+      <span className="text-destructive">
+        {' · '}
+        {pluralize(newsletter.failedFeedImports, 'feed')} couldn&rsquo;t be
+        added
+      </span>
+    )}
+  </>
+);

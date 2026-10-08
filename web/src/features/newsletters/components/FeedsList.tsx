@@ -8,7 +8,6 @@ import {
   Pause,
   Play,
   Search,
-  Settings,
   Trash2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -38,7 +37,6 @@ import type { Feed } from '../queries/feeds';
 import { AddFeedDialog } from './AddFeedDialog';
 import { FeedImportsList, FeedImportsStatus } from './FeedImportsList';
 import { FeedHealthBadge } from './FeedHealth';
-import { FeedStatusBadge } from './FeedStatusBadge';
 import useDeleteFeed from '../queries/hooks/useDeleteFeed';
 import useUpdateFeedStatus, {
   usePendingFeedStatusIds,
@@ -58,9 +56,7 @@ type FeedAction = {
   destructive?: boolean;
   disabled?: boolean;
 } & (
-  | { kind: 'external'; href: string }
-  | { kind: 'configure'; feedId: string }
-  | { kind: 'action'; onSelect: () => void }
+  { kind: 'external'; href: string } | { kind: 'action'; onSelect: () => void }
 );
 
 export const FeedsList = ({ newsletterId }: Props) => {
@@ -88,12 +84,12 @@ export const FeedsList = ({ newsletterId }: Props) => {
   ).toSorted((a, b) => (a.alias || a.title).localeCompare(b.alias || b.title));
 
   const deleteFeed = useDeleteFeed(newsletterId, () => {
-    toast.success('Feed deleted!');
+    toast.success('Feed deleted.');
     setDeletingFeed(null);
   });
 
   const updateStatus = useUpdateFeedStatus(newsletterId, (status) => {
-    toast.success(status === 'active' ? 'Feed resumed!' : 'Feed paused.');
+    toast.success(status === 'active' ? 'Feed resumed.' : 'Feed paused.');
   });
   const pendingStatusFeedIds = usePendingFeedStatusIds(newsletterId);
 
@@ -107,13 +103,6 @@ export const FeedsList = ({ newsletterId }: Props) => {
         label: 'Visit website',
         icon: ExternalLink,
         href: feed.htmlUrl,
-      },
-      {
-        kind: 'configure',
-        key: 'configure',
-        label: 'Configure feed',
-        icon: Settings,
-        feedId: feed.id,
       },
       {
         kind: 'action',
@@ -157,7 +146,7 @@ export const FeedsList = ({ newsletterId }: Props) => {
           className="h-11 sm:ml-auto sm:h-9"
           onClick={() => setAddDialogOpen(true)}
         >
-          Add Feed
+          Add feed
         </Button>
       </div>
 
@@ -216,15 +205,17 @@ export const FeedsList = ({ newsletterId }: Props) => {
                       >
                         {feed.alias || feed.title}
                       </span>
-                      <FeedStatusBadge status={feed.status} />
                       <FeedHealthBadge health={feed.health} />
                     </p>
-                    <p className="mt-0.5 hidden truncate font-mono text-xs text-muted-foreground md:block">
-                      {feed.url}
+                    <p className="mt-0.5 hidden truncate text-xs text-muted-foreground md:block">
+                      {!isActive && 'Paused · '}
+                      <span className="font-mono">{feed.url}</span>
                     </p>
-                    {feed.description && (
+                    {(feed.description || !isActive) && (
                       <p className="mt-0.5 truncate text-sm text-muted-foreground md:hidden">
-                        {feed.description}
+                        {[!isActive && 'Paused', feed.description]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </p>
                     )}
                   </Link>
@@ -239,7 +230,7 @@ export const FeedsList = ({ newsletterId }: Props) => {
                     <MoreVertical className="size-5" />
                   </Button>
 
-                  <div className="hidden shrink-0 items-center gap-0.5 text-muted-foreground md:flex">
+                  <div className="hidden shrink-0 items-center gap-0.5 text-muted-foreground transition-opacity md:flex pointer-fine:opacity-0 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100">
                     {buildFeedActions(feed).map((action) => {
                       const Icon = action.icon;
                       const iconButtonClass = buttonVariants({
@@ -260,21 +251,6 @@ export const FeedsList = ({ newsletterId }: Props) => {
                           >
                             <Icon />
                           </a>
-                        );
-                      }
-
-                      if (action.kind === 'configure') {
-                        return (
-                          <Link
-                            key={action.key}
-                            to="/newsletters/$newsletterId/feeds/$feedId"
-                            params={{ newsletterId, feedId: action.feedId }}
-                            aria-label={action.label}
-                            title={action.label}
-                            className={iconButtonClass}
-                          >
-                            <Icon />
-                          </Link>
                         );
                       }
 
@@ -343,20 +319,6 @@ export const FeedsList = ({ newsletterId }: Props) => {
                   );
                 }
 
-                if (action.kind === 'configure') {
-                  return (
-                    <Link
-                      key={action.key}
-                      to="/newsletters/$newsletterId/feeds/$feedId"
-                      params={{ newsletterId, feedId: action.feedId }}
-                      className={className}
-                      onClick={() => setActionsFeed(null)}
-                    >
-                      {content}
-                    </Link>
-                  );
-                }
-
                 return (
                   <button
                     key={action.key}
@@ -404,6 +366,7 @@ export const FeedsList = ({ newsletterId }: Props) => {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               disabled={deleteFeed.isPending}
               onClick={() => {
                 if (deletingFeed) {

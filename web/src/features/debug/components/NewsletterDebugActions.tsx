@@ -13,7 +13,7 @@ type Props = {
  */
 export const NewsletterDebugActions = ({ newsletterId }: Props) => {
   const forceSend = useForceSendNewsletter(() => {
-    toast.success('Newsletter queued to send!');
+    toast.success('Newsletter queued to send.');
   });
 
   return (

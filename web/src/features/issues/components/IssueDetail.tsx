@@ -151,9 +151,9 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
           )}
 
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
             disabled={deleteIssue.isPending}
             focusableWhenDisabled
             onClick={() => setDeleteDialogOpen(true)}

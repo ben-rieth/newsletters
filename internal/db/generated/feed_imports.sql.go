@@ -9,6 +9,42 @@ import (
 	"context"
 )
 
+const countFeedImportsByNewsletter = `-- name: CountFeedImportsByNewsletter :many
+SELECT
+    newsletter_id,
+    COUNT(*) FILTER (WHERE state = 'pending')::INT AS pending,
+    COUNT(*) FILTER (WHERE state = 'failed')::INT AS failed
+FROM newsletter_feed_import
+WHERE user_id = $1
+GROUP BY newsletter_id
+`
+
+type CountFeedImportsByNewsletterRow struct {
+	NewsletterID string
+	Pending      int32
+	Failed       int32
+}
+
+func (q *Queries) CountFeedImportsByNewsletter(ctx context.Context, userID string) ([]CountFeedImportsByNewsletterRow, error) {
+	rows, err := q.db.Query(ctx, countFeedImportsByNewsletter, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CountFeedImportsByNewsletterRow
+	for rows.Next() {
+		var i CountFeedImportsByNewsletterRow
+		if err := rows.Scan(&i.NewsletterID, &i.Pending, &i.Failed); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 type CreateFeedImportsParams struct {
 	NewsletterID string
 	UserID       string

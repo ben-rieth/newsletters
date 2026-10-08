@@ -78,7 +78,7 @@ type IssueFeed struct {
 	Items   []IssueItem `json:"items"`
 }
 
-func DbNewsletterToNewsletterType(newsletter db.Newsletter) Newsletter {
+func DbNewsletterToNewsletterType(newsletter db.Newsletter, imports db.CountFeedImportsByNewsletterRow) Newsletter {
 	var lastSentAt *time.Time
 	if newsletter.LastSentAt.Valid {
 		lastSentAt = &newsletter.LastSentAt.Time
@@ -95,20 +95,22 @@ func DbNewsletterToNewsletterType(newsletter db.Newsletter) Newsletter {
 	}
 
 	return Newsletter{
-		ID:              newsletter.ID,
-		Name:            newsletter.Name,
-		Frequency:       string(newsletter.Frequency),
-		SendDay:         int(newsletter.SendDay),
-		SendHour:        int(newsletter.SendHour),
-		SendMinute:      int(newsletter.SendMinute),
-		SendTimezone:    newsletter.SendTimezone,
-		LastSentAt:      lastSentAt,
-		NextSendTime:    newsletter.NextSendTime,
-		OneOffSendTime:  oneOffSendTime,
-		RegularSendTime: regularSendTime,
-		CreatedAt:       newsletter.CreatedAt,
-		UpdatedAt:       newsletter.UpdatedAt,
-		Status:          string(newsletter.Status),
-		SendWhenEmpty:   newsletter.SendWhenEmpty,
+		ID:                 newsletter.ID,
+		Name:               newsletter.Name,
+		Frequency:          string(newsletter.Frequency),
+		SendDay:            int(newsletter.SendDay),
+		SendHour:           int(newsletter.SendHour),
+		SendMinute:         int(newsletter.SendMinute),
+		SendTimezone:       newsletter.SendTimezone,
+		LastSentAt:         lastSentAt,
+		NextSendTime:       newsletter.NextSendTime,
+		OneOffSendTime:     oneOffSendTime,
+		RegularSendTime:    regularSendTime,
+		CreatedAt:          newsletter.CreatedAt,
+		UpdatedAt:          newsletter.UpdatedAt,
+		Status:             string(newsletter.Status),
+		SendWhenEmpty:      newsletter.SendWhenEmpty,
+		PendingFeedImports: int(imports.Pending),
+		FailedFeedImports:  int(imports.Failed),
 	}
 }

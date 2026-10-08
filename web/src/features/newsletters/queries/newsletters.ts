@@ -30,6 +30,11 @@ export const removeDeletedNewsletters = (
   queryClient.invalidateQueries({ queryKey: issueKeys.all });
 };
 
+const PENDING_IMPORTS_POLL_MS = 5000;
+
+const hasPendingImports = (newsletters: Newsletter[] | undefined) =>
+  (newsletters ?? []).some((n) => n.pendingFeedImports > 0);
+
 export const newslettersOptions = queryOptions({
   queryKey: newslettersKeys.all,
   queryFn: async () => {
@@ -39,6 +44,8 @@ export const newslettersOptions = queryOptions({
     }
     return data;
   },
+  refetchInterval: (query) =>
+    hasPendingImports(query.state.data) ? PENDING_IMPORTS_POLL_MS : false,
 });
 
 export const newsletterOptions = (newsletterId: string) => {
@@ -53,5 +60,9 @@ export const newsletterOptions = (newsletterId: string) => {
       }
       return data;
     },
+    refetchInterval: (query) =>
+      (query.state.data?.pendingFeedImports ?? 0) > 0
+        ? PENDING_IMPORTS_POLL_MS
+        : false,
   });
 };

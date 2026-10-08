@@ -25,7 +25,7 @@ type Props = {
 
 export const CreateNewsletterDialog = ({ open, onOpenChange }: Props) => {
   const newsletterCreate = useCreateNewsletter(() => {
-    toast.success('Newsletter created!');
+    toast.success('Newsletter created.');
     onOpenChange(false);
   });
 

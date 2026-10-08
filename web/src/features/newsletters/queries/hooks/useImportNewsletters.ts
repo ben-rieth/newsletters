@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { pluralize } from '../../lib/format';
 import { newslettersKeys } from '../newsletters';
@@ -21,10 +22,29 @@ const describeImport = (result: ImportResult) => {
   return parts.join(' ');
 };
 
-const describeImportError = (error: unknown) => {
-  if (error instanceof SyntaxError) {
-    return "That file isn't valid JSON.";
+export type { NewslettersExport };
+
+export const parseExportFile = async (
+  file: File,
+): Promise<NewslettersExport> => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(await file.text());
+  } catch {
+    throw new Error("That file isn't valid JSON.");
   }
+  const newsletters = (parsed as Partial<NewslettersExport> | null)
+    ?.newsletters;
+  if (!Array.isArray(newsletters)) {
+    throw new Error("That file isn't a Slowfeed export.");
+  }
+  if (newsletters.length === 0) {
+    throw new Error('That export has no newsletters in it.');
+  }
+  return parsed as NewslettersExport;
+};
+
+const describeImportError = (error: unknown) => {
   if (typeof error === 'object' && error !== null && 'errors' in error) {
     const firstProblem = (error as components['schemas']['ErrorModel'])
       .errors?.[0];
@@ -38,10 +58,10 @@ const describeImportError = (error: unknown) => {
 
 const useImportNewsletters = () => {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: async (file: File) => {
-      const body = JSON.parse(await file.text()) as NewslettersExport;
+    mutationFn: async (body: NewslettersExport) => {
       const { data, error, response } = await client.POST('/import', {
         body,
       });
@@ -51,7 +71,20 @@ const useImportNewsletters = () => {
       return data;
     },
     onSuccess: async (result) => {
-      toast.success(describeImport(result));
+      const [onlyId, ...rest] = result.newsletterIds ?? [];
+      toast.success(describeImport(result), {
+        action:
+          onlyId && rest.length === 0
+            ? {
+                label: 'View',
+                onClick: () =>
+                  navigate({
+                    to: '/newsletters/$newsletterId',
+                    params: { newsletterId: onlyId },
+                  }),
+              }
+            : undefined,
+      });
       await queryClient.invalidateQueries({ queryKey: newslettersKeys.all });
     },
     onError: (error) => {

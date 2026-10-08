@@ -16,7 +16,7 @@ type Props = {
 
 export const AddFeedDialog = ({ newsletterId, open, onOpenChange }: Props) => {
   const addFeed = useAddFeed(newsletterId, () => {
-    toast.success('Feed added!');
+    toast.success('Feed added.');
     onOpenChange(false);
   });
 
@@ -24,14 +24,14 @@ export const AddFeedDialog = ({ newsletterId, open, onOpenChange }: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Feed</DialogTitle>
+          <DialogTitle>Add feed</DialogTitle>
         </DialogHeader>
 
         <AddFeedForm
           key={open ? 'open' : 'closed'}
           onSubmit={async (values) => addFeed.mutate(values)}
           isPending={addFeed.isPending}
-          submitLabel="Add Feed"
+          submitLabel="Add feed"
           error={addFeed.error?.message}
         />
       </DialogContent>

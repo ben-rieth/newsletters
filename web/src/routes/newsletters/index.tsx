@@ -12,6 +12,8 @@ import { newslettersOptions } from '#/features/newsletters/queries/newsletters';
 import { formatSchedule } from '#/features/newsletters/lib/format';
 import { CreateNewsletterDialog } from '#/features/newsletters/components/CreateNewsletterDialog';
 import { NewsletterBulkBar } from '#/features/newsletters/components/NewsletterBulkBar';
+import { ImportNewslettersButton } from '#/features/newsletters/components/ImportNewslettersButton';
+import { FeedImportCounts } from '#/features/newsletters/components/FeedImportsList';
 import type { Newsletter } from '#/features/newsletters/queries/newsletters';
 
 const NewsletterSummary = ({ newsletter }: { newsletter: Newsletter }) => (
@@ -21,6 +23,7 @@ const NewsletterSummary = ({ newsletter }: { newsletter: Newsletter }) => (
     </p>
     <p className="mt-0.5 truncate text-sm text-muted-foreground md:text-xs">
       {newsletter.status === 'active' ? formatSchedule(newsletter) : 'Paused'}
+      <FeedImportCounts newsletter={newsletter} />
     </p>
   </div>
 );
@@ -127,11 +130,14 @@ const NewslettersPage = () => {
         <EmptyState
           className="px-0 md:px-0"
           title="No newsletters yet"
-          description="A newsletter is a group of feeds delivered on a schedule you pick — daily, weekly, or a specific day. Most people keep two or three, split by topic."
+          description="A newsletter is a group of feeds delivered on a schedule you pick — daily, weekly, or a specific day. Most people keep two or three, split by topic. Moving from another Slowfeed account? Import your export file."
           action={
-            <Button onClick={() => setCreateOpen(true)}>
-              Create your first newsletter
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => setCreateOpen(true)}>
+                Create your first newsletter
+              </Button>
+              <ImportNewslettersButton />
+            </div>
           }
         />
       ) : (

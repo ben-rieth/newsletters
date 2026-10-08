@@ -38,3 +38,12 @@ DELETE FROM newsletter_feed_import WHERE newsletter_id = $1 AND user_id = $2;
 
 -- name: DeleteFeedImportsForUser :exec
 DELETE FROM newsletter_feed_import WHERE user_id = $1;
+
+-- name: CountFeedImportsByNewsletter :many
+SELECT
+    newsletter_id,
+    COUNT(*) FILTER (WHERE state = 'pending')::INT AS pending,
+    COUNT(*) FILTER (WHERE state = 'failed')::INT AS failed
+FROM newsletter_feed_import
+WHERE user_id = $1
+GROUP BY newsletter_id;

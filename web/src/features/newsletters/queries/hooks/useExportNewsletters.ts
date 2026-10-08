@@ -16,7 +16,7 @@ const useExportNewsletters = () => {
           ? `?${new URLSearchParams({ ids: ids.join(',') })}`
           : '';
         await fetchAndDownload(`/export${query}`, 'newsletters-export.json');
-        toast.success('Export complete!', { id: toastId });
+        toast.success('Export complete.', { id: toastId });
       } catch (error) {
         toast.error(getErrorMessage(error), { id: toastId });
         throw error;

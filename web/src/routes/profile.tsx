@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Button, buttonVariants } from '#/components/ui/button';
 import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
@@ -16,6 +16,7 @@ const ProfilePage = () => {
   const { data: user } = useSuspenseQuery(userOptions);
   const logout = useLogout();
   const exportAll = useExportNewsletters();
+  const navigate = useNavigate();
 
   useMobileHeader({ title: 'Profile' });
 
@@ -78,7 +79,9 @@ const ProfilePage = () => {
           title="Import newsletters"
           description="Recreate newsletters from a Slowfeed export file. Every newsletter in the file is created as new, and feeds not already in Slowfeed are added in the background."
         >
-          <ImportNewslettersButton />
+          <ImportNewslettersButton
+            onImported={() => navigate({ to: '/newsletters' })}
+          />
         </SettingsRow>
       </SettingsSection>
 

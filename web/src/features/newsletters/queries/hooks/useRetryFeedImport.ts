@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { feedImportsKeys } from '../feedImports';
+import { newslettersKeys } from '../newsletters';
 import client from '#/api/client';
 import { getErrorMessage } from '#/lib/errors';
 
@@ -18,9 +19,12 @@ const useRetryFeedImport = (newsletterId: string) => {
       }
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: feedImportsKeys.list(newsletterId),
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: feedImportsKeys.list(newsletterId),
+        }),
+        queryClient.invalidateQueries({ queryKey: newslettersKeys.all }),
+      ]);
     },
     onError: (error) => {
       toast.error(getErrorMessage(error));

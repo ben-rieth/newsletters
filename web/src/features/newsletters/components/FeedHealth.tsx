@@ -1,11 +1,10 @@
-import { CircleAlert, PauseCircle, TriangleAlert } from 'lucide-react';
+import { Ban, CircleAlert, TriangleAlert } from 'lucide-react';
 import { cn } from '#/lib/utils';
 import { Badge } from '#/components/ui/badge';
 import { formatRelativeTime } from '#/utils/format';
 import type { FeedHealth } from '../queries/feeds';
 
-const warningClasses =
-  'border-yellow-500/40 bg-yellow-500/10 text-yellow-700 dark:text-yellow-400';
+const warningClasses = 'border-warning/40 bg-warning/10 text-warning';
 
 const describeLastFailure = (health: FeedHealth) => {
   if (!health.lastFailureAt || !health.lastFailureMessage) {
@@ -20,17 +19,17 @@ export const FeedHealthBadge = ({ health }: { health: FeedHealth }) => {
     return null;
   }
 
-  const paused = health.status === 'disabled';
+  const stopped = health.status === 'disabled';
   const lastFailure = describeLastFailure(health);
 
   return (
     <Badge
-      variant={paused ? 'destructive' : 'outline'}
-      className={cn(!paused && warningClasses)}
+      variant={stopped ? 'destructive' : 'outline'}
+      className={cn(!stopped && warningClasses)}
       title={lastFailure ?? undefined}
     >
-      {paused ? <PauseCircle /> : <CircleAlert />}
-      {paused ? 'Fetch paused' : 'Failing'}
+      {stopped ? <Ban /> : <CircleAlert />}
+      {stopped ? 'Fetching stopped' : 'Failing'}
       {lastFailure && <span className="sr-only">: {lastFailure}</span>}
     </Badge>
   );
@@ -41,14 +40,14 @@ export const FeedHealthAlert = ({ health }: { health: FeedHealth }) => {
     return null;
   }
 
-  const paused = health.status === 'disabled';
+  const stopped = health.status === 'disabled';
   const lastFailure = describeLastFailure(health);
 
   return (
     <div
       className={cn(
         'flex gap-2.5 rounded-md border p-3 text-sm',
-        paused
+        stopped
           ? 'border-destructive/40 bg-destructive/10 text-destructive'
           : warningClasses,
       )}
@@ -56,7 +55,7 @@ export const FeedHealthAlert = ({ health }: { health: FeedHealth }) => {
       <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
       <div className="space-y-1">
         <p className="font-medium">
-          {paused
+          {stopped
             ? 'We stopped fetching this feed'
             : 'This feed failed to update'}
         </p>
@@ -65,7 +64,7 @@ export const FeedHealthAlert = ({ health }: { health: FeedHealth }) => {
           <li>
             Last successful update {formatRelativeTime(health.lastSuccessAt)}
           </li>
-          {paused && health.disabledUntil && (
+          {stopped && health.disabledUntil && (
             <li>
               Fetching resumes {formatRelativeTime(health.disabledUntil)}.
               Remove this feed and re-add it with a working URL, or delete it if

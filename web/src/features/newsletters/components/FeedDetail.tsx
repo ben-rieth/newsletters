@@ -51,16 +51,16 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
   const isActive = feed.status === 'active';
 
   const updateFeed = useUpdateFeed(newsletterId, feedId, () => {
-    toast.success('Feed updated!');
+    toast.success('Feed updated.');
   });
 
   const addFilter = useAddFeedFilter(newsletterId, feedId, () => {
-    toast.success('Filter added!');
+    toast.success('Filter added.');
     setShowAddFilter(false);
   });
 
   const updateStatus = useUpdateFeedStatus(newsletterId, (status) => {
-    toast.success(status === 'active' ? 'Feed resumed!' : 'Feed paused.');
+    toast.success(status === 'active' ? 'Feed resumed.' : 'Feed paused.');
   });
 
   const moveFeed = useMoveFeed(newsletterId, feedId, (targetNewsletterId) => {
@@ -73,7 +73,7 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
   });
 
   const deleteFeed = useDeleteFeed(newsletterId, () => {
-    toast.success('Feed deleted!');
+    toast.success('Feed deleted.');
     navigate({
       to: '/newsletters/$newsletterId',
       params: { newsletterId },

@@ -957,6 +957,8 @@ export interface components {
       readonly $schema?: string;
       /** Format: date-time */
       createdAt: string;
+      /** Format: int64 */
+      failedFeedImports: number;
       frequency: string;
       id: string;
       /** Format: date-time */
@@ -966,6 +968,8 @@ export interface components {
       nextSendTime: string;
       /** Format: date-time */
       oneOffSendTime?: string;
+      /** Format: int64 */
+      pendingFeedImports: number;
       /** Format: date-time */
       regularSendTime?: string;
       /** Format: int64 */

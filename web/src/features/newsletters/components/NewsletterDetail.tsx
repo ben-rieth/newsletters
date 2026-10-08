@@ -14,6 +14,7 @@ import useBulkUpdateNewsletterStatus from '../queries/hooks/useBulkUpdateNewslet
 import useUpdateNewsletterSendWhenEmpty from '../queries/hooks/useUpdateNewsletterSendWhenEmpty';
 import useCancelOneOffSend from '../queries/hooks/useCancelOneOffSend';
 import { FeedsList } from './FeedsList';
+import { FeedImportCounts } from './FeedImportsList';
 import { ScheduleSendDialog } from './ScheduleSendDialog';
 import { NewsletterDebugActions } from '#/features/debug/components/NewsletterDebugActions';
 import IssuesList from '#/features/issues/components/IssuesList';
@@ -66,11 +67,11 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
   };
 
   const newsletterUpdate = useUpdateNewsletter(newsletter.id, () => {
-    toast.success('Newsletter updated!');
+    toast.success('Newsletter updated.');
   });
 
   const newsletterDelete = useDeleteNewsletter(() => {
-    toast.success('Newsletter deleted!');
+    toast.success('Newsletter deleted.');
     navigate({ to: '/issues' });
   });
 
@@ -78,7 +79,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
 
   const updateStatus = useBulkUpdateNewsletterStatus(({ status }) => {
     toast.success(
-      status === 'active' ? 'Newsletter activated!' : 'Newsletter deactivated.',
+      status === 'active' ? 'Newsletter resumed.' : 'Newsletter paused.',
     );
   });
 
@@ -105,6 +106,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
         <p className="text-sm text-muted-foreground">
           {feeds.length} {feeds.length === 1 ? 'feed' : 'feeds'} ·{' '}
           {isActive ? formatSchedule(newsletter) : 'Paused'}
+          <FeedImportCounts newsletter={newsletter} />
         </p>
       </header>
 
@@ -195,7 +197,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
                 description={
                   isActive
                     ? 'This newsletter is active and sending on schedule.'
-                    : 'This newsletter is paused. Activate it to resume sending.'
+                    : 'This newsletter is paused. Resume it to start sending again.'
                 }
               >
                 <Button
@@ -209,10 +211,12 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
                   disabled={updateStatus.isPending}
                 >
                   {updateStatus.isPending
-                    ? '…'
+                    ? isActive
+                      ? 'Pausing…'
+                      : 'Resuming…'
                     : isActive
-                      ? 'Deactivate'
-                      : 'Activate'}
+                      ? 'Pause'
+                      : 'Resume'}
                 </Button>
               </SettingsRow>
 
@@ -234,7 +238,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
               </SettingsRow>
 
               <SettingsRow
-                title="Export feeds"
+                title="Export newsletter"
                 description={`Download this newsletter's data and ${feeds.length} ${
                   feeds.length === 1 ? 'feed' : 'feeds'
                 } as a JSON file.`}
@@ -252,7 +256,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
             <SettingsSection>
               <SettingsRow
                 title="Delete newsletter"
-                description="Permanently removes this newsletter and all of its feeds. This cannot be undone."
+                description="Permanently removes this newsletter, its feeds, and its sent issues. This cannot be undone."
               >
                 <Button
                   variant="outline"
@@ -276,17 +280,20 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete newsletter?</AlertDialogTitle>
             <AlertDialogDescription>
-              &ldquo;{newsletter.name}&rdquo; and all of its feeds will be
-              permanently deleted.
+              &ldquo;{newsletter.name}&rdquo;, its feeds, and its sent issues
+              will be permanently deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={newsletterDelete.isPending}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               onClick={() => newsletterDelete.mutate(newsletter.id)}
               disabled={newsletterDelete.isPending}
             >
-              Delete
+              {newsletterDelete.isPending ? 'Deleting…' : 'Delete'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

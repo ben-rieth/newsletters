@@ -165,6 +165,7 @@ export const NewsletterBulkBar = ({
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               disabled={bulkDelete.isPending}
               onClick={() => bulkDelete.mutate(selectedIds)}
             >

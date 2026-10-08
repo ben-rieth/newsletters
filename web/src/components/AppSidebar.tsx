@@ -1,26 +1,23 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronLeft, Plus } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { cn } from '#/lib/utils';
 import { buttonVariants } from '#/components/ui/button';
 import { useMobileHeaderStore } from '#/components/MobileHeader';
 import { newslettersOptions } from '#/features/newsletters/queries/newsletters';
-import { CreateNewsletterDialog } from '#/features/newsletters/components/CreateNewsletterDialog';
 import useLogout from '#/features/auth/queries/hooks/useLogout';
-
-const sectionLabel =
-  'px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground';
 
 const navRow =
   'flex min-h-11 items-center gap-2.5 border-l-2 border-transparent px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent/40 hover:text-foreground md:min-h-0';
 
 const navRowActive = 'border-primary text-foreground';
 
+const childNavRow = cn(navRow, 'justify-between pl-6');
+
 const SidebarContent = () => {
   const { data, isPending, isError, refetch } = useQuery(newslettersOptions);
   const newsletters = data ?? [];
-  const [createOpen, setCreateOpen] = useState(false);
   const logout = useLogout();
 
   const sorted = useMemo(
@@ -48,14 +45,26 @@ const SidebarContent = () => {
           </Link>
         </nav>
 
-        <p className={cn(sectionLabel, 'mt-6 mb-2')}>Newsletters</p>
         <nav aria-label="Newsletters">
+          <Link
+            to="/newsletters"
+            activeOptions={{ exact: true }}
+            className={cn(navRow, 'font-medium text-foreground')}
+            activeProps={{
+              className: cn(navRow, 'font-medium', navRowActive),
+            }}
+          >
+            Newsletters
+          </Link>
+
           {isPending && (
-            <p className="px-3 py-2 text-sm text-muted-foreground">Loading…</p>
+            <p className="py-2 pr-3 pl-6 text-sm text-muted-foreground">
+              Loading…
+            </p>
           )}
 
           {isError && (
-            <div className="px-3 py-2">
+            <div className="py-2 pr-3 pl-6">
               <p className="text-sm text-muted-foreground">
                 Couldn’t load newsletters.
               </p>
@@ -75,9 +84,9 @@ const SidebarContent = () => {
               to="/newsletters/$newsletterId"
               params={{ newsletterId: n.id }}
               activeOptions={{ exact: false }}
-              className={cn(navRow, 'justify-between')}
+              className={childNavRow}
               activeProps={{
-                className: cn(navRow, 'justify-between', navRowActive),
+                className: cn(childNavRow, navRowActive),
               }}
             >
               <span className="truncate">{n.name}</span>
@@ -89,15 +98,6 @@ const SidebarContent = () => {
             </Link>
           ))}
         </nav>
-
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className={cn(navRow, 'mt-1 w-full')}
-        >
-          <Plus className="size-4" />
-          New newsletter
-        </button>
       </div>
 
       <div className="border-t border-sidebar-border pb-safe-b">
@@ -118,8 +118,6 @@ const SidebarContent = () => {
           </button>
         </nav>
       </div>
-
-      <CreateNewsletterDialog open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 };
