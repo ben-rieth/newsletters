@@ -66,6 +66,7 @@ type DetailedIssue struct {
 type IssueItem struct {
 	ItemID      string       `json:"itemId"`
 	Title       string       `json:"title"`
+	URL         string       `json:"url"`
 	Token       string       `json:"token"`
 	State       db.ItemState `json:"state" enum:"read,unread"`
 	PublishDate time.Time    `json:"publishDate"`

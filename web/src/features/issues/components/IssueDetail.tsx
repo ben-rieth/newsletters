@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { Check, Circle, CircleCheck, Trash2 } from 'lucide-react';
-import { formatRelativeTime } from '#/utils/format';
+import { formatDisplayUrl, formatRelativeTime } from '#/utils/format';
 import { Button } from '#/components/ui/button';
 import { MobileHeaderAction } from '#/components/MobileHeader';
 import {
@@ -209,8 +209,17 @@ const IssueDetail = ({ issue }: IssueDetailProps) => {
                         >
                           {item.title}
                         </a>
-                        <p className="mt-1 text-sm text-muted-foreground md:text-xs">
-                          {formatRelativeTime(item.publishDate)}
+                        <p className="mt-1 flex min-w-0 gap-1.5 text-sm text-muted-foreground md:text-xs">
+                          <span className="shrink-0">
+                            {formatRelativeTime(item.publishDate)}
+                          </span>
+                          <span aria-hidden="true">·</span>
+                          <span
+                            className="truncate text-muted-foreground/70"
+                            title={item.url}
+                          >
+                            {formatDisplayUrl(item.url)}
+                          </span>
                         </p>
                       </div>
 

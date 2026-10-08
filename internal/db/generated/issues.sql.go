@@ -299,7 +299,7 @@ func (q *Queries) GetIssueItemUrlByToken(ctx context.Context, token string) (str
 }
 
 const getIssueItems = `-- name: GetIssueItems :many
-SELECT ii.state, ii.item_id, ii.token, i.title, i.publish_date, i.feed_id
+SELECT ii.state, ii.item_id, ii.token, i.title, i.url, i.publish_date, i.feed_id
 FROM issue_item AS ii
 INNER JOIN feed_item AS i ON ii.item_id = i.id
 WHERE issue_id = $1 AND user_id = $2
@@ -316,6 +316,7 @@ type GetIssueItemsRow struct {
 	ItemID      string
 	Token       string
 	Title       string
+	Url         string
 	PublishDate time.Time
 	FeedID      string
 }
@@ -334,6 +335,7 @@ func (q *Queries) GetIssueItems(ctx context.Context, arg GetIssueItemsParams) ([
 			&i.ItemID,
 			&i.Token,
 			&i.Title,
+			&i.Url,
 			&i.PublishDate,
 			&i.FeedID,
 		); err != nil {

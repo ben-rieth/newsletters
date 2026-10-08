@@ -46,7 +46,7 @@ INNER JOIN newsletter AS nl ON i.newsletter_id = nl.id
 WHERE i.user_id = $1 AND i.id = $2;
 
 -- name: GetIssueItems :many
-SELECT ii.state, ii.item_id, ii.token, i.title, i.publish_date, i.feed_id
+SELECT ii.state, ii.item_id, ii.token, i.title, i.url, i.publish_date, i.feed_id
 FROM issue_item AS ii
 INNER JOIN feed_item AS i ON ii.item_id = i.id
 WHERE issue_id = $1 AND user_id = $2

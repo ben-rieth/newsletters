@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
@@ -27,6 +29,16 @@ type FeedItemView struct {
 	URL         string
 	PublishDate time.Time
 	TrackingURL string
+}
+
+func (item FeedItemView) DisplayURL() string {
+	parsed, err := url.Parse(item.URL)
+	if err != nil || parsed.Hostname() == "" {
+		return item.URL
+	}
+
+	host := strings.TrimPrefix(parsed.Hostname(), "www.")
+	return host + strings.TrimSuffix(parsed.Path, "/")
 }
 
 type FeedMetaData struct {

@@ -920,6 +920,7 @@ export interface components {
       state: 'read' | 'unread';
       title: string;
       token: string;
+      url: string;
     };
     IssueStateBody: {
       /**

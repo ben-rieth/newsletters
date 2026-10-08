@@ -39,7 +39,10 @@
                         <a href="{{ .TrackingURL }}">{{ .Title }}</a>
                       {{end}}
                     </h3>
-                    <p style="margin: -8px 0 0; font-size: 12px; color: #888888;">{{ .PublishDate }}</p>
+                    <p style="margin: -8px 0 0; font-size: 12px; color: #888888;">
+                      {{ .PublishDate }}
+                      {{ with .DisplayURL }}&middot; <span style="color: #aaaaaa; word-break: break-all;">{{ . }}</span>{{ end }}
+                    </p>
                 </div>
                 {{end}}
               {{else}}

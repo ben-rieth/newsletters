@@ -56,3 +56,13 @@ export const formatRelativeTime = (dateStr: string): string => {
 
   return rtf.format(-duration.seconds, 'second');
 };
+
+export const formatDisplayUrl = (url: string): string => {
+  try {
+    const { hostname, pathname } = new URL(url);
+    const path = pathname === '/' ? '' : pathname.replace(/\/$/, '');
+    return hostname.replace(/^www\./, '') + path;
+  } catch {
+    return url;
+  }
+};

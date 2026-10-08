@@ -75,6 +75,7 @@ func (s *IssuesService) GetIssue(ctx context.Context, issueID, userID string) (*
 		itemView := IssueItem{
 			ItemID:      item.ItemID,
 			Title:       item.Title,
+			URL:         item.Url,
 			PublishDate: item.PublishDate,
 			State:       item.State,
 			Token:       item.Token,
