@@ -17,9 +17,13 @@ func safeDialer() *net.Dialer {
 	return &net.Dialer{
 		Timeout: 5 * time.Second,
 		Control: func(network, address string, c syscall.RawConn) error {
-			host, _, err := net.SplitHostPort(address)
+			host, port, err := net.SplitHostPort(address)
 			if err != nil {
 				return err
+			}
+
+			if !allowedFeedPorts[port] {
+				return fmt.Errorf("Port %s is not allowed", port)
 			}
 
 			ip := net.ParseIP(host)

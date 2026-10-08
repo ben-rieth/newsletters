@@ -37,3 +37,27 @@ func TestIsSafeFeedUrlHonoursContextCancellation(t *testing.T) {
 		t.Fatalf("got %v, want hostResolutionError from the cancelled lookup", err)
 	}
 }
+
+func TestIsSafeFeedUrlRejectsNonHTTPSPorts(t *testing.T) {
+	for _, rawUrl := range []string{
+		"https://1.1.1.1:22/feed",
+		"https://1.1.1.1:80/feed",
+		"https://1.1.1.1:3306/feed",
+	} {
+		if err := IsSafeFeedUrl(context.Background(), rawUrl); !errors.Is(err, portError) {
+			t.Errorf("IsSafeFeedUrl(%q) = %v, want portError", rawUrl, err)
+		}
+	}
+}
+
+func TestIsSafeFeedUrlAllowsHTTPSPorts(t *testing.T) {
+	for _, rawUrl := range []string{
+		"https://1.1.1.1/feed",
+		"https://1.1.1.1:443/feed",
+		"https://1.1.1.1:8443/feed",
+	} {
+		if err := IsSafeFeedUrl(context.Background(), rawUrl); err != nil {
+			t.Errorf("IsSafeFeedUrl(%q) = %v, want nil", rawUrl, err)
+		}
+	}
+}

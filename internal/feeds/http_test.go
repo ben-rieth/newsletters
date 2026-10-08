@@ -49,3 +49,18 @@ func TestSafeFeedClientChecksRedirects(t *testing.T) {
 		t.Fatal("client has no redirect check, so redirects to http would be followed")
 	}
 }
+
+// Redirects skip IsSafeFeedUrl, so the dialer must enforce the port itself.
+func TestSafeDialerRejectsDisallowedPorts(t *testing.T) {
+	control := safeDialer().Control
+
+	if err := control("tcp", "1.1.1.1:22", nil); err == nil {
+		t.Error("dial to port 22 was allowed")
+	}
+	if err := control("tcp", "1.1.1.1:443", nil); err != nil {
+		t.Errorf("dial to port 443 was blocked: %v", err)
+	}
+	if err := control("tcp", "1.1.1.1:8443", nil); err != nil {
+		t.Errorf("dial to port 8443 was blocked: %v", err)
+	}
+}
