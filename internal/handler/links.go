@@ -8,6 +8,7 @@ import (
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
+	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/google/uuid"
@@ -58,6 +59,11 @@ func (h *LinksHandler) handleLinkRedirect(
 		}
 
 		return nil, internalServerError(ctx, err)
+	}
+
+	// Items stored before feed links were sanitized may still hold other schemes.
+	if !feeds.IsWebUrl(url) {
+		return errorResponse, nil
 	}
 
 	if err = h.queries.MarkIssueItemAsReadWithToken(ctx, i.Token); err != nil {

@@ -64,7 +64,6 @@ func main() {
 	newsletterService := newsletters.NewNewsletterService(queries, pool)
 	issuesService := newsletters.NewIssuesService(queries, pool)
 
-	feeds.InitBlockedIPs()
 	feedsService := feeds.NewFeedService(rssService, queries, pool, jobQueue)
 
 	userService := users.NewUserService(queries, pool)

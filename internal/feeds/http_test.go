@@ -64,3 +64,22 @@ func TestSafeDialerRejectsDisallowedPorts(t *testing.T) {
 		t.Errorf("dial to port 8443 was blocked: %v", err)
 	}
 }
+
+// Without these, a host that accepts the connection but never answers holds a
+// worker for the full client timeout.
+func TestSafeFeedClientTransportLimits(t *testing.T) {
+	transport, ok := newSafeFeedClient().Transport.(*http.Transport)
+	if !ok {
+		t.Fatal("client transport is not an *http.Transport")
+	}
+
+	if transport.ResponseHeaderTimeout == 0 {
+		t.Error("no response header timeout")
+	}
+	if transport.TLSHandshakeTimeout == 0 {
+		t.Error("no TLS handshake timeout")
+	}
+	if transport.Proxy != nil {
+		t.Error("transport uses a proxy, which would bypass the dialer's IP checks")
+	}
+}

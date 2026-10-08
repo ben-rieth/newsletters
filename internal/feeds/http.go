@@ -1,6 +1,7 @@
 package feeds
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -59,7 +60,14 @@ func newSafeFeedClient() *http.Client {
 		Timeout:       10 * time.Second,
 		CheckRedirect: checkFeedRedirect,
 		Transport: &http.Transport{
-			DialContext: safeDialer().DialContext,
+			Proxy:                  nil,
+			DialContext:            safeDialer().DialContext,
+			TLSClientConfig:        &tls.Config{MinVersion: tls.VersionTLS12},
+			TLSHandshakeTimeout:    5 * time.Second,
+			ResponseHeaderTimeout:  5 * time.Second,
+			MaxResponseHeaderBytes: 64 << 10,
+			MaxIdleConns:           20,
+			IdleConnTimeout:        90 * time.Second,
 		},
 	}
 }

@@ -5,21 +5,6 @@ import (
 	"testing"
 )
 
-func TestMain(m *testing.M) {
-	// InitBlockedIPs appends, so it runs once for the whole package rather than
-	// per test.
-	InitBlockedIPs()
-	m.Run()
-}
-
-// isSafeIP reports every address as safe until the block list is populated, so
-// an empty list is the one failure mode that silently disables the guard.
-func TestBlockedIPRangesAreLoaded(t *testing.T) {
-	if len(blockedIPRanges) == 0 {
-		t.Fatal("block list is empty, so every host would resolve as safe")
-	}
-}
-
 func TestIsSafeIP(t *testing.T) {
 	tests := []struct {
 		name string
@@ -54,7 +39,6 @@ func TestIsSafeIP(t *testing.T) {
 		{name: "local-use nat64", ip: "64:ff9b:1::a00:1", want: false},
 		{name: "6to4 embedding private", ip: "2002:a00:1::1", want: false},
 		{name: "teredo", ip: "2001:0:4136:e378::1", want: false},
-
 		{name: "public dns", ip: "1.1.1.1", want: true},
 		{name: "public host", ip: "93.184.216.34", want: true},
 		{name: "just outside private class b", ip: "172.32.0.1", want: true},

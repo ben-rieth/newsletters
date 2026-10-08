@@ -72,6 +72,8 @@ func DescribeFetchError(err error) string {
 	return "Could not be retrieved"
 }
 
+const feedUserAgent = "Slowfeed/1.0"
+
 type RssService struct {
 	httpClient *http.Client
 }
@@ -114,6 +116,8 @@ func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResul
 		}
 	}
 
+	req.Header.Set("User-Agent", feedUserAgent)
+
 	res, err := s.httpClient.Do(req)
 	if errors.Is(err, errInsecureRedirect) {
 		return nil, &FetchError{
@@ -153,6 +157,7 @@ func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResul
 		return nil, err
 	}
 
+	feed = sanitizeFeed(feed, finalUrl)
 	retrievedAt := time.Now()
 
 	return &FetchFeedResult{
