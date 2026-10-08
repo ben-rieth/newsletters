@@ -5,10 +5,17 @@ import { fetchAndDownload } from '#/utils/download';
 
 const useExportNewsletters = () => {
   return useMutation({
-    mutationFn: async () => {
-      const toastId = toast.loading('Exporting newsletters...');
+    mutationFn: async (ids?: string[]) => {
+      const toastId = toast.loading(
+        ids?.length === 1
+          ? 'Exporting newsletter...'
+          : 'Exporting newsletters...',
+      );
       try {
-        await fetchAndDownload('/export', 'newsletters-export.json');
+        const query = ids?.length
+          ? `?${new URLSearchParams({ ids: ids.join(',') })}`
+          : '';
+        await fetchAndDownload(`/export${query}`, 'newsletters-export.json');
         toast.success('Export complete!', { id: toastId });
       } catch (error) {
         toast.error(getErrorMessage(error), { id: toastId });

@@ -20,16 +20,36 @@ import { TimezoneSelect } from './TimezoneSelect';
 
 const VALID_TIMEZONES = new Set(Intl.supportedValuesOf('timeZone'));
 
-export const newsletterFormSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  frequency: z.enum(['daily', 'weekly', 'monthly']),
-  sendHour: z.number().min(0, 'Must be 0–23').max(23, 'Must be 0–23'),
-  sendMinute: z.number().min(0, 'Must be 0–59').max(59, 'Must be 0–59'),
-  sendDay: z.number().int().nonnegative().optional(),
-  sendTimezone: z.string().refine((tz) => VALID_TIMEZONES.has(tz), {
-    message: 'Invalid timezone',
-  }),
-});
+export const newsletterFormSchema = z
+  .object({
+    name: z.string().min(1, 'Name is required'),
+    frequency: z.enum(['daily', 'weekly', 'monthly']),
+    sendHour: z.number().min(0, 'Must be 0–23').max(23, 'Must be 0–23'),
+    sendMinute: z.number().min(0, 'Must be 0–59').max(59, 'Must be 0–59'),
+    sendDay: z.number().int().nonnegative().optional(),
+    sendTimezone: z.string().refine((tz) => VALID_TIMEZONES.has(tz), {
+      message: 'Invalid timezone',
+    }),
+  })
+  .superRefine(({ frequency, sendDay }, ctx) => {
+    if (frequency === 'weekly' && (sendDay === undefined || sendDay > 6)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['sendDay'],
+        message: 'Pick a day',
+      });
+    }
+    if (
+      frequency === 'monthly' &&
+      (sendDay === undefined || sendDay < 1 || sendDay > 31)
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['sendDay'],
+        message: 'Must be 1–31',
+      });
+    }
+  });
 
 export type NewsletterFormValues = z.infer<typeof newsletterFormSchema>;
 

@@ -163,8 +163,8 @@ func (s *RssService) FetchFeed(ctx context.Context, url string) (*FetchFeedResul
 	}, nil
 }
 
-// Real feeds are well under a megabyte; the cap stops a hostile or broken URL
-// from streaming until the client timeout and holding all of it in memory.
+// The cap stops a hostile or broken URL from streaming until the client
+// timeout and holding all of it in memory.
 const maxFeedBytes = 10 << 20
 
 func parseFeedBody(body io.Reader) (*gofeed.Feed, error) {
@@ -180,7 +180,7 @@ func parseFeedBody(body io.Reader) (*gofeed.Feed, error) {
 	if len(data) > maxFeedBytes {
 		return nil, &FetchError{
 			Kind:    db.FeedFetchFailureKindParse,
-			Message: "Feed is larger than 10 MB",
+			Message: fmt.Sprintf("Feed is larger than %d MB", maxFeedBytes>>20),
 			err:     utils.UserError,
 		}
 	}

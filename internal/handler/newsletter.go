@@ -34,6 +34,15 @@ type baseNewsletterInput struct {
 	NewsletterID string `path:"newsletterId"`
 }
 
+type bulkNewsletterIds struct {
+	Ids []string `json:"ids" minItems:"1" maxItems:"100" uniqueItems:"true" format:"uuid"`
+}
+
+type bulkNewsletterStatus struct {
+	Ids    []string `json:"ids" minItems:"1" maxItems:"100" uniqueItems:"true" format:"uuid"`
+	Status string   `json:"status" enum:"active,inactive"`
+}
+
 type getNewsletterOutput struct {
 	Body newsletters.Newsletter
 }
@@ -90,6 +99,22 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 	}, h.handleDeleteNewsletter)
 
 	huma.Register(api, huma.Operation{
+		OperationID:   "bulk-delete-newsletters",
+		Method:        http.MethodPost,
+		Path:          "/newsletters/bulk-delete",
+		Summary:       "Delete several newsletters and all of their feeds",
+		DefaultStatus: http.StatusNoContent,
+	}, h.handleBulkDeleteNewsletters)
+
+	huma.Register(api, huma.Operation{
+		OperationID:   "bulk-update-newsletter-status",
+		Method:        http.MethodPatch,
+		Path:          "/newsletters/status",
+		Summary:       "Change the status of several newsletters to active or inactive",
+		DefaultStatus: http.StatusNoContent,
+	}, h.handleBulkUpdateNewsletterStatus)
+
+	huma.Register(api, huma.Operation{
 		OperationID:   "update-newsletter-status",
 		Path:          "/newsletter/{newsletterId}/status",
 		Method:        http.MethodPatch,
@@ -127,6 +152,10 @@ func (h *NewsletterHandler) RegisterRoutes(api huma.API) {
 }
 
 func computeSendSchedule(body submittableNewsletterFields) (int, time.Time, error) {
+	if err := newsletters.ValidateSendDay(db.Frequency(body.Frequency), body.SendDay); err != nil {
+		return 0, time.Time{}, err
+	}
+
 	sendDay := 0
 	if body.SendDay != nil {
 		sendDay = *body.SendDay
@@ -262,6 +291,61 @@ func (h *NewsletterHandler) handleDeleteNewsletter(ctx context.Context, input *b
 	return nil, nil
 }
 
+func (h *NewsletterHandler) handleBulkDeleteNewsletters(ctx context.Context, input *struct {
+	Body bulkNewsletterIds
+}) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	if err := h.requireOwnsAll(ctx, claims.Subject, input.Body.Ids); err != nil {
+		return nil, err
+	}
+
+	err := h.nlService.DeleteNewsletters(ctx, input.Body.Ids, claims.Subject)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
+}
+
+func (h *NewsletterHandler) handleBulkUpdateNewsletterStatus(ctx context.Context, input *struct {
+	Body bulkNewsletterStatus
+}) (*struct{}, error) {
+	claims, ok := auth.ClaimsFromContext(ctx)
+	if !ok || claims == nil {
+		return nil, unauthorizedError()
+	}
+
+	err := h.nlService.UpdateStatuses(ctx, input.Body.Ids, claims.Subject, db.NewsletterStatus(input.Body.Status))
+	if errors.Is(err, newsletters.ErrNewsletterNotFound) {
+		return nil, notFoundError("Newsletter")
+	}
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	return nil, nil
+}
+
+func (h *NewsletterHandler) requireOwnsAll(ctx context.Context, userId string, ids []string) error {
+	owned, err := h.queries.ListNewslettersByIds(ctx, db.ListNewslettersByIdsParams{
+		UserID: userId,
+		Ids:    ids,
+	})
+	if err != nil {
+		return internalServerError(ctx, err)
+	}
+
+	if len(owned) != len(ids) {
+		return notFoundError("Newsletter")
+	}
+
+	return nil
+}
+
 func (h *NewsletterHandler) handleUpdateNewsletterStatus(ctx context.Context, i *struct {
 	NewsletterID string `path:"newsletterId"`
 	Body         struct {
@@ -273,11 +357,10 @@ func (h *NewsletterHandler) handleUpdateNewsletterStatus(ctx context.Context, i 
 		return nil, unauthorizedError()
 	}
 
-	err := h.queries.UpdateNewsletterStatus(ctx, db.UpdateNewsletterStatusParams{
-		Status: db.NewsletterStatus(i.Body.Status),
-		ID:     i.NewsletterID,
-		UserID: claims.Subject,
-	})
+	err := h.nlService.UpdateStatuses(ctx, []string{i.NewsletterID}, claims.Subject, db.NewsletterStatus(i.Body.Status))
+	if errors.Is(err, newsletters.ErrNewsletterNotFound) {
+		return nil, notFoundError("Newsletter")
+	}
 	if err != nil {
 		return nil, internalServerError(ctx, err)
 	}

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { CircleAlert, LoaderCircle, RotateCw, X } from 'lucide-react';
 import { ListPanel, listRowClass } from '#/components/ListPanel';
 import { Badge } from '#/components/ui/badge';
@@ -94,16 +95,41 @@ export const FeedImportsList = ({ newsletterId, imports }: Props) => {
   }
 
   return (
-    <div aria-live="polite">
-      <ListPanel>
-        {imports.map((feedImport) => (
-          <FeedImportRow
-            key={feedImport.id}
-            newsletterId={newsletterId}
-            feedImport={feedImport}
-          />
-        ))}
-      </ListPanel>
-    </div>
+    <ListPanel>
+      {imports.map((feedImport) => (
+        <FeedImportRow
+          key={feedImport.id}
+          newsletterId={newsletterId}
+          feedImport={feedImport}
+        />
+      ))}
+    </ListPanel>
+  );
+};
+
+const pluralizeFeeds = (count: number) =>
+  `${count} ${count === 1 ? 'feed' : 'feeds'}`;
+
+// Live regions only announce changes to content that was already mounted, so
+// this stays rendered even when there is nothing to say.
+export const FeedImportsStatus = ({ imports }: { imports: FeedImport[] }) => {
+  const pending = imports.filter((i) => i.state === 'pending').length;
+  const failed = imports.filter((i) => i.state === 'failed').length;
+  const [sawPending, setSawPending] = useState(pending > 0);
+
+  if (pending > 0 && !sawPending) {
+    setSawPending(true);
+  }
+
+  const messages = [
+    pending > 0 && `Importing ${pluralizeFeeds(pending)}.`,
+    failed > 0 && `${pluralizeFeeds(failed)} couldn\u2019t be added.`,
+    sawPending && pending === 0 && failed === 0 && 'Import finished.',
+  ].filter(Boolean);
+
+  return (
+    <p role="status" className="sr-only">
+      {messages.join(' ')}
+    </p>
   );
 };

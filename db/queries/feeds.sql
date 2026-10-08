@@ -83,7 +83,7 @@ INNER JOIN feed AS f ON nlf.feed_id = f.id
 WHERE nlf.newsletter_id = ANY(@newsletter_ids::UUID[]) AND nlf.user_id = $1;
 
 -- name: DeleteAllFeedsInNewsletter :exec
-DELETE FROM newsletter_feed WHERE newsletter_id = $1;
+DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND user_id = $2;
 
 -- name: DeleteAllNewsletterFeedsForUser :exec
 DELETE FROM newsletter_feed WHERE user_id = $1;

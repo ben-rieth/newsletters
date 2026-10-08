@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -13,7 +12,6 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/newsletters"
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/jackc/pgx/v5"
 )
 
 type ExportHander struct {
@@ -29,16 +27,22 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 		OperationID: "export-newsletters",
 		Method:      http.MethodGet,
 		Path:        "/export",
-		Summary:     "Downloads all newsletters in json format",
-	}, func(ctx context.Context, i *struct{}) (*huma.StreamResponse, error) {
+		Summary:     "Downloads all newsletters, or the given subset, in json format",
+	}, func(ctx context.Context, i *struct {
+		Ids []string `query:"ids" maxItems:"100" uniqueItems:"true" format:"uuid" doc:"Only export these newsletters; omit to export all"`
+	}) (*huma.StreamResponse, error) {
 		claims, ok := auth.ClaimsFromContext(ctx)
 		if !ok || claims == nil {
 			return nil, unauthorizedError()
 		}
 
-		nls, err := h.queries.ListNewsletters(ctx, claims.Subject)
+		nls, err := h.listExportable(ctx, claims.Subject, i.Ids)
 		if err != nil {
 			return nil, internalServerError(ctx, err)
+		}
+
+		if len(i.Ids) > 0 && len(nls) != len(i.Ids) {
+			return nil, notFoundError("Newsletter")
 		}
 
 		nlIds := make([]string, 0, len(nls))
@@ -64,7 +68,7 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 
 		return &huma.StreamResponse{
 			Body: func(ctx huma.Context) {
-				filename := "all-newsletters.json"
+				filename := exportFilename(i.Ids)
 				ctx.SetHeader("Content-Type", "application/octet-stream")
 				ctx.SetHeader("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 
@@ -73,57 +77,27 @@ func (h *ExportHander) RegisterRoutes(api huma.API) {
 			},
 		}, nil
 	})
+}
 
-	type exportNewsletterInput struct {
-		NewsletterID string `path:"newsletterId"`
+func exportFilename(ids []string) string {
+	switch len(ids) {
+	case 0:
+		return "all-newsletters.json"
+	case 1:
+		return fmt.Sprintf("newsletter-%s.json", ids[0])
+	default:
+		return "newsletters-export.json"
+	}
+}
+
+func (h *ExportHander) listExportable(ctx context.Context, userId string, ids []string) ([]db.Newsletter, error) {
+	if len(ids) == 0 {
+		return h.queries.ListNewsletters(ctx, userId)
 	}
 
-	huma.Register(api, huma.Operation{
-		OperationID: "export-newsletter",
-		Method:      http.MethodGet,
-		Path:        "/export/{newsletterId}",
-		Summary:     "Downloads a single newsletter in JSON format",
-	}, func(ctx context.Context, i *exportNewsletterInput) (*huma.StreamResponse, error) {
-		claims, ok := auth.ClaimsFromContext(ctx)
-		if !ok || claims == nil {
-			return nil, unauthorizedError()
-		}
-
-		nl, err := h.queries.GetNewsletter(ctx, db.GetNewsletterParams{
-			UserID: claims.Subject,
-			ID:     i.NewsletterID,
-		})
-		if err != nil {
-			if errors.Is(pgx.ErrNoRows, err) {
-				return nil, notFoundError("newsletter")
-			}
-			return nil, internalServerError(ctx, err)
-		}
-
-		nlIds := []string{nl.ID}
-		feedsByNl, err := h.getFeedsByNl(ctx, claims.Subject, nlIds)
-		if err != nil {
-			return nil, internalServerError(ctx, err)
-		}
-
-		export := newsletters.NewslettersExport{
-			Version:    newsletters.ExportVersion,
-			ExportedAt: time.Now(),
-			Newsletters: []newsletters.ExportableNewsletter{
-				newsletters.DbNewsletterToExportable(nl, feedsByNl[nl.ID]),
-			},
-		}
-
-		return &huma.StreamResponse{
-			Body: func(ctx huma.Context) {
-				filename := fmt.Sprintf("newsletter-%s.json", nl.ID)
-				ctx.SetHeader("Content-Type", "application/octet-stream")
-				ctx.SetHeader("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-
-				writer := ctx.BodyWriter()
-				json.NewEncoder(writer).Encode(export)
-			},
-		}, nil
+	return h.queries.ListNewslettersByIds(ctx, db.ListNewslettersByIdsParams{
+		UserID: userId,
+		Ids:    ids,
 	})
 }
 

@@ -91,9 +91,6 @@ WHERE id = $3 AND user_id = $4;
 -- name: DeleteAllNewslettersForUser :exec
 DELETE FROM newsletter WHERE user_id = $1;
 
--- name: UpdateNewsletterStatus :exec
-UPDATE newsletter SET status = $1 WHERE id = $2 AND user_id = $3;
-
 -- name: UpdateNewsletterSendWhenEmpty :exec
 UPDATE newsletter SET send_when_empty = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3;
 
@@ -104,7 +101,24 @@ WHERE unsubscribe_token = $1;
 
 -- name: DeactivateNewsletterByUnsubscribeToken :exec
 UPDATE newsletter SET status = 'inactive', unsubscribe_token = gen_random_uuid() WHERE unsubscribe_token = $1;
+
 -- name: ImportNewsletter :one
 INSERT INTO newsletter (name, frequency, send_day, send_hour, send_minute, send_timezone, next_send_time, status, send_when_empty, user_id)
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 RETURNING id;
+
+-- name: ListNewslettersByIds :many
+SELECT * FROM newsletter
+WHERE user_id = @user_id AND id = ANY(@ids::UUID[])
+ORDER BY created_at DESC;
+
+-- name: UpdateNewslettersStatus :execrows
+UPDATE newsletter SET status = @status, updated_at = NOW()
+WHERE user_id = @user_id AND id = ANY(@ids::UUID[]);
+
+-- name: RescheduleNewsletter :exec
+UPDATE newsletter SET
+    next_send_time = @next_send_time,
+    original_next_send_time = NULL,
+    updated_at = NOW()
+WHERE id = @id AND user_id = @user_id;

@@ -36,7 +36,7 @@ import { feedsOptions } from '../queries/feeds';
 import { feedImportsOptions } from '../queries/feedImports';
 import type { Feed } from '../queries/feeds';
 import { AddFeedDialog } from './AddFeedDialog';
-import { FeedImportsList } from './FeedImportsList';
+import { FeedImportsList, FeedImportsStatus } from './FeedImportsList';
 import { FeedHealthBadge } from './FeedHealth';
 import { FeedStatusBadge } from './FeedStatusBadge';
 import useDeleteFeed from '../queries/hooks/useDeleteFeed';
@@ -161,7 +161,10 @@ export const FeedsList = ({ newsletterId }: Props) => {
         </Button>
       </div>
 
-      <FeedImportsList newsletterId={newsletterId} imports={feedImports} />
+      <FeedImportsStatus imports={feedImports} />
+      {!query && (
+        <FeedImportsList newsletterId={newsletterId} imports={feedImports} />
+      )}
 
       {showEmptyState && (
         <EmptyState

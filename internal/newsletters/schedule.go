@@ -1,6 +1,7 @@
 package newsletters
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -24,6 +25,20 @@ type SendableNewsletter struct {
 	SendWhenEmpty    bool
 	IsOneOffSend     bool
 	Feeds            []feeds.BaseFeed
+}
+
+func ValidateSendDay(frequency db.Frequency, sendDay *int) error {
+	switch frequency {
+	case db.FrequencyWeekly:
+		if sendDay == nil || *sendDay < 0 || *sendDay > 6 {
+			return errors.New("Weekly newsletters need a send day from 0 (Sunday) to 6 (Saturday)")
+		}
+	case db.FrequencyMonthly:
+		if sendDay == nil || *sendDay < 1 || *sendDay > 31 {
+			return errors.New("Monthly newsletters need a send day from 1 to 31")
+		}
+	}
+	return nil
 }
 
 func ComputeNextSendTime(

@@ -9,7 +9,7 @@ import { NewsletterForm } from './NewsletterForm';
 import type { NewsletterFormValues } from './NewsletterForm';
 import useUpdateNewsletter from '../queries/hooks/useUpdateNewsletter';
 import useDeleteNewsletter from '../queries/hooks/useDeleteNewsletter';
-import useExportNewsletter from '../queries/hooks/useExportNewsletter';
+import useExportNewsletters from '../queries/hooks/useExportNewsletters';
 import useUpdateNewsletterStatus from '../queries/hooks/useUpdateNewsletterStatus';
 import useUpdateNewsletterSendWhenEmpty from '../queries/hooks/useUpdateNewsletterSendWhenEmpty';
 import useCancelOneOffSend from '../queries/hooks/useCancelOneOffSend';
@@ -74,7 +74,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
     navigate({ to: '/issues' });
   });
 
-  const exportNewsletter = useExportNewsletter();
+  const exportNewsletter = useExportNewsletters();
 
   const updateStatus = useUpdateNewsletterStatus(() => {
     toast.success(
@@ -241,7 +241,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
               >
                 <Button
                   variant="outline"
-                  onClick={() => exportNewsletter.mutate(newsletter.id)}
+                  onClick={() => exportNewsletter.mutate([newsletter.id])}
                   disabled={exportNewsletter.isPending}
                 >
                   {exportNewsletter.isPending ? 'Exporting…' : 'Export as JSON'}

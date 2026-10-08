@@ -130,25 +130,8 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    /** Downloads all newsletters in json format */
+    /** Downloads all newsletters, or the given subset, in json format */
     get: operations['export-newsletters'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/export/{newsletterId}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** Downloads a single newsletter in JSON format */
-    get: operations['export-newsletter'];
     put?: never;
     post?: never;
     delete?: never;
@@ -518,6 +501,40 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/newsletters/bulk-delete': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Delete several newsletters and all of their feeds */
+    post: operations['bulk-delete-newsletters'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/newsletters/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Change the status of several newsletters to active or inactive */
+    patch: operations['bulk-update-newsletter-status'];
+    trace?: never;
+  };
   '/newsletters/{newsletterId}': {
     parameters: {
       query?: never;
@@ -696,6 +713,26 @@ export interface components {
        */
       readonly $schema?: string;
       verified: boolean;
+    };
+    BulkNewsletterIds: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/BulkNewsletterIds.json
+       */
+      readonly $schema?: string;
+      ids: string[] | null;
+    };
+    BulkNewsletterStatus: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/BulkNewsletterStatus.json
+       */
+      readonly $schema?: string;
+      ids: string[] | null;
+      /** @enum {string} */
+      status: 'active' | 'inactive';
     };
     'Delete-userRequest': {
       /**
@@ -1396,38 +1433,12 @@ export interface operations {
   };
   'export-newsletters': {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description Only export these newsletters; omit to export all */
+        ids?: string[] | null;
+      };
       header?: never;
       path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description OK */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content?: never;
-      };
-      /** @description Error */
-      default: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/problem+json': components['schemas']['ErrorModel'];
-        };
-      };
-    };
-  };
-  'export-newsletter': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        newsletterId: string;
-      };
       cookie?: never;
     };
     requestBody?: never;
@@ -2320,6 +2331,68 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': components['schemas']['SubmittableNewsletterFields'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'bulk-delete-newsletters': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BulkNewsletterIds'];
+      };
+    };
+    responses: {
+      /** @description No Content */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Error */
+      default: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/problem+json': components['schemas']['ErrorModel'];
+        };
+      };
+    };
+  };
+  'bulk-update-newsletter-status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['BulkNewsletterStatus'];
       };
     };
     responses: {

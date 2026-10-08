@@ -343,6 +343,73 @@ func (q *Queries) ListNewsletters(ctx context.Context, userID string) ([]Newslet
 	return items, nil
 }
 
+const listNewslettersByIds = `-- name: ListNewslettersByIds :many
+SELECT id, name, frequency, send_day, send_hour, send_minute, send_timezone, last_sent_at, next_send_time, user_id, status, unsubscribe_token, created_at, updated_at, original_next_send_time, send_when_empty FROM newsletter
+WHERE user_id = $1 AND id = ANY($2::UUID[])
+ORDER BY created_at DESC
+`
+
+type ListNewslettersByIdsParams struct {
+	UserID string
+	Ids    []string
+}
+
+func (q *Queries) ListNewslettersByIds(ctx context.Context, arg ListNewslettersByIdsParams) ([]Newsletter, error) {
+	rows, err := q.db.Query(ctx, listNewslettersByIds, arg.UserID, arg.Ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Newsletter
+	for rows.Next() {
+		var i Newsletter
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Frequency,
+			&i.SendDay,
+			&i.SendHour,
+			&i.SendMinute,
+			&i.SendTimezone,
+			&i.LastSentAt,
+			&i.NextSendTime,
+			&i.UserID,
+			&i.Status,
+			&i.UnsubscribeToken,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.OriginalNextSendTime,
+			&i.SendWhenEmpty,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const rescheduleNewsletter = `-- name: RescheduleNewsletter :exec
+UPDATE newsletter SET
+    next_send_time = $1,
+    original_next_send_time = NULL,
+    updated_at = NOW()
+WHERE id = $2 AND user_id = $3
+`
+
+type RescheduleNewsletterParams struct {
+	NextSendTime time.Time
+	ID           string
+	UserID       string
+}
+
+func (q *Queries) RescheduleNewsletter(ctx context.Context, arg RescheduleNewsletterParams) error {
+	_, err := q.db.Exec(ctx, rescheduleNewsletter, arg.NextSendTime, arg.ID, arg.UserID)
+	return err
+}
+
 const skipNewsletterSend = `-- name: SkipNewsletterSend :exec
 UPDATE newsletter SET
     next_send_time = $1,
@@ -477,17 +544,21 @@ func (q *Queries) UpdateNewsletterSendWhenEmpty(ctx context.Context, arg UpdateN
 	return err
 }
 
-const updateNewsletterStatus = `-- name: UpdateNewsletterStatus :exec
-UPDATE newsletter SET status = $1 WHERE id = $2 AND user_id = $3
+const updateNewslettersStatus = `-- name: UpdateNewslettersStatus :execrows
+UPDATE newsletter SET status = $1, updated_at = NOW()
+WHERE user_id = $2 AND id = ANY($3::UUID[])
 `
 
-type UpdateNewsletterStatusParams struct {
+type UpdateNewslettersStatusParams struct {
 	Status NewsletterStatus
-	ID     string
 	UserID string
+	Ids    []string
 }
 
-func (q *Queries) UpdateNewsletterStatus(ctx context.Context, arg UpdateNewsletterStatusParams) error {
-	_, err := q.db.Exec(ctx, updateNewsletterStatus, arg.Status, arg.ID, arg.UserID)
-	return err
+func (q *Queries) UpdateNewslettersStatus(ctx context.Context, arg UpdateNewslettersStatusParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateNewslettersStatus, arg.Status, arg.UserID, arg.Ids)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }

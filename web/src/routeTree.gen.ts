@@ -8,161 +8,161 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as VerifyEmailRouteImport } from './routes/verify-email'
-import { Route as SignUpRouteImport } from './routes/sign-up'
-import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as BadLinkRouteImport } from './routes/bad-link'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as NewslettersRouteRouteImport } from './routes/newsletters/route'
-import { Route as IssuesRouteRouteImport } from './routes/issues/route'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as UnsubscribeIndexRouteImport } from './routes/unsubscribe/index'
-import { Route as NewslettersIndexRouteImport } from './routes/newsletters/index'
-import { Route as IssuesIndexRouteImport } from './routes/issues/index'
-import { Route as NewslettersNewsletterIdRouteImport } from './routes/newsletters/$newsletterId'
-import { Route as IssuesIssueIdRouteImport } from './routes/issues/$issueId'
-import { Route as NewslettersNewsletterIdIndexRouteImport } from './routes/newsletters/$newsletterId/index'
-import { Route as NewslettersNewsletterIdFeedsFeedIdRouteImport } from './routes/newsletters/$newsletterId/feeds/$feedId'
+import { Route as rootRouteImport } from './routes/__root';
+import { Route as IndexRouteImport } from './routes/index';
+import { Route as AboutRouteImport } from './routes/about';
+import { Route as BadLinkRouteImport } from './routes/bad-link';
+import { Route as IssuesRouteRouteImport } from './routes/issues/route';
+import { Route as NewslettersRouteRouteImport } from './routes/newsletters/route';
+import { Route as ProfileRouteImport } from './routes/profile';
+import { Route as SignInRouteImport } from './routes/sign-in';
+import { Route as SignUpRouteImport } from './routes/sign-up';
+import { Route as VerifyEmailRouteImport } from './routes/verify-email';
+import { Route as IssuesIndexRouteImport } from './routes/issues/index';
+import { Route as IssuesIssueIdRouteImport } from './routes/issues/$issueId';
+import { Route as NewslettersIndexRouteImport } from './routes/newsletters/index';
+import { Route as NewslettersNewsletterIdRouteImport } from './routes/newsletters/$newsletterId';
+import { Route as UnsubscribeIndexRouteImport } from './routes/unsubscribe/index';
+import { Route as NewslettersNewsletterIdIndexRouteImport } from './routes/newsletters/$newsletterId/index';
+import { Route as NewslettersNewsletterIdFeedsFeedIdRouteImport } from './routes/newsletters/$newsletterId/feeds/$feedId';
 
-const VerifyEmailRoute = VerifyEmailRouteImport.update({
-  id: '/verify-email',
-  path: '/verify-email',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignUpRoute = SignUpRouteImport.update({
-  id: '/sign-up',
-  path: '/sign-up',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BadLinkRoute = BadLinkRouteImport.update({
-  id: '/bad-link',
-  path: '/bad-link',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const NewslettersRouteRoute = NewslettersRouteRouteImport.update({
-  id: '/newsletters',
-  path: '/newsletters',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IssuesRouteRoute = IssuesRouteRouteImport.update({
-  id: '/issues',
-  path: '/issues',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
-} as any)
-const UnsubscribeIndexRoute = UnsubscribeIndexRouteImport.update({
-  id: '/unsubscribe/',
-  path: '/unsubscribe/',
+} as any);
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
   getParentRoute: () => rootRouteImport,
-} as any)
-const NewslettersIndexRoute = NewslettersIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => NewslettersRouteRoute,
-} as any)
+} as any);
+const BadLinkRoute = BadLinkRouteImport.update({
+  id: '/bad-link',
+  path: '/bad-link',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const IssuesRouteRoute = IssuesRouteRouteImport.update({
+  id: '/issues',
+  path: '/issues',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const NewslettersRouteRoute = NewslettersRouteRouteImport.update({
+  id: '/newsletters',
+  path: '/newsletters',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const SignInRoute = SignInRouteImport.update({
+  id: '/sign-in',
+  path: '/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const SignUpRoute = SignUpRouteImport.update({
+  id: '/sign-up',
+  path: '/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any);
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const IssuesIndexRoute = IssuesIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => IssuesRouteRoute,
-} as any)
-const NewslettersNewsletterIdRoute = NewslettersNewsletterIdRouteImport.update({
-  id: '/$newsletterId',
-  path: '/$newsletterId',
-  getParentRoute: () => NewslettersRouteRoute,
-} as any)
+} as any);
 const IssuesIssueIdRoute = IssuesIssueIdRouteImport.update({
   id: '/$issueId',
   path: '/$issueId',
   getParentRoute: () => IssuesRouteRoute,
-} as any)
+} as any);
+const NewslettersIndexRoute = NewslettersIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => NewslettersRouteRoute,
+} as any);
+const NewslettersNewsletterIdRoute = NewslettersNewsletterIdRouteImport.update({
+  id: '/$newsletterId',
+  path: '/$newsletterId',
+  getParentRoute: () => NewslettersRouteRoute,
+} as any);
+const UnsubscribeIndexRoute = UnsubscribeIndexRouteImport.update({
+  id: '/unsubscribe/',
+  path: '/unsubscribe/',
+  getParentRoute: () => rootRouteImport,
+} as any);
 const NewslettersNewsletterIdIndexRoute =
   NewslettersNewsletterIdIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => NewslettersNewsletterIdRoute,
-  } as any)
+  } as any);
 const NewslettersNewsletterIdFeedsFeedIdRoute =
   NewslettersNewsletterIdFeedsFeedIdRouteImport.update({
     id: '/feeds/$feedId',
     path: '/feeds/$feedId',
     getParentRoute: () => NewslettersNewsletterIdRoute,
-  } as any)
+  } as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/issues': typeof IssuesRouteRouteWithChildren
-  '/newsletters': typeof NewslettersRouteRouteWithChildren
-  '/about': typeof AboutRoute
-  '/bad-link': typeof BadLinkRoute
-  '/profile': typeof ProfileRoute
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
-  '/verify-email': typeof VerifyEmailRoute
-  '/issues/$issueId': typeof IssuesIssueIdRoute
-  '/newsletters/$newsletterId': typeof NewslettersNewsletterIdRouteWithChildren
-  '/issues/': typeof IssuesIndexRoute
-  '/newsletters/': typeof NewslettersIndexRoute
-  '/unsubscribe/': typeof UnsubscribeIndexRoute
-  '/newsletters/$newsletterId/': typeof NewslettersNewsletterIdIndexRoute
-  '/newsletters/$newsletterId/feeds/$feedId': typeof NewslettersNewsletterIdFeedsFeedIdRoute
+  '/': typeof IndexRoute;
+  '/issues': typeof IssuesRouteRouteWithChildren;
+  '/newsletters': typeof NewslettersRouteRouteWithChildren;
+  '/about': typeof AboutRoute;
+  '/bad-link': typeof BadLinkRoute;
+  '/profile': typeof ProfileRoute;
+  '/sign-in': typeof SignInRoute;
+  '/sign-up': typeof SignUpRoute;
+  '/verify-email': typeof VerifyEmailRoute;
+  '/issues/$issueId': typeof IssuesIssueIdRoute;
+  '/newsletters/$newsletterId': typeof NewslettersNewsletterIdRouteWithChildren;
+  '/issues/': typeof IssuesIndexRoute;
+  '/newsletters/': typeof NewslettersIndexRoute;
+  '/unsubscribe/': typeof UnsubscribeIndexRoute;
+  '/newsletters/$newsletterId/': typeof NewslettersNewsletterIdIndexRoute;
+  '/newsletters/$newsletterId/feeds/$feedId': typeof NewslettersNewsletterIdFeedsFeedIdRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/about': typeof AboutRoute
-  '/bad-link': typeof BadLinkRoute
-  '/profile': typeof ProfileRoute
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
-  '/verify-email': typeof VerifyEmailRoute
-  '/issues/$issueId': typeof IssuesIssueIdRoute
-  '/issues': typeof IssuesIndexRoute
-  '/newsletters': typeof NewslettersIndexRoute
-  '/unsubscribe': typeof UnsubscribeIndexRoute
-  '/newsletters/$newsletterId': typeof NewslettersNewsletterIdIndexRoute
-  '/newsletters/$newsletterId/feeds/$feedId': typeof NewslettersNewsletterIdFeedsFeedIdRoute
+  '/': typeof IndexRoute;
+  '/about': typeof AboutRoute;
+  '/bad-link': typeof BadLinkRoute;
+  '/profile': typeof ProfileRoute;
+  '/sign-in': typeof SignInRoute;
+  '/sign-up': typeof SignUpRoute;
+  '/verify-email': typeof VerifyEmailRoute;
+  '/issues/$issueId': typeof IssuesIssueIdRoute;
+  '/issues': typeof IssuesIndexRoute;
+  '/newsletters': typeof NewslettersIndexRoute;
+  '/unsubscribe': typeof UnsubscribeIndexRoute;
+  '/newsletters/$newsletterId': typeof NewslettersNewsletterIdIndexRoute;
+  '/newsletters/$newsletterId/feeds/$feedId': typeof NewslettersNewsletterIdFeedsFeedIdRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/issues': typeof IssuesRouteRouteWithChildren
-  '/newsletters': typeof NewslettersRouteRouteWithChildren
-  '/about': typeof AboutRoute
-  '/bad-link': typeof BadLinkRoute
-  '/profile': typeof ProfileRoute
-  '/sign-in': typeof SignInRoute
-  '/sign-up': typeof SignUpRoute
-  '/verify-email': typeof VerifyEmailRoute
-  '/issues/$issueId': typeof IssuesIssueIdRoute
-  '/newsletters/$newsletterId': typeof NewslettersNewsletterIdRouteWithChildren
-  '/issues/': typeof IssuesIndexRoute
-  '/newsletters/': typeof NewslettersIndexRoute
-  '/unsubscribe/': typeof UnsubscribeIndexRoute
-  '/newsletters/$newsletterId/': typeof NewslettersNewsletterIdIndexRoute
-  '/newsletters/$newsletterId/feeds/$feedId': typeof NewslettersNewsletterIdFeedsFeedIdRoute
+  __root__: typeof rootRouteImport;
+  '/': typeof IndexRoute;
+  '/issues': typeof IssuesRouteRouteWithChildren;
+  '/newsletters': typeof NewslettersRouteRouteWithChildren;
+  '/about': typeof AboutRoute;
+  '/bad-link': typeof BadLinkRoute;
+  '/profile': typeof ProfileRoute;
+  '/sign-in': typeof SignInRoute;
+  '/sign-up': typeof SignUpRoute;
+  '/verify-email': typeof VerifyEmailRoute;
+  '/issues/$issueId': typeof IssuesIssueIdRoute;
+  '/newsletters/$newsletterId': typeof NewslettersNewsletterIdRouteWithChildren;
+  '/issues/': typeof IssuesIndexRoute;
+  '/newsletters/': typeof NewslettersIndexRoute;
+  '/unsubscribe/': typeof UnsubscribeIndexRoute;
+  '/newsletters/$newsletterId/': typeof NewslettersNewsletterIdIndexRoute;
+  '/newsletters/$newsletterId/feeds/$feedId': typeof NewslettersNewsletterIdFeedsFeedIdRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
     | '/'
     | '/issues'
@@ -179,8 +179,8 @@ export interface FileRouteTypes {
     | '/newsletters/'
     | '/unsubscribe/'
     | '/newsletters/$newsletterId/'
-    | '/newsletters/$newsletterId/feeds/$feedId'
-  fileRoutesByTo: FileRoutesByTo
+    | '/newsletters/$newsletterId/feeds/$feedId';
+  fileRoutesByTo: FileRoutesByTo;
   to:
     | '/'
     | '/about'
@@ -194,7 +194,7 @@ export interface FileRouteTypes {
     | '/newsletters'
     | '/unsubscribe'
     | '/newsletters/$newsletterId'
-    | '/newsletters/$newsletterId/feeds/$feedId'
+    | '/newsletters/$newsletterId/feeds/$feedId';
   id:
     | '__root__'
     | '/'
@@ -212,156 +212,156 @@ export interface FileRouteTypes {
     | '/newsletters/'
     | '/unsubscribe/'
     | '/newsletters/$newsletterId/'
-    | '/newsletters/$newsletterId/feeds/$feedId'
-  fileRoutesById: FileRoutesById
+    | '/newsletters/$newsletterId/feeds/$feedId';
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  IssuesRouteRoute: typeof IssuesRouteRouteWithChildren
-  NewslettersRouteRoute: typeof NewslettersRouteRouteWithChildren
-  AboutRoute: typeof AboutRoute
-  BadLinkRoute: typeof BadLinkRoute
-  ProfileRoute: typeof ProfileRoute
-  SignInRoute: typeof SignInRoute
-  SignUpRoute: typeof SignUpRoute
-  VerifyEmailRoute: typeof VerifyEmailRoute
-  UnsubscribeIndexRoute: typeof UnsubscribeIndexRoute
+  IndexRoute: typeof IndexRoute;
+  IssuesRouteRoute: typeof IssuesRouteRouteWithChildren;
+  NewslettersRouteRoute: typeof NewslettersRouteRouteWithChildren;
+  AboutRoute: typeof AboutRoute;
+  BadLinkRoute: typeof BadLinkRoute;
+  ProfileRoute: typeof ProfileRoute;
+  SignInRoute: typeof SignInRoute;
+  SignUpRoute: typeof SignUpRoute;
+  VerifyEmailRoute: typeof VerifyEmailRoute;
+  UnsubscribeIndexRoute: typeof UnsubscribeIndexRoute;
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/verify-email': {
-      id: '/verify-email'
-      path: '/verify-email'
-      fullPath: '/verify-email'
-      preLoaderRoute: typeof VerifyEmailRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-up': {
-      id: '/sign-up'
-      path: '/sign-up'
-      fullPath: '/sign-up'
-      preLoaderRoute: typeof SignUpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bad-link': {
-      id: '/bad-link'
-      path: '/bad-link'
-      fullPath: '/bad-link'
-      preLoaderRoute: typeof BadLinkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/newsletters': {
-      id: '/newsletters'
-      path: '/newsletters'
-      fullPath: '/newsletters'
-      preLoaderRoute: typeof NewslettersRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/issues': {
-      id: '/issues'
-      path: '/issues'
-      fullPath: '/issues'
-      preLoaderRoute: typeof IssuesRouteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/unsubscribe/': {
-      id: '/unsubscribe/'
-      path: '/unsubscribe'
-      fullPath: '/unsubscribe/'
-      preLoaderRoute: typeof UnsubscribeIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/newsletters/': {
-      id: '/newsletters/'
-      path: '/'
-      fullPath: '/newsletters/'
-      preLoaderRoute: typeof NewslettersIndexRouteImport
-      parentRoute: typeof NewslettersRouteRoute
-    }
+      id: '/';
+      path: '/';
+      fullPath: '/';
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/about': {
+      id: '/about';
+      path: '/about';
+      fullPath: '/about';
+      preLoaderRoute: typeof AboutRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/bad-link': {
+      id: '/bad-link';
+      path: '/bad-link';
+      fullPath: '/bad-link';
+      preLoaderRoute: typeof BadLinkRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/issues': {
+      id: '/issues';
+      path: '/issues';
+      fullPath: '/issues';
+      preLoaderRoute: typeof IssuesRouteRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/newsletters': {
+      id: '/newsletters';
+      path: '/newsletters';
+      fullPath: '/newsletters';
+      preLoaderRoute: typeof NewslettersRouteRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/profile': {
+      id: '/profile';
+      path: '/profile';
+      fullPath: '/profile';
+      preLoaderRoute: typeof ProfileRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/sign-in': {
+      id: '/sign-in';
+      path: '/sign-in';
+      fullPath: '/sign-in';
+      preLoaderRoute: typeof SignInRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/sign-up': {
+      id: '/sign-up';
+      path: '/sign-up';
+      fullPath: '/sign-up';
+      preLoaderRoute: typeof SignUpRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    '/verify-email': {
+      id: '/verify-email';
+      path: '/verify-email';
+      fullPath: '/verify-email';
+      preLoaderRoute: typeof VerifyEmailRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/issues/': {
-      id: '/issues/'
-      path: '/'
-      fullPath: '/issues/'
-      preLoaderRoute: typeof IssuesIndexRouteImport
-      parentRoute: typeof IssuesRouteRoute
-    }
-    '/newsletters/$newsletterId': {
-      id: '/newsletters/$newsletterId'
-      path: '/$newsletterId'
-      fullPath: '/newsletters/$newsletterId'
-      preLoaderRoute: typeof NewslettersNewsletterIdRouteImport
-      parentRoute: typeof NewslettersRouteRoute
-    }
+      id: '/issues/';
+      path: '/';
+      fullPath: '/issues/';
+      preLoaderRoute: typeof IssuesIndexRouteImport;
+      parentRoute: typeof IssuesRouteRoute;
+    };
     '/issues/$issueId': {
-      id: '/issues/$issueId'
-      path: '/$issueId'
-      fullPath: '/issues/$issueId'
-      preLoaderRoute: typeof IssuesIssueIdRouteImport
-      parentRoute: typeof IssuesRouteRoute
-    }
+      id: '/issues/$issueId';
+      path: '/$issueId';
+      fullPath: '/issues/$issueId';
+      preLoaderRoute: typeof IssuesIssueIdRouteImport;
+      parentRoute: typeof IssuesRouteRoute;
+    };
+    '/newsletters/': {
+      id: '/newsletters/';
+      path: '/';
+      fullPath: '/newsletters/';
+      preLoaderRoute: typeof NewslettersIndexRouteImport;
+      parentRoute: typeof NewslettersRouteRoute;
+    };
+    '/newsletters/$newsletterId': {
+      id: '/newsletters/$newsletterId';
+      path: '/$newsletterId';
+      fullPath: '/newsletters/$newsletterId';
+      preLoaderRoute: typeof NewslettersNewsletterIdRouteImport;
+      parentRoute: typeof NewslettersRouteRoute;
+    };
+    '/unsubscribe/': {
+      id: '/unsubscribe/';
+      path: '/unsubscribe';
+      fullPath: '/unsubscribe/';
+      preLoaderRoute: typeof UnsubscribeIndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
     '/newsletters/$newsletterId/': {
-      id: '/newsletters/$newsletterId/'
-      path: '/'
-      fullPath: '/newsletters/$newsletterId/'
-      preLoaderRoute: typeof NewslettersNewsletterIdIndexRouteImport
-      parentRoute: typeof NewslettersNewsletterIdRoute
-    }
+      id: '/newsletters/$newsletterId/';
+      path: '/';
+      fullPath: '/newsletters/$newsletterId/';
+      preLoaderRoute: typeof NewslettersNewsletterIdIndexRouteImport;
+      parentRoute: typeof NewslettersNewsletterIdRoute;
+    };
     '/newsletters/$newsletterId/feeds/$feedId': {
-      id: '/newsletters/$newsletterId/feeds/$feedId'
-      path: '/feeds/$feedId'
-      fullPath: '/newsletters/$newsletterId/feeds/$feedId'
-      preLoaderRoute: typeof NewslettersNewsletterIdFeedsFeedIdRouteImport
-      parentRoute: typeof NewslettersNewsletterIdRoute
-    }
+      id: '/newsletters/$newsletterId/feeds/$feedId';
+      path: '/feeds/$feedId';
+      fullPath: '/newsletters/$newsletterId/feeds/$feedId';
+      preLoaderRoute: typeof NewslettersNewsletterIdFeedsFeedIdRouteImport;
+      parentRoute: typeof NewslettersNewsletterIdRoute;
+    };
   }
 }
 
 interface IssuesRouteRouteChildren {
-  IssuesIssueIdRoute: typeof IssuesIssueIdRoute
-  IssuesIndexRoute: typeof IssuesIndexRoute
+  IssuesIssueIdRoute: typeof IssuesIssueIdRoute;
+  IssuesIndexRoute: typeof IssuesIndexRoute;
 }
 
 const IssuesRouteRouteChildren: IssuesRouteRouteChildren = {
   IssuesIssueIdRoute: IssuesIssueIdRoute,
   IssuesIndexRoute: IssuesIndexRoute,
-}
+};
 
 const IssuesRouteRouteWithChildren = IssuesRouteRoute._addFileChildren(
   IssuesRouteRouteChildren,
-)
+);
 
 interface NewslettersNewsletterIdRouteChildren {
-  NewslettersNewsletterIdIndexRoute: typeof NewslettersNewsletterIdIndexRoute
-  NewslettersNewsletterIdFeedsFeedIdRoute: typeof NewslettersNewsletterIdFeedsFeedIdRoute
+  NewslettersNewsletterIdIndexRoute: typeof NewslettersNewsletterIdIndexRoute;
+  NewslettersNewsletterIdFeedsFeedIdRoute: typeof NewslettersNewsletterIdFeedsFeedIdRoute;
 }
 
 const NewslettersNewsletterIdRouteChildren: NewslettersNewsletterIdRouteChildren =
@@ -369,25 +369,25 @@ const NewslettersNewsletterIdRouteChildren: NewslettersNewsletterIdRouteChildren
     NewslettersNewsletterIdIndexRoute: NewslettersNewsletterIdIndexRoute,
     NewslettersNewsletterIdFeedsFeedIdRoute:
       NewslettersNewsletterIdFeedsFeedIdRoute,
-  }
+  };
 
 const NewslettersNewsletterIdRouteWithChildren =
   NewslettersNewsletterIdRoute._addFileChildren(
     NewslettersNewsletterIdRouteChildren,
-  )
+  );
 
 interface NewslettersRouteRouteChildren {
-  NewslettersNewsletterIdRoute: typeof NewslettersNewsletterIdRouteWithChildren
-  NewslettersIndexRoute: typeof NewslettersIndexRoute
+  NewslettersNewsletterIdRoute: typeof NewslettersNewsletterIdRouteWithChildren;
+  NewslettersIndexRoute: typeof NewslettersIndexRoute;
 }
 
 const NewslettersRouteRouteChildren: NewslettersRouteRouteChildren = {
   NewslettersNewsletterIdRoute: NewslettersNewsletterIdRouteWithChildren,
   NewslettersIndexRoute: NewslettersIndexRoute,
-}
+};
 
 const NewslettersRouteRouteWithChildren =
-  NewslettersRouteRoute._addFileChildren(NewslettersRouteRouteChildren)
+  NewslettersRouteRoute._addFileChildren(NewslettersRouteRouteChildren);
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -400,7 +400,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignUpRoute: SignUpRoute,
   VerifyEmailRoute: VerifyEmailRoute,
   UnsubscribeIndexRoute: UnsubscribeIndexRoute,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();

@@ -23,12 +23,6 @@ const (
 
 var ErrInvalidImport = errors.New("Invalid import")
 
-type importedFilter struct {
-	Field    dbgen.FilterField    `json:"field"`
-	Operator dbgen.FilterOperator `json:"operator"`
-	Pattern  string               `json:"pattern"`
-}
-
 type ImportResult struct {
 	NewsletterIDs []string `json:"newsletterIds"`
 	PendingFeeds  int      `json:"pendingFeeds"`
@@ -129,6 +123,24 @@ func validateExport(export NewslettersExport) error {
 		return fmt.Errorf("%w: at most %d feeds can be imported at once", ErrInvalidImport, maxImportedFeeds)
 	}
 
+	for _, nl := range export.Newsletters {
+		if err := validateSchedule(nl); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validateSchedule(nl ExportableNewsletter) error {
+	if nl.SendTimezone == "" {
+		return fmt.Errorf("%w: %q has no timezone", ErrInvalidImport, nl.Name)
+	}
+
+	if err := ValidateSendDay(dbgen.Frequency(nl.Frequency), &nl.SendDay); err != nil {
+		return fmt.Errorf("%w: %q: %w", ErrInvalidImport, nl.Name, err)
+	}
+
 	return nil
 }
 
@@ -188,7 +200,7 @@ func importFeeds(
 			UserID:       userID,
 			Alias:        feed.Alias,
 			Status:       statusOrActive(feed.Status),
-		}, toImportedFilters(feed.Filters))
+		}, feed.Filters)
 		if err != nil {
 			return 0, err
 		}
@@ -210,7 +222,7 @@ func attachFeed(
 	ctx context.Context,
 	qtx *dbgen.Queries,
 	feed dbgen.AddImportedNewsletterFeedParams,
-	filters []importedFilter,
+	filters []feeds.ExportableFilter,
 ) error {
 	newsletterFeedID, err := qtx.AddImportedNewsletterFeed(ctx, feed)
 	alreadyInNewsletter := errors.Is(err, pgx.ErrNoRows)
@@ -237,18 +249,15 @@ func attachFeed(
 	return nil
 }
 
-func toImportedFilters(exported []feeds.ExportableFilter) []importedFilter {
-	filters := make([]importedFilter, 0, len(exported))
-	for _, f := range exported {
-		filters = append(filters, importedFilter{Field: f.Field, Operator: f.Operator, Pattern: f.Pattern})
-	}
-	return filters
-}
-
 func buildFeedImports(newsletterID, userID string, exported []feeds.ExportableFeed) ([]dbgen.CreateFeedImportsParams, error) {
 	params := make([]dbgen.CreateFeedImportsParams, 0, len(exported))
 	for _, feed := range exported {
-		encodedFilters, err := json.Marshal(toImportedFilters(feed.Filters))
+		filters := feed.Filters
+		if filters == nil {
+			filters = []feeds.ExportableFilter{}
+		}
+
+		encodedFilters, err := json.Marshal(filters)
 		if err != nil {
 			return nil, err
 		}
@@ -363,7 +372,7 @@ func isFetchFailure(err error) bool {
 }
 
 func (s *ImportService) addImportedFeed(ctx context.Context, imp dbgen.NewsletterFeedImport, feedID string) error {
-	var filters []importedFilter
+	var filters []feeds.ExportableFilter
 	if err := json.Unmarshal(imp.Filters, &filters); err != nil {
 		return err
 	}

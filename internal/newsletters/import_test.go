@@ -14,7 +14,9 @@ func exportWithFeedCounts(counts ...int) NewslettersExport {
 	export := NewslettersExport{Version: ExportVersion}
 	for _, count := range counts {
 		export.Newsletters = append(export.Newsletters, ExportableNewsletter{
-			Feeds: make([]feeds.ExportableFeed, count),
+			Frequency:    string(db.FrequencyDaily),
+			SendTimezone: "UTC",
+			Feeds:        make([]feeds.ExportableFeed, count),
 		})
 	}
 	return export
@@ -28,6 +30,31 @@ func TestValidateExportCapsTotalFeedsAcrossNewsletters(t *testing.T) {
 	err := validateExport(exportWithFeedCounts(250, 251))
 	if !errors.Is(err, ErrInvalidImport) {
 		t.Fatalf("501 feeds should be rejected as ErrInvalidImport, got %v", err)
+	}
+}
+
+func TestValidateScheduleRejectsSchedulesTheAppCannotProduce(t *testing.T) {
+	cases := []struct {
+		name  string
+		nl    ExportableNewsletter
+		valid bool
+	}{
+		{"weekly saturday", ExportableNewsletter{Frequency: "weekly", SendDay: 6, SendTimezone: "UTC"}, true},
+		{"weekly day 7", ExportableNewsletter{Frequency: "weekly", SendDay: 7, SendTimezone: "UTC"}, false},
+		{"monthly day 0", ExportableNewsletter{Frequency: "monthly", SendDay: 0, SendTimezone: "UTC"}, false},
+		{"monthly day 31", ExportableNewsletter{Frequency: "monthly", SendDay: 31, SendTimezone: "UTC"}, true},
+		{"daily ignores send day", ExportableNewsletter{Frequency: "daily", SendDay: 31, SendTimezone: "UTC"}, true},
+		{"empty timezone", ExportableNewsletter{Frequency: "daily", SendTimezone: ""}, false},
+	}
+
+	for _, tc := range cases {
+		err := validateSchedule(tc.nl)
+		if tc.valid && err != nil {
+			t.Errorf("%s: expected valid, got %v", tc.name, err)
+		}
+		if !tc.valid && !errors.Is(err, ErrInvalidImport) {
+			t.Errorf("%s: expected ErrInvalidImport, got %v", tc.name, err)
+		}
 	}
 }
 
@@ -75,11 +102,11 @@ func TestBuildFeedImportsKeepsAliasStatusAndFilters(t *testing.T) {
 		t.Errorf("status = %q, want inactive", p.Status)
 	}
 
-	var filters []importedFilter
+	var filters []feeds.ExportableFilter
 	if err := json.Unmarshal(p.Filters, &filters); err != nil {
 		t.Fatalf("filters are not valid JSON: %v", err)
 	}
-	want := []importedFilter{{Field: db.FilterFieldTitle, Operator: db.FilterOperatorDoesNotContain, Pattern: "sponsored"}}
+	want := exported[0].Filters
 	if !reflect.DeepEqual(filters, want) {
 		t.Errorf("filters = %+v, want %+v", filters, want)
 	}

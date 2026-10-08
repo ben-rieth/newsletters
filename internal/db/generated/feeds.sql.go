@@ -82,11 +82,16 @@ func (q *Queries) CountRecentFeedFailures(ctx context.Context, arg CountRecentFe
 }
 
 const deleteAllFeedsInNewsletter = `-- name: DeleteAllFeedsInNewsletter :exec
-DELETE FROM newsletter_feed WHERE newsletter_id = $1
+DELETE FROM newsletter_feed WHERE newsletter_id = $1 AND user_id = $2
 `
 
-func (q *Queries) DeleteAllFeedsInNewsletter(ctx context.Context, newsletterID string) error {
-	_, err := q.db.Exec(ctx, deleteAllFeedsInNewsletter, newsletterID)
+type DeleteAllFeedsInNewsletterParams struct {
+	NewsletterID string
+	UserID       string
+}
+
+func (q *Queries) DeleteAllFeedsInNewsletter(ctx context.Context, arg DeleteAllFeedsInNewsletterParams) error {
+	_, err := q.db.Exec(ctx, deleteAllFeedsInNewsletter, arg.NewsletterID, arg.UserID)
 	return err
 }
 
