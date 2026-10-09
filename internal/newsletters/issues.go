@@ -87,6 +87,7 @@ func (s *IssuesService) GetIssue(ctx context.Context, issueID, userID string) (*
 	feedViews := make([]IssueFeed, 0, len(issueFeeds))
 	for _, feed := range issueFeeds {
 		feedViews = append(feedViews, IssueFeed{
+			FeedID:  feed.ID,
 			Title:   feed.Title,
 			HtmlURL: feed.HtmlUrl,
 			Items:   itemsByFeed[feed.ID],

@@ -73,6 +73,7 @@ type IssueItem struct {
 }
 
 type IssueFeed struct {
+	FeedID  string      `json:"feedId"`
 	Title   string      `json:"title"`
 	HtmlURL string      `json:"webUrl"`
 	Items   []IssueItem `json:"items"`

@@ -908,6 +908,7 @@ export interface components {
       unreadCount: number;
     };
     IssueFeed: {
+      feedId: string;
       items: components['schemas']['IssueItem'][] | null;
       title: string;
       webUrl: string;
