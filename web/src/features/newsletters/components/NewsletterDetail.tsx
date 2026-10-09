@@ -35,8 +35,13 @@ import {
 } from '#/components/ui/alert-dialog';
 import { getErrorMessage } from '#/lib/errors';
 
+export const NEWSLETTER_TABS = ['feeds', 'history', 'settings'] as const;
+export type NewsletterTab = (typeof NEWSLETTER_TABS)[number];
+
 type Props = {
   newsletter: Newsletter;
+  tab: NewsletterTab;
+  onTabChange: (tab: NewsletterTab) => void;
 };
 
 const formatDateTime = (dateStr: string) =>
@@ -45,7 +50,7 @@ const formatDateTime = (dateStr: string) =>
     timeStyle: 'short',
   });
 
-export const NewsletterDetail = ({ newsletter }: Props) => {
+export const NewsletterDetail = ({ newsletter, tab, onTabChange }: Props) => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -110,7 +115,7 @@ export const NewsletterDetail = ({ newsletter }: Props) => {
         </p>
       </header>
 
-      <Tabs defaultValue="feeds">
+      <Tabs value={tab} onValueChange={onTabChange}>
         <TabsList
           variant="line"
           className="w-full justify-start gap-6 border-b **:data-[slot=tabs-trigger]:flex-none **:data-[slot=tabs-trigger]:px-0"

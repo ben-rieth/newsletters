@@ -1,7 +1,11 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
-import { FeedDetail } from '#/features/newsletters/components/FeedDetail';
+import { z } from 'zod';
+import {
+  FEED_TABS,
+  FeedDetail,
+} from '#/features/newsletters/components/FeedDetail';
 import { feedDetailOptions } from '#/features/newsletters/queries/feeds';
 import {
   newsletterOptions,
@@ -11,6 +15,8 @@ import { useMobileHeader } from '#/components/MobileHeader';
 
 const FeedDetailPage = () => {
   const { newsletterId, feedId } = Route.useParams();
+  const { tab = 'details' } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const { data: newsletter } = useSuspenseQuery(
     newsletterOptions(newsletterId),
   );
@@ -37,7 +43,18 @@ const FeedDetailPage = () => {
         {newsletter.name}
       </Link>
 
-      <FeedDetail newsletterId={newsletterId} feedId={feedId} />
+      <FeedDetail
+        newsletterId={newsletterId}
+        feedId={feedId}
+        tab={tab}
+        onTabChange={(next) =>
+          navigate({
+            search: { tab: next === 'details' ? undefined : next },
+            replace: true,
+            resetScroll: false,
+          })
+        }
+      />
     </div>
   );
 };
@@ -46,6 +63,9 @@ export const Route = createFileRoute(
   '/newsletters/$newsletterId/feeds/$feedId',
 )({
   component: FeedDetailPage,
+  validateSearch: z.object({
+    tab: z.enum(FEED_TABS).optional().catch(undefined),
+  }),
   loader: async ({ context, params }) => {
     await Promise.all([
       context.queryClient.ensureQueryData(

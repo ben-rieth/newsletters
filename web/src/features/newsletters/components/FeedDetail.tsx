@@ -31,12 +31,22 @@ import {
 } from '#/components/ui/alert-dialog';
 import { getErrorMessage } from '#/lib/errors';
 
+export const FEED_TABS = ['details', 'filters'] as const;
+export type FeedTab = (typeof FEED_TABS)[number];
+
 type Props = {
   newsletterId: string;
   feedId: string;
+  tab: FeedTab;
+  onTabChange: (tab: FeedTab) => void;
 };
 
-export const FeedDetail = ({ newsletterId, feedId }: Props) => {
+export const FeedDetail = ({
+  newsletterId,
+  feedId,
+  tab,
+  onTabChange,
+}: Props) => {
   const [showAddFilter, setShowAddFilter] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const navigate = useNavigate();
@@ -100,7 +110,7 @@ export const FeedDetail = ({ newsletterId, feedId }: Props) => {
 
       <FeedHealthAlert health={feed.health} />
 
-      <Tabs defaultValue="details">
+      <Tabs value={tab} onValueChange={onTabChange}>
         <TabsList
           variant="line"
           className="w-full justify-start gap-6 border-b **:data-[slot=tabs-trigger]:flex-none **:data-[slot=tabs-trigger]:px-0"
