@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"uuid"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -48,7 +48,7 @@ func (h *LinksHandler) handleLinkRedirect(
 		Location: fmt.Sprintf("%s/bad-link", h.config.WebURL),
 	}
 
-	if err := uuid.Validate(i.Token); err != nil {
+	if _, err := uuid.Parse(i.Token); err != nil {
 		return errorResponse, nil
 	}
 

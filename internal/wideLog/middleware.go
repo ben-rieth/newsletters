@@ -6,9 +6,9 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"time"
+	"uuid"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/google/uuid"
 )
 
 func WideLogMiddleware(ctx huma.Context, next func(huma.Context)) {

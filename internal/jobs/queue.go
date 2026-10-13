@@ -8,10 +8,10 @@ import (
 	"math/rand/v2"
 	"sync"
 	"time"
+	"uuid"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
-	"github.com/google/uuid"
 )
 
 type Job func(context.Context)

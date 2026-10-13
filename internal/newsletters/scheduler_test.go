@@ -9,11 +9,11 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"uuid"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
-	"github.com/google/uuid"
 )
 
 type sendAttempt struct {
@@ -135,7 +135,7 @@ func TestGenerateTokensForItems(t *testing.T) {
 
 	seen := make(map[string]string, len(tokens))
 	for itemID, token := range tokens {
-		if err := uuid.Validate(token); err != nil {
+		if _, err := uuid.Parse(token); err != nil {
 			// The redirect handler validates the token as a uuid before looking it
 			// up, so a non-uuid token here would only ever reach /bad-link.
 			t.Errorf("token for %s is not a uuid: %v", itemID, err)

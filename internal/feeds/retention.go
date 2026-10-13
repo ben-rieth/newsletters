@@ -5,11 +5,11 @@ import (
 	"log"
 	"log/slog"
 	"time"
+	"uuid"
 
 	dbutil "github.com/ben-rieth/newsletter-api/internal/db"
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 

@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"sync"
 	"time"
+	"uuid"
 
 	"github.com/ben-rieth/newsletter-api/internal/config"
 	"github.com/ben-rieth/newsletter-api/internal/db"
@@ -16,7 +17,6 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/email"
 	"github.com/ben-rieth/newsletter-api/internal/feeds"
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -438,7 +438,7 @@ func generateTokensForItems(feeds []feeds.FeedView) map[string]string {
 
 	for _, feed := range feeds {
 		for _, item := range feed.Items {
-			itemIdToTokenMap[item.ItemID] = uuid.NewString()
+			itemIdToTokenMap[item.ItemID] = uuid.New().String()
 		}
 	}
 
