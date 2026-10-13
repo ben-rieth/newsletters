@@ -26,21 +26,6 @@ func (q *Queries) AddPendingEmailUpdate(ctx context.Context, arg AddPendingEmail
 	return err
 }
 
-const carryVerifyLockout = `-- name: CarryVerifyLockout :exec
-UPDATE app_user SET verify_attempts = $2, verify_locked_until = $3 WHERE id = $1
-`
-
-type CarryVerifyLockoutParams struct {
-	ID                string
-	VerifyAttempts    int32
-	VerifyLockedUntil pgtype.Timestamptz
-}
-
-func (q *Queries) CarryVerifyLockout(ctx context.Context, arg CarryVerifyLockoutParams) error {
-	_, err := q.db.Exec(ctx, carryVerifyLockout, arg.ID, arg.VerifyAttempts, arg.VerifyLockedUntil)
-	return err
-}
-
 const createUser = `-- name: CreateUser :one
 INSERT INTO app_user (email, password) VALUES ($1, $2) RETURNING id
 `
@@ -89,7 +74,7 @@ func (q *Queries) GetUserAuthState(ctx context.Context, id string) (time.Time, e
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email, sessions_valid_from, verify_attempts, verify_locked_until, failed_signin_attempts, signin_locked_until, issue_retention_days FROM app_user WHERE email = $1
+SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email, sessions_valid_from, verify_attempts, verify_locked_until, issue_retention_days FROM app_user WHERE email = $1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, error) {
@@ -106,15 +91,13 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (AppUser, er
 		&i.SessionsValidFrom,
 		&i.VerifyAttempts,
 		&i.VerifyLockedUntil,
-		&i.FailedSigninAttempts,
-		&i.SigninLockedUntil,
 		&i.IssueRetentionDays,
 	)
 	return i, err
 }
 
 const getUserById = `-- name: GetUserById :one
-SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email, sessions_valid_from, verify_attempts, verify_locked_until, failed_signin_attempts, signin_locked_until, issue_retention_days FROM app_user WHERE id = $1
+SELECT id, email, password, email_verified_at, created_at, updated_at, pending_email, sessions_valid_from, verify_attempts, verify_locked_until, issue_retention_days FROM app_user WHERE id = $1
 `
 
 func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
@@ -131,8 +114,6 @@ func (q *Queries) GetUserById(ctx context.Context, id string) (AppUser, error) {
 		&i.SessionsValidFrom,
 		&i.VerifyAttempts,
 		&i.VerifyLockedUntil,
-		&i.FailedSigninAttempts,
-		&i.SigninLockedUntil,
 		&i.IssueRetentionDays,
 	)
 	return i, err
@@ -196,31 +177,6 @@ func (q *Queries) MarkUserEmailUpdateAsVerified(ctx context.Context, id string) 
 	return id_2, err
 }
 
-const recordFailedSignIn = `-- name: RecordFailedSignIn :exec
-UPDATE app_user SET
-    failed_signin_attempts = CASE
-        WHEN failed_signin_attempts + 1 >= $1::int THEN 0
-        ELSE failed_signin_attempts + 1
-    END,
-    signin_locked_until = CASE
-        WHEN failed_signin_attempts + 1 >= $1::int THEN $2::timestamptz
-        ELSE signin_locked_until
-    END,
-    updated_at = NOW()
-WHERE id = $3
-`
-
-type RecordFailedSignInParams struct {
-	MaxAttempts int32
-	LockedUntil time.Time
-	ID          string
-}
-
-func (q *Queries) RecordFailedSignIn(ctx context.Context, arg RecordFailedSignInParams) error {
-	_, err := q.db.Exec(ctx, recordFailedSignIn, arg.MaxAttempts, arg.LockedUntil, arg.ID)
-	return err
-}
-
 const recordFailedVerifyAttempt = `-- name: RecordFailedVerifyAttempt :one
 UPDATE app_user SET
     verify_attempts = CASE
@@ -256,14 +212,24 @@ func (q *Queries) RecordFailedVerifyAttempt(ctx context.Context, arg RecordFaile
 	return i, err
 }
 
-const resetSignInAttempts = `-- name: ResetSignInAttempts :exec
-UPDATE app_user SET failed_signin_attempts = 0, signin_locked_until = NULL, updated_at = NOW()
-WHERE id = $1 AND (failed_signin_attempts <> 0 OR signin_locked_until IS NOT NULL)
+const replaceUnverifiedUserPassword = `-- name: ReplaceUnverifiedUserPassword :one
+UPDATE app_user SET password = $2, updated_at = NOW()
+WHERE id = $1 AND email_verified_at IS NULL
+RETURNING id
 `
 
-func (q *Queries) ResetSignInAttempts(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, resetSignInAttempts, id)
-	return err
+type ReplaceUnverifiedUserPasswordParams struct {
+	ID       string
+	Password string
+}
+
+// Verification is re-checked here because the account may have been verified
+// since it was read. No row back means it is no longer up for grabs.
+func (q *Queries) ReplaceUnverifiedUserPassword(ctx context.Context, arg ReplaceUnverifiedUserPasswordParams) (string, error) {
+	row := q.db.QueryRow(ctx, replaceUnverifiedUserPassword, arg.ID, arg.Password)
+	var id string
+	err := row.Scan(&id)
+	return id, err
 }
 
 const resetVerifyAttempts = `-- name: ResetVerifyAttempts :exec

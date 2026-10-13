@@ -1,3 +1,4 @@
+import { clearPendingVerificationPassword } from '#/features/auth/lib/pendingVerificationPassword';
 import { router } from '#/router';
 
 export const dispatchAuthChange = () => {
@@ -22,6 +23,7 @@ export const clearSession = () => {
   document.cookie =
     '__Host-signed_in=; Path=/; Max-Age=0; Secure; SameSite=Strict';
 
+  clearPendingVerificationPassword();
   dispatchAuthChange();
   router.navigate({ to: '/sign-in' });
 };

@@ -1163,6 +1163,7 @@ export interface components {
       readonly $schema?: string;
       code: string;
       email: string;
+      password: string;
     };
     VisibleUser: {
       /**

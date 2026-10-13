@@ -6,7 +6,6 @@ import (
 
 	db "github.com/ben-rieth/newsletter-api/internal/db/generated"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -90,7 +89,7 @@ func deleteUser(ctx context.Context, qtx *db.Queries, userId string) error {
 
 // CreateUser returns EmailInUseError only for a verified account. An account
 // that was registered but never verified is nobody's yet — whoever holds the
-// inbox still decides who gets it — so signing up again replaces it. Otherwise
+// inbox still decides who gets it — so signing up again takes it over. Otherwise
 // anyone could permanently squat a whitelisted address by registering it first.
 func (s *UserService) CreateUser(ctx context.Context, email, password string) (string, error) {
 	if err := ValidatePassword(password); err != nil {
@@ -102,55 +101,33 @@ func (s *UserService) CreateUser(ctx context.Context, email, password string) (s
 		return "", err
 	}
 
-	tx, err := s.db.Begin(ctx)
+	existing, err := s.queries.GetUserByEmail(ctx, email)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return s.queries.CreateUser(ctx, db.CreateUserParams{
+			Email:    email,
+			Password: string(hash),
+		})
+	}
 	if err != nil {
 		return "", err
 	}
-	defer tx.Rollback(ctx)
 
-	qtx := s.queries.WithTx(tx)
-
-	existing, err := qtx.GetUserByEmail(ctx, email)
-	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		return "", err
+	if existing.EmailVerifiedAt.Valid {
+		return "", EmailInUseError
 	}
 
-	var carriedAttempts int32
-	var carriedLock pgtype.Timestamptz
-
-	if err == nil {
-		if existing.EmailVerifiedAt.Valid {
-			return "", EmailInUseError
-		}
-
-		// The replacement row would start with a clean verification budget, which
-		// would make signing up again the way to clear a lockout.
-		carriedAttempts, carriedLock = existing.VerifyAttempts, existing.VerifyLockedUntil
-
-		if err := deleteUser(ctx, qtx, existing.ID); err != nil {
-			return "", err
-		}
-	}
-
-	id, err := qtx.CreateUser(ctx, db.CreateUserParams{
-		Email:    email,
+	// Taken over in place rather than recreated: the code already in the inbox
+	// keeps working, and the verify lockout stays on the row instead of being
+	// cleared by signing up again.
+	id, err := s.queries.ReplaceUnverifiedUserPassword(ctx, db.ReplaceUnverifiedUserPasswordParams{
+		ID:       existing.ID,
 		Password: string(hash),
 	})
-	if err != nil {
-		return "", err
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", EmailInUseError
 	}
 
-	if carriedAttempts != 0 || carriedLock.Valid {
-		if err := qtx.CarryVerifyLockout(ctx, db.CarryVerifyLockoutParams{
-			ID:                id,
-			VerifyAttempts:    carriedAttempts,
-			VerifyLockedUntil: carriedLock,
-		}); err != nil {
-			return "", err
-		}
-	}
-
-	return id, tx.Commit(ctx)
+	return id, err
 }
 
 func (s *UserService) UpdatePassword(ctx context.Context, userId, newPassword string) error {

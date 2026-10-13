@@ -14,6 +14,7 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/wideLog"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/time/rate"
 )
 
 type EmailVerifyService struct {
@@ -21,10 +22,29 @@ type EmailVerifyService struct {
 	db           *pgxpool.Pool
 	config       config.Config
 	emailService EmailService
+	sendCooldown *auth.KeyedLimiter
+	dailySends   *auth.KeyedLimiter
 }
 
-func NewEmailVerifyService(queries *db.Queries, pool *pgxpool.Pool, config config.Config, emailService EmailService) *EmailVerifyService {
-	return &EmailVerifyService{queries, pool, config, emailService}
+func NewEmailVerifyService(
+	ctx context.Context,
+	queries *db.Queries,
+	pool *pgxpool.Pool,
+	config config.Config,
+	emailService EmailService,
+) *EmailVerifyService {
+	return &EmailVerifyService{
+		queries:      queries,
+		db:           pool,
+		config:       config,
+		emailService: emailService,
+		sendCooldown: auth.NewKeyedLimiter(ctx, rate.Every(verificationSendCooldown), 1),
+		dailySends: auth.NewKeyedLimiter(
+			ctx,
+			rate.Every(verificationSendWindow/maxVerificationSendsPerWindow),
+			maxVerificationSendsPerWindow,
+		),
+	}
 }
 
 var InvalidTokenError = errors.New("Invalid token")
@@ -40,6 +60,12 @@ const maxVerificationAttempts = 5
 // a new IP address can shake it off.
 const maxAccountVerifyAttempts = 10
 const verifyLockout = time.Minute * 15
+
+// Every send path is reachable without a session, so these bound how hard the
+// app can be used to flood an inbox or burn the sender's reputation.
+const verificationSendCooldown = time.Minute
+const maxVerificationSendsPerWindow = 10
+const verificationSendWindow = time.Hour * 24
 
 func (s *EmailVerifyService) SendVerificationEmail(ctx context.Context, userID, userEmail string) error {
 	return s.sendCode(ctx, userID, userEmail, db.TokenPurposeEmailVerify, "Verify your email")
@@ -68,6 +94,13 @@ func (s *EmailVerifyService) sendCode(
 		return nil
 	}
 
+	// Silent like the lockout, and checked before the old code is replaced so a
+	// refused send leaves the code already in the inbox working.
+	if !s.hasSendBudget(userEmail) {
+		wideLog.AddLogField(ctx, "verificationSendThrottled", true)
+		return nil
+	}
+
 	verificationToken, err := auth.MakeVerificationToken()
 	if err != nil {
 		return err
@@ -75,6 +108,13 @@ func (s *EmailVerifyService) sendCode(
 	wideLog.AddLogField(ctx, "didMakeVerificationToken", true)
 
 	hashedToken := hashVerificationToken(verificationToken)
+
+	emailHtml, err := s.emailService.AssembleEmail("verify-email.html", map[string]any{
+		"Code": verificationToken,
+	})
+	if err != nil {
+		return err
+	}
 
 	tx, err := s.db.Begin(ctx)
 	if err != nil {
@@ -108,12 +148,10 @@ func (s *EmailVerifyService) sendCode(
 		return err
 	}
 
-	emailHtml, err := s.emailService.AssembleEmail("verify-email.html", map[string]any{
-		"Code": verificationToken,
-	})
-	if err != nil {
-		return err
-	}
+	// Spent only once the new code is saved, so a failed attempt costs the user
+	// nothing. Concurrent sends can all pass the check above; an extra email is
+	// cheaper than reserving the budget and refunding it on every error path.
+	s.spendSendBudget(userEmail)
 
 	s.emailService.BackgroundSend(
 		ctx,
@@ -153,6 +191,19 @@ func (s *EmailVerifyService) VerifyUserEmailUpdate(ctx context.Context, userId, 
 	}
 
 	return nil
+}
+
+// Budgets are keyed by recipient rather than by account, because the inbox is
+// what a flood harms, and re-registering an unverified address replaces its
+// account row. The cooldown is checked first so a refused send costs nothing
+// from the daily budget.
+func (s *EmailVerifyService) hasSendBudget(recipient string) bool {
+	return s.sendCooldown.WouldAllow(recipient) && s.dailySends.WouldAllow(recipient)
+}
+
+func (s *EmailVerifyService) spendSendBudget(recipient string) {
+	s.sendCooldown.Allow(recipient)
+	s.dailySends.Allow(recipient)
 }
 
 func (s *EmailVerifyService) isVerifyLocked(ctx context.Context, userID string) (bool, error) {

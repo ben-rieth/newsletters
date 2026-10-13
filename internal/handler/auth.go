@@ -17,6 +17,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/time/rate"
 )
 
 type authInput struct {
@@ -26,14 +27,21 @@ type authInput struct {
 	}
 }
 
-// Per account rather than per IP, which an attacker who can rotate addresses
-// does not have to respect.
-const maxSignInAttempts = 10
-const signInLockout = time.Minute * 15
+// Budgeted per account and address together. Per account alone would let
+// anyone who knows the email lock its owner out; per address alone would let a
+// single address guess against every account.
+const signInGuessBurst = 10
+const signInGuessRefill = 90 * time.Second
+
+func NewSignInLimiter(ctx context.Context) *auth.KeyedLimiter {
+	return auth.NewKeyedLimiter(ctx, rate.Every(signInGuessRefill), signInGuessBurst)
+}
 
 // Reported for every failure including a lockout, since a distinct status or
 // message for a locked account would confirm the account exists.
 const signInFailedText = "Email or password is incorrect"
+
+const verifyFailedText = "Code, email or password is incorrect."
 
 type Tokens struct {
 	Token        string `json:"token"`
@@ -59,6 +67,7 @@ type AuthHandler struct {
 	config             *config.Config
 	emailVerifyService *email.EmailVerifyService
 	userService        *users.UserService
+	signInLimiter      *auth.KeyedLimiter
 }
 
 func NewAuthHandler(
@@ -67,8 +76,9 @@ func NewAuthHandler(
 	config *config.Config,
 	emailVerifyService *email.EmailVerifyService,
 	userService *users.UserService,
+	signInLimiter *auth.KeyedLimiter,
 ) *AuthHandler {
-	return &AuthHandler{queries, pool, config, emailVerifyService, userService}
+	return &AuthHandler{queries, pool, config, emailVerifyService, userService, signInLimiter}
 }
 
 func (h *AuthHandler) RegisterRoutes(api huma.API) {
@@ -181,26 +191,13 @@ func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutp
 		return nil, huma.Error401Unauthorized(signInFailedText)
 	}
 
-	if user.SigninLockedUntil.Valid && user.SigninLockedUntil.Time.After(time.Now()) {
-		bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(i.Body.Password))
-		wideLog.AddLogField(ctx, "signInLockedOut", true)
-		return nil, huma.Error401Unauthorized(signInFailedText)
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(i.Body.Password)); err != nil {
-		if err := h.queries.RecordFailedSignIn(ctx, db.RecordFailedSignInParams{
-			MaxAttempts: maxSignInAttempts,
-			LockedUntil: time.Now().Add(signInLockout),
-			ID:          user.ID,
-		}); err != nil {
-			return nil, internalServerError(ctx, err)
-		}
-
-		return nil, huma.Error401Unauthorized(signInFailedText)
-	}
-
-	if err := h.queries.ResetSignInAttempts(ctx, user.ID); err != nil {
+	passwordOk, err := checkPassword(ctx, h.signInLimiter, user, i.Body.Password)
+	if err != nil {
 		return nil, internalServerError(ctx, err)
+	}
+
+	if !passwordOk {
+		return nil, huma.Error401Unauthorized(signInFailedText)
 	}
 
 	if !user.EmailVerifiedAt.Valid {
@@ -229,10 +226,37 @@ func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutp
 	}, nil
 }
 
+// checkPassword spends the caller's guess budget for this account, so every
+// endpoint that accepts a password shares one budget rather than each offering
+// its own fresh set of guesses. The token is spent before bcrypt runs, so
+// concurrent attempts cannot all pass on the same remaining guess.
+func checkPassword(ctx context.Context, limiter *auth.KeyedLimiter, user db.AppUser, password string) (bool, error) {
+	clientKey, ok := auth.ClientKeyFromContext(ctx)
+	if !ok {
+		return false, errors.New("client key missing from context")
+	}
+
+	budgetKey := user.ID + "|" + clientKey
+
+	if !limiter.Allow(budgetKey) {
+		bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(password))
+		wideLog.AddLogField(ctx, "signInLockedOut", true)
+		return false, nil
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return false, nil
+	}
+
+	limiter.Reset(budgetKey)
+	return true, nil
+}
+
 func (h *AuthHandler) handleVerifyEmail(ctx context.Context, i *struct {
 	Body struct {
-		Code  string `json:"code"`
-		Email string `json:"email"`
+		Code     string `json:"code"`
+		Email    string `json:"email"`
+		Password string `json:"password" maxLength:"72"`
 	}
 }) (*authOutput, error) {
 	userEmail, err := users.CanonicalizeEmail(i.Body.Email)
@@ -242,13 +266,23 @@ func (h *AuthHandler) handleVerifyEmail(ctx context.Context, i *struct {
 
 	user, err := h.queries.GetUserByEmail(ctx, userEmail)
 	if err != nil {
-		return nil, badRequestError("Token or email is invalid.")
+		bcrypt.CompareHashAndPassword(dummyPasswordHash, []byte(i.Body.Password))
+		return nil, badRequestError(verifyFailedText)
+	}
+
+	passwordOk, err := checkPassword(ctx, h.signInLimiter, user, i.Body.Password)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+
+	if !passwordOk {
+		return nil, badRequestError(verifyFailedText)
 	}
 
 	err = h.emailVerifyService.VerifyUserEmail(ctx, user.ID, i.Body.Code)
 	if err != nil {
 		if errors.Is(err, email.InvalidTokenError) {
-			return nil, badRequestError("Token or email is invalid.")
+			return nil, badRequestError(verifyFailedText)
 		}
 
 		return nil, internalServerError(ctx, err)

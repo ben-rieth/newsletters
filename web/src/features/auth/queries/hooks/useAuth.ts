@@ -2,6 +2,10 @@ import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import client from '#/api/client';
 import type { components } from '#/api/schema';
+import {
+  clearPendingVerificationPassword,
+  setPendingVerificationPassword,
+} from '#/features/auth/lib/pendingVerificationPassword';
 import { dispatchAuthChange } from '#/features/auth/lib/session';
 
 type AuthPath = '/auth/sign-in' | '/auth/sign-up';
@@ -20,9 +24,11 @@ const useAuth = (path: AuthPath) => {
     onSuccess: (data, variables) => {
       if (!data.verified) {
         localStorage.setItem('pendingVerificationEmail', variables.email);
+        setPendingVerificationPassword(variables.password);
         navigate({ to: '/verify-email' });
         return;
       }
+      clearPendingVerificationPassword();
       dispatchAuthChange();
       navigate({ to: '/issues' });
     },

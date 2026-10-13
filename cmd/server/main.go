@@ -59,7 +59,7 @@ func main() {
 		log.Fatalf("Could not get email templates: %v", err)
 	}
 	emailService := email.NewResendEmailService(&cfg, tmpl, jobQueue)
-	emailVerifyService := email.NewEmailVerifyService(queries, pool, cfg, emailService)
+	emailVerifyService := email.NewEmailVerifyService(ctx, queries, pool, cfg, emailService)
 
 	newsletterService := newsletters.NewNewsletterService(queries, pool)
 	issuesService := newsletters.NewIssuesService(queries, pool)
@@ -113,7 +113,8 @@ func main() {
 	authApiRateLimiting := auth.NewRateLimitMiddleware(ctx, api, &cfg, 1, 5)
 	authApi.UseMiddleware(authApiRateLimiting)
 
-	authHandler := handler.NewAuthHandler(queries, pool, &cfg, emailVerifyService, userService)
+	signInLimiter := handler.NewSignInLimiter(ctx)
+	authHandler := handler.NewAuthHandler(queries, pool, &cfg, emailVerifyService, userService, signInLimiter)
 	authHandler.RegisterRoutes(authApi)
 
 	rateLimiting := auth.NewRateLimitMiddleware(ctx, api, &cfg, 10, 30)
@@ -154,7 +155,7 @@ func main() {
 	feedFilterHandler := handler.NewFeedFilterHandler(queries)
 	feedFilterHandler.RegisterRoutes(protectedApi)
 
-	userHandler := handler.NewUserHandler(queries, &cfg, userService, emailVerifyService)
+	userHandler := handler.NewUserHandler(queries, &cfg, userService, emailVerifyService, signInLimiter)
 	userHandler.RegisterRoutes(protectedApi)
 
 	exportHandler := handler.NewExportHandler(queries)
@@ -175,9 +176,16 @@ func main() {
 	// Outermost, so a rejected cross-origin request is answered with the headers too.
 	handler := security.Headers(csrf.Handler(mux), cfg.Environment == "prod")
 
+	// Without these a client that trickles bytes holds its connection open
+	// forever. WriteTimeout bounds whole handlers, so it has to clear the slowest
+	// one: a feed fetch, capped at about 15s by the feeds HTTP client.
 	srv := &http.Server{
-		Addr:    fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
-		Handler: handler,
+		Addr:              fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       120 * time.Second,
 	}
 
 	serverErr := make(chan error, 1)

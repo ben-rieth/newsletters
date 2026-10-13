@@ -12,7 +12,6 @@ import (
 	"github.com/ben-rieth/newsletter-api/internal/users"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/jackc/pgx/v5"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type UserHandler struct {
@@ -20,6 +19,7 @@ type UserHandler struct {
 	config             *config.Config
 	userService        *users.UserService
 	emailVerifyService *email.EmailVerifyService
+	signInLimiter      *auth.KeyedLimiter
 }
 
 func NewUserHandler(
@@ -27,8 +27,9 @@ func NewUserHandler(
 	config *config.Config,
 	userService *users.UserService,
 	emailVerifyService *email.EmailVerifyService,
+	signInLimiter *auth.KeyedLimiter,
 ) *UserHandler {
-	return &UserHandler{queries, config, userService, emailVerifyService}
+	return &UserHandler{queries, config, userService, emailVerifyService, signInLimiter}
 }
 
 type visibleUser struct {
@@ -161,7 +162,11 @@ func (h *UserHandler) handleUpdatePassword(
 		return nil, internalServerError(ctx, err)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(i.Body.CurrentPassword)); err != nil {
+	passwordOk, err := checkPassword(ctx, h.signInLimiter, user, i.Body.CurrentPassword)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+	if !passwordOk {
 		return nil, huma.Error401Unauthorized("Current password is incorrect")
 	}
 
@@ -203,7 +208,11 @@ func (h *UserHandler) handleDeleteUser(
 		return nil, internalServerError(ctx, err)
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(i.Body.Password)); err != nil {
+	passwordOk, err := checkPassword(ctx, h.signInLimiter, user, i.Body.Password)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+	if !passwordOk {
 		return nil, huma.Error401Unauthorized("Current password is incorrect")
 	}
 
@@ -238,7 +247,11 @@ func (h *UserHandler) handleEmailUpdate(ctx context.Context, i *struct {
 
 	// Whoever controls the account's email controls the account, so moving it
 	// takes more than a session cookie.
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(i.Body.Password)); err != nil {
+	passwordOk, err := checkPassword(ctx, h.signInLimiter, user, i.Body.Password)
+	if err != nil {
+		return nil, internalServerError(ctx, err)
+	}
+	if !passwordOk {
 		return nil, huma.Error401Unauthorized("Current password is incorrect")
 	}
 

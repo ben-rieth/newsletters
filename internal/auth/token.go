@@ -20,6 +20,10 @@ type contextKey string
 
 const ClaimsKey contextKey = "claims"
 
+// ClientKeyKey holds the rate limiter's bucket for the caller's address, which
+// handlers cannot otherwise see.
+const ClientKeyKey contextKey = "clientKey"
+
 const AccessTokenTTL time.Duration = time.Hour * 1
 const RefreshTokenTTL time.Duration = time.Hour * 24 * 30
 
@@ -29,6 +33,11 @@ const tokenAudience = "newsletters-api"
 func ClaimsFromContext(ctx context.Context) (*Claims, bool) {
 	claims, ok := ctx.Value(ClaimsKey).(*Claims)
 	return claims, ok
+}
+
+func ClientKeyFromContext(ctx context.Context) (string, bool) {
+	key, ok := ctx.Value(ClientKeyKey).(string)
+	return key, ok && key != ""
 }
 
 func GenerateToken(

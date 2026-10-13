@@ -64,25 +64,12 @@ RETURNING verify_attempts, verify_locked_until;
 UPDATE app_user SET verify_attempts = 0, verify_locked_until = NULL, updated_at = NOW()
 WHERE id = $1 AND (verify_attempts <> 0 OR verify_locked_until IS NOT NULL);
 
--- name: CarryVerifyLockout :exec
-UPDATE app_user SET verify_attempts = $2, verify_locked_until = $3 WHERE id = $1;
-
--- name: RecordFailedSignIn :exec
-UPDATE app_user SET
-    failed_signin_attempts = CASE
-        WHEN failed_signin_attempts + 1 >= sqlc.arg(max_attempts)::int THEN 0
-        ELSE failed_signin_attempts + 1
-    END,
-    signin_locked_until = CASE
-        WHEN failed_signin_attempts + 1 >= sqlc.arg(max_attempts)::int THEN sqlc.arg(locked_until)::timestamptz
-        ELSE signin_locked_until
-    END,
-    updated_at = NOW()
-WHERE id = sqlc.arg(id);
-
--- name: ResetSignInAttempts :exec
-UPDATE app_user SET failed_signin_attempts = 0, signin_locked_until = NULL, updated_at = NOW()
-WHERE id = $1 AND (failed_signin_attempts <> 0 OR signin_locked_until IS NOT NULL);
+-- Verification is re-checked here because the account may have been verified
+-- since it was read. No row back means it is no longer up for grabs.
+-- name: ReplaceUnverifiedUserPassword :one
+UPDATE app_user SET password = $2, updated_at = NOW()
+WHERE id = $1 AND email_verified_at IS NULL
+RETURNING id;
 
 -- name: IsWhiteListedEmail :one
 SELECT EXISTS(SELECT 1 FROM white_listed_email WHERE email = $1);

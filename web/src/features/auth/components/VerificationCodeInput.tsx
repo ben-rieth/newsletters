@@ -26,7 +26,7 @@ export const VerificationCodeInput = ({
   isResending,
 }: VerificationCodeInputProps) => {
   const [code, setCode] = useState('');
-  const { remaining, isRunning, start: startCountdown } = useCountdown(30);
+  const { remaining, isRunning, start: startCountdown } = useCountdown(60);
 
   const handleChange = (value: string) => {
     setCode(value);

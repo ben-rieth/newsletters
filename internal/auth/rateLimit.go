@@ -27,17 +27,46 @@ type Limiter struct {
 	lastSeen time.Time
 }
 
-type IPRateLimiter struct {
+type KeyedLimiter struct {
 	mu       sync.Mutex
 	limiters map[string]*Limiter
 	limit    rate.Limit
 	burst    int
 }
 
-func (i *IPRateLimiter) GetLimiter(key string) *Limiter {
+func (i *KeyedLimiter) Allow(key string) bool {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
+	return i.limiterFor(key).limiter.Allow()
+}
+
+// A key with no bucket yet would get a full one, so checking it doesn't create
+// one; a check alone shouldn't let a caller grow the map.
+func (i *KeyedLimiter) WouldAllow(key string) bool {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	limiter, exists := i.limiters[key]
+	return !exists || limiter.limiter.Tokens() >= 1
+}
+
+func (i *KeyedLimiter) Reset(key string) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	delete(i.limiters, key)
+}
+
+func (i *KeyedLimiter) GetLimiter(key string) *Limiter {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	return i.limiterFor(key)
+}
+
+// Callers must hold i.mu.
+func (i *KeyedLimiter) limiterFor(key string) *Limiter {
 	if limiter, exists := i.limiters[key]; exists {
 		limiter.lastSeen = time.Now()
 		return limiter
@@ -63,7 +92,7 @@ func (i *IPRateLimiter) GetLimiter(key string) *Limiter {
 const evictionSampleSize = 8
 
 // Callers must hold i.mu.
-func (i *IPRateLimiter) evictSampled() {
+func (i *KeyedLimiter) evictSampled() {
 	var oldestKey string
 	var oldestSeen time.Time
 
@@ -83,15 +112,16 @@ func (i *IPRateLimiter) evictSampled() {
 	}
 }
 
-func (i *IPRateLimiter) cleanUp() {
+// A bucket that has refilled is indistinguishable from the fresh one GetLimiter
+// would create, so only those are dropped. Dropping on idle time instead would
+// hand back a full budget early to any limiter that refills slower than that.
+func (i *KeyedLimiter) cleanUp() {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	oneHourAgo := time.Now().Add(time.Hour * -1)
-
-	for ip, limiter := range i.limiters {
-		if limiter.lastSeen.Before(oneHourAgo) {
-			delete(i.limiters, ip)
+	for key, limiter := range i.limiters {
+		if limiter.limiter.Tokens() >= float64(i.burst) {
+			delete(i.limiters, key)
 		}
 	}
 }
@@ -167,12 +197,10 @@ func rateLimitKey(addr netip.Addr) string {
 	return prefix.String()
 }
 
-func NewRateLimitMiddleware(ctx context.Context, api huma.API, cfg *config.Config, limit, burst int) func(ctx huma.Context, next func(huma.Context)) {
-	limiters := make(map[string]*Limiter)
-
-	ipRateLimiter := IPRateLimiter{
-		limiters: limiters,
-		limit:    rate.Limit(limit),
+func NewKeyedLimiter(ctx context.Context, limit rate.Limit, burst int) *KeyedLimiter {
+	keyedLimiter := &KeyedLimiter{
+		limiters: make(map[string]*Limiter),
+		limit:    limit,
 		burst:    burst,
 	}
 
@@ -185,10 +213,16 @@ func NewRateLimitMiddleware(ctx context.Context, api huma.API, cfg *config.Confi
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				ipRateLimiter.cleanUp()
+				keyedLimiter.cleanUp()
 			}
 		}
 	}()
+
+	return keyedLimiter
+}
+
+func NewRateLimitMiddleware(ctx context.Context, api huma.API, cfg *config.Config, limit, burst int) func(ctx huma.Context, next func(huma.Context)) {
+	ipRateLimiter := NewKeyedLimiter(ctx, rate.Limit(limit), burst)
 
 	return func(ctx huma.Context, next func(huma.Context)) {
 		addr, err := clientIP(ctx, cfg.TrustedProxyCount)
@@ -197,10 +231,10 @@ func NewRateLimitMiddleware(ctx context.Context, api huma.API, cfg *config.Confi
 			return
 		}
 
-		limiter := ipRateLimiter.GetLimiter(rateLimitKey(addr))
+		clientKey := rateLimitKey(addr)
 
-		if limiter.limiter.Allow() {
-			next(ctx)
+		if ipRateLimiter.Allow(clientKey) {
+			next(huma.WithValue(ctx, ClientKeyKey, clientKey))
 			return
 		}
 
