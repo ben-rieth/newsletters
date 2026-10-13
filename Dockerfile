@@ -6,7 +6,7 @@ RUN corepack enable pnpm && pnpm install --frozen-lockfile
 COPY web/ .
 RUN pnpm build
 
-FROM golang:1.26.2-alpine AS builder
+FROM golang:1.27.2-alpine AS builder
 
 WORKDIR /app
 COPY --from=frontend /app/web/dist ./web/dist
