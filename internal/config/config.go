@@ -8,6 +8,7 @@ import (
 )
 
 const minJWTSecretLength = 32
+const minOriginAuthSecretLength = 32
 
 type Config struct {
 	DatabaseURL           string
@@ -21,6 +22,7 @@ type Config struct {
 	NewsletterSenderEmail mail.Address
 	JobQueueSize          int
 	TrustedProxyCount     int
+	OriginAuthSecret      string
 }
 
 func Load() Config {
@@ -49,6 +51,7 @@ func Load() Config {
 		PublicApiURL: os.Getenv("PUBLIC_API_URL"),
 
 		TrustedProxyCount: trustedProxyCount,
+		OriginAuthSecret:  os.Getenv("ORIGIN_AUTH_SECRET"),
 	}
 
 	if cfg.DatabaseURL == "" {
@@ -71,6 +74,10 @@ func Load() Config {
 
 	if !(cfg.Environment == "dev" || cfg.Environment == "prod") {
 		log.Fatalf("Invalid value for environment: %s", cfg.Environment)
+	}
+
+	if cfg.Environment == "prod" && len(cfg.OriginAuthSecret) < minOriginAuthSecretLength {
+		log.Fatalf("ORIGIN_AUTH_SECRET is required in prod and must be at least %d characters", minOriginAuthSecretLength)
 	}
 
 	nlSenderEmail := os.Getenv("NEWSLETTER_SENDER_EMAIL")

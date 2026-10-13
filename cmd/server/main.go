@@ -173,8 +173,11 @@ func main() {
 
 	csrf := http.NewCrossOriginProtection()
 
-	// Outermost, so a rejected cross-origin request is answered with the headers too.
-	handler := security.Headers(csrf.Handler(mux), cfg.Environment == "prod")
+	// Headers is outermost, so a rejected request is answered with them too.
+	handler := security.Headers(
+		security.RequireOriginSecret(csrf.Handler(mux), cfg.OriginAuthSecret),
+		cfg.Environment == "prod",
+	)
 
 	// Without these a client that trickles bytes holds its connection open
 	// forever. WriteTimeout bounds whole handlers, so it has to clear the slowest
