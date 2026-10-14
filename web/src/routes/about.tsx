@@ -1,7 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, Link } from '@tanstack/react-router';
 import { Globe, GitBranch } from 'lucide-react';
 import { SettingsRow, SettingsSection } from '#/components/SettingsRow';
 import { useMobileHeader } from '#/components/MobileHeader';
+import useIsSignedIn from '#/features/auth/queries/hooks/useIsSignedIn';
+import { cn } from '#/lib/utils';
 
 const STACK = [
   {
@@ -21,11 +23,27 @@ const STACK = [
 
 const AboutPage = () => {
   useMobileHeader({ title: 'About' });
+  const isSignedIn = useIsSignedIn();
 
   return (
     <div className="mx-auto max-w-3xl space-y-10 px-4 py-6 md:px-6 md:py-8 lg:px-10">
+      {!isSignedIn && (
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 font-semibold tracking-tight"
+        >
+          <span className="h-4 w-1 rounded-full bg-primary" />
+          Slowfeed
+        </Link>
+      )}
+
       <header className="space-y-2">
-        <h1 className="hidden font-serif text-3xl font-medium tracking-tight md:block">
+        <h1
+          className={cn(
+            'font-serif text-3xl font-medium tracking-tight',
+            isSignedIn && 'hidden md:block',
+          )}
+        >
           About Slowfeed
         </h1>
         <p className="text-sm text-muted-foreground">
