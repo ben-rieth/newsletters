@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/http"
 	"net/netip"
-	"strings"
 	"sync"
 	"time"
 
@@ -137,45 +136,24 @@ func peerIP(ctx huma.Context) (netip.Addr, error) {
 	return netip.ParseAddr(host)
 }
 
-func forwardedForChain(ctx huma.Context) []string {
-	var chain []string
+const cloudflareClientIPHeader = "CF-Connecting-IP"
 
-	ctx.EachHeader(func(name, value string) {
-		if !strings.EqualFold(name, "X-Forwarded-For") {
-			return
-		}
-
-		for _, hop := range strings.Split(value, ",") {
-			if hop = strings.TrimSpace(hop); hop != "" {
-				chain = append(chain, hop)
-			}
-		}
-	})
-
-	return chain
-}
-
-// clientIP walks back exactly trustedProxyCount hops from the server. Anything
-// further left in X-Forwarded-For was appended by an untrusted party and is
-// attacker-controlled, so a short or malformed chain falls back to the peer
-// address rather than trusting what the client sent.
-func clientIP(ctx huma.Context, trustedProxyCount int) (netip.Addr, error) {
+// clientIP prefers Cloudflare's view of the client when it can be trusted.
+// X-Forwarded-For can't be used for this: Railway's edge rewrites it to
+// `<cloudflare egress>, <railway hop>`, so the visitor's address is gone by the
+// time it arrives. Unless trusted, the header is ignored, because anyone who can
+// reach the server without passing through Cloudflare can set it to anything.
+func clientIP(ctx huma.Context, trustCloudflare bool) (netip.Addr, error) {
 	peer, err := peerIP(ctx)
 	if err != nil {
 		return netip.Addr{}, err
 	}
 
-	if trustedProxyCount == 0 {
+	if !trustCloudflare {
 		return peer, nil
 	}
 
-	chain := forwardedForChain(ctx)
-	i := len(chain) - trustedProxyCount
-	if i < 0 {
-		return peer, nil
-	}
-
-	if addr, err := netip.ParseAddr(chain[i]); err == nil {
+	if addr, err := netip.ParseAddr(ctx.Header(cloudflareClientIPHeader)); err == nil {
 		return addr.Unmap(), nil
 	}
 
@@ -225,7 +203,7 @@ func NewRateLimitMiddleware(ctx context.Context, api huma.API, cfg *config.Confi
 	ipRateLimiter := NewKeyedLimiter(ctx, rate.Limit(limit), burst)
 
 	return func(ctx huma.Context, next func(huma.Context)) {
-		addr, err := clientIP(ctx, cfg.TrustedProxyCount)
+		addr, err := clientIP(ctx, cfg.TrustCloudflareClientIP)
 		if err != nil {
 			huma.WriteErr(api, ctx, http.StatusInternalServerError, "Something went wrong.")
 			return

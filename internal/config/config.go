@@ -21,22 +21,17 @@ type Config struct {
 	PublicApiURL          string
 	NewsletterSenderEmail mail.Address
 	JobQueueSize          int
-	TrustedProxyCount     int
 	OriginAuthSecret      string
+
+	// The origin secret is what proves a request came through Cloudflare, and
+	// only then is Cloudflare's client IP header more than a client's claim.
+	TrustCloudflareClientIP bool
 }
 
 func Load() Config {
 	jobQueueSize, err := strconv.Atoi(os.Getenv("JOB_QUEUE_SIZE"))
 	if err != nil {
 		log.Fatal("JOB_QUEUE_SIZE must be valid integer")
-	}
-
-	trustedProxyCount := 0
-	if raw := os.Getenv("TRUSTED_PROXY_COUNT"); raw != "" {
-		trustedProxyCount, err = strconv.Atoi(raw)
-		if err != nil || trustedProxyCount < 0 {
-			log.Fatal("TRUSTED_PROXY_COUNT must be a non-negative integer")
-		}
 	}
 
 	cfg := Config{
@@ -50,9 +45,10 @@ func Load() Config {
 		JobQueueSize: jobQueueSize,
 		PublicApiURL: os.Getenv("PUBLIC_API_URL"),
 
-		TrustedProxyCount: trustedProxyCount,
-		OriginAuthSecret:  os.Getenv("ORIGIN_AUTH_SECRET"),
+		OriginAuthSecret: os.Getenv("ORIGIN_AUTH_SECRET"),
 	}
+
+	cfg.TrustCloudflareClientIP = cfg.OriginAuthSecret != ""
 
 	if cfg.DatabaseURL == "" {
 		log.Fatal("DATABASE_URL is required")

@@ -17,30 +17,20 @@ import (
 // interface's own Context() method.
 type embeddedHumaContext = huma.Context
 
-type header struct{ name, value string }
-
-// Headers are a slice because a request can repeat X-Forwarded-For, and the
-// order of the repeats decides which hop is trusted.
 type fakeContext struct {
 	embeddedHumaContext
 	remoteAddr string
-	headers    []header
+	headers    http.Header
 }
 
 func (c fakeContext) RemoteAddr() string { return c.remoteAddr }
 
-func (c fakeContext) EachHeader(cb func(name, value string)) {
-	for _, h := range c.headers {
-		cb(h.name, h.value)
-	}
-}
+func (c fakeContext) Header(name string) string { return c.headers.Get(name) }
 
-func ctxWith(remoteAddr string, forwardedFor ...string) fakeContext {
-	var headers []header
-	for _, value := range forwardedFor {
-		if value != "" {
-			headers = append(headers, header{"X-Forwarded-For", value})
-		}
+func ctxWith(remoteAddr, cfConnectingIP string) fakeContext {
+	headers := http.Header{}
+	if cfConnectingIP != "" {
+		headers.Set(cloudflareClientIPHeader, cfConnectingIP)
 	}
 
 	return fakeContext{remoteAddr: remoteAddr, headers: headers}
@@ -48,86 +38,64 @@ func ctxWith(remoteAddr string, forwardedFor ...string) fakeContext {
 
 func TestClientIP(t *testing.T) {
 	tests := []struct {
-		name              string
-		remoteAddr        string
-		forwardedFor      string
-		trustedProxyCount int
-		want              string
+		name            string
+		remoteAddr      string
+		cfConnectingIP  string
+		trustCloudflare bool
+		want            string
 	}{
 		{
-			name:              "no proxies trusted ignores the header entirely",
-			remoteAddr:        "10.0.0.1:5000",
-			forwardedFor:      "1.2.3.4",
-			trustedProxyCount: 0,
-			want:              "10.0.0.1",
+			name:            "untrusted ignores the header, since anyone can send it",
+			remoteAddr:      "10.0.0.1:5000",
+			cfConnectingIP:  "203.0.113.9",
+			trustCloudflare: false,
+			want:            "10.0.0.1",
 		},
 		{
-			name:              "one proxy takes the last hop",
-			remoteAddr:        "10.0.0.1:5000",
-			forwardedFor:      "203.0.113.9",
-			trustedProxyCount: 1,
-			want:              "203.0.113.9",
+			name:            "trusted takes the client from the header",
+			remoteAddr:      "100.64.0.13:13040",
+			cfConnectingIP:  "203.0.113.9",
+			trustCloudflare: true,
+			want:            "203.0.113.9",
 		},
 		{
-			name:              "two proxies take the second to last hop",
-			remoteAddr:        "10.0.0.1:5000",
-			forwardedFor:      "203.0.113.9, 172.16.0.1",
-			trustedProxyCount: 2,
-			want:              "203.0.113.9",
+			name:            "trusted accepts an ipv6 client",
+			remoteAddr:      "100.64.0.13:13040",
+			cfConnectingIP:  "2001:db8::1",
+			trustCloudflare: true,
+			want:            "2001:db8::1",
 		},
 		{
-			name:              "a spoofed hop is left of the trusted window and ignored",
-			remoteAddr:        "10.0.0.1:5000",
-			forwardedFor:      "1.2.3.4, 203.0.113.9, 172.16.0.1",
-			trustedProxyCount: 2,
-			want:              "203.0.113.9",
+			name:            "a missing header falls back to the peer",
+			remoteAddr:      "10.0.0.1:5000",
+			trustCloudflare: true,
+			want:            "10.0.0.1",
 		},
 		{
-			name:              "a chain shorter than the trusted count falls back to the peer",
-			remoteAddr:        "10.0.0.1:5000",
-			forwardedFor:      "203.0.113.9",
-			trustedProxyCount: 2,
-			want:              "10.0.0.1",
+			name:            "a garbage header falls back to the peer rather than trusting it",
+			remoteAddr:      "10.0.0.1:5000",
+			cfConnectingIP:  "not-an-ip",
+			trustCloudflare: true,
+			want:            "10.0.0.1",
 		},
 		{
-			name:              "a missing chain falls back to the peer",
-			remoteAddr:        "10.0.0.1:5000",
-			forwardedFor:      "",
-			trustedProxyCount: 2,
-			want:              "10.0.0.1",
+			name:            "an ipv4 mapped client is unmapped so it buckets with its ipv4 form",
+			remoteAddr:      "10.0.0.1:5000",
+			cfConnectingIP:  "::ffff:203.0.113.9",
+			trustCloudflare: true,
+			want:            "203.0.113.9",
 		},
 		{
-			name:              "a garbage hop falls back to the peer rather than trusting it",
-			remoteAddr:        "10.0.0.1:5000",
-			forwardedFor:      "not-an-ip, 172.16.0.1",
-			trustedProxyCount: 2,
-			want:              "10.0.0.1",
-		},
-		{
-			name:              "an ipv6 peer is used when no proxies are trusted",
-			remoteAddr:        "[2001:db8::1]:5000",
-			trustedProxyCount: 0,
-			want:              "2001:db8::1",
-		},
-		{
-			name:              "an ipv4 mapped hop is unmapped so it buckets with its ipv4 form",
-			remoteAddr:        "10.0.0.1:5000",
-			forwardedFor:      "::ffff:203.0.113.9, 172.16.0.1",
-			trustedProxyCount: 2,
-			want:              "203.0.113.9",
-		},
-		{
-			name:              "empty hops are skipped rather than counted",
-			remoteAddr:        "10.0.0.1:5000",
-			forwardedFor:      "203.0.113.9,, 172.16.0.1,",
-			trustedProxyCount: 2,
-			want:              "203.0.113.9",
+			name:            "an ipv6 peer is used when untrusted",
+			remoteAddr:      "[2001:db8::1]:5000",
+			trustCloudflare: false,
+			want:            "2001:db8::1",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := clientIP(ctxWith(tt.remoteAddr, tt.forwardedFor), tt.trustedProxyCount)
+			got, err := clientIP(ctxWith(tt.remoteAddr, tt.cfConnectingIP), tt.trustCloudflare)
 			if err != nil {
 				t.Fatalf("clientIP returned error: %v", err)
 			}
@@ -139,28 +107,13 @@ func TestClientIP(t *testing.T) {
 	}
 }
 
-// A proxy may append its own X-Forwarded-For header instead of extending the
-// client's, so the repeats are read as one chain in the order they arrived.
-func TestClientIPJoinsRepeatedForwardedForHeaders(t *testing.T) {
-	ctx := ctxWith("10.0.0.1:5000", "1.2.3.4, 203.0.113.9", "172.16.0.1")
+// Railway's edge rewrites X-Forwarded-For to name Cloudflare's egress and its
+// own hop, so trusting any entry of it would bucket visitors by Cloudflare server.
+func TestClientIPIgnoresForwardedFor(t *testing.T) {
+	ctx := ctxWith("100.64.0.13:13040", "203.0.113.9")
+	ctx.headers.Set("X-Forwarded-For", "198.51.100.48, 192.0.2.194")
 
-	got, err := clientIP(ctx, 2)
-	if err != nil {
-		t.Fatalf("clientIP returned error: %v", err)
-	}
-
-	if got.String() != "203.0.113.9" {
-		t.Errorf("clientIP = %q, want 203.0.113.9", got.String())
-	}
-}
-
-func TestClientIPMatchesHeaderNameCaseInsensitively(t *testing.T) {
-	ctx := fakeContext{
-		remoteAddr: "10.0.0.1:5000",
-		headers:    []header{{"x-forwarded-for", "203.0.113.9"}},
-	}
-
-	got, err := clientIP(ctx, 1)
+	got, err := clientIP(ctx, true)
 	if err != nil {
 		t.Fatalf("clientIP returned error: %v", err)
 	}
