@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -32,6 +33,22 @@ import (
 )
 
 const shutdownTimeout = 30 * time.Second
+
+// Temporary: shows which header carries the visitor's IP once Cloudflare and
+// Railway's edge have both rewritten the request. Remove after checking.
+func logClientIPHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			slog.Info("client ip headers",
+				"remoteAddr", r.RemoteAddr,
+				"xForwardedFor", r.Header.Values("X-Forwarded-For"),
+				"xRealIp", r.Header.Get("X-Real-Ip"),
+				"cfConnectingIp", r.Header.Get("CF-Connecting-IP"),
+			)
+		}
+		next.ServeHTTP(w, r)
+	})
+}
 
 func main() {
 	godotenv.Load()
@@ -175,7 +192,7 @@ func main() {
 
 	// Headers is outermost, so a rejected request is answered with them too.
 	handler := security.Headers(
-		security.RequireOriginSecret(csrf.Handler(mux), cfg.OriginAuthSecret),
+		security.RequireOriginSecret(logClientIPHeaders(csrf.Handler(mux)), cfg.OriginAuthSecret),
 		cfg.Environment == "prod",
 	)
 
