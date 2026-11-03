@@ -178,7 +178,7 @@ func (h *NewsletterHandler) handleListNewsletters(ctx context.Context, input *st
 		return nil, internalServerError(ctx, err)
 	}
 
-	out := &listNewslettersOutput{}
+	out := &listNewslettersOutput{Body: make([]newsletters.Newsletter, 0, len(nls))}
 
 	for _, newsletter := range nls {
 		out.Body = append(out.Body, newsletters.DbNewsletterToNewsletterType(newsletter, imports[newsletter.ID]))

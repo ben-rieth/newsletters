@@ -39,7 +39,7 @@ const NewslettersPage = () => {
   useMobileHeader({ title: 'Newsletters' });
 
   const sorted = useMemo(
-    () => [...(data ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
+    () => [...data].sort((a, b) => a.name.localeCompare(b.name)),
     [data],
   );
 

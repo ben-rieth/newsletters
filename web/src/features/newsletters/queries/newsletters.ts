@@ -1,6 +1,6 @@
 import client from '#/api/client';
 import type { components } from '#/api/schema';
-import { mutationOptions, queryOptions } from '@tanstack/react-query';
+import { queryOptions } from '@tanstack/react-query';
 import type { QueryClient } from '@tanstack/react-query';
 import { issueKeys } from '#/features/issues/queries/issues';
 import { feedsKeys } from './feeds';
@@ -42,7 +42,7 @@ export const newslettersOptions = queryOptions({
     if (error) {
       throw error;
     }
-    return data;
+    return data ?? [];
   },
   refetchInterval: (query) =>
     hasPendingImports(query.state.data) ? PENDING_IMPORTS_POLL_MS : false,

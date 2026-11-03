@@ -1,10 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { VerifyEmailForm } from '#/features/auth/components/VerifyEmailForm';
 
-export const Route = createFileRoute('/verify-email')({
-  component: VerifyEmailPage,
-});
-
 const VerifyEmailPage = () => {
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4">
@@ -22,3 +18,7 @@ const VerifyEmailPage = () => {
     </div>
   );
 };
+
+export const Route = createFileRoute('/verify-email')({
+  component: VerifyEmailPage,
+});

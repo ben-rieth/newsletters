@@ -1,10 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { SignInForm } from '#/features/auth/components/SignInForm';
 
-export const Route = createFileRoute('/sign-in')({
-  component: SignInPage,
-});
-
 const SignInPage = () => {
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4">
@@ -22,3 +18,7 @@ const SignInPage = () => {
     </div>
   );
 };
+
+export const Route = createFileRoute('/sign-in')({
+  component: SignInPage,
+});

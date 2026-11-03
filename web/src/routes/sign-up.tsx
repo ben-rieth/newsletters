@@ -5,13 +5,6 @@ type SignUpSearch = {
   email?: string;
 };
 
-export const Route = createFileRoute('/sign-up')({
-  component: SignUpPage,
-  validateSearch: (search: Record<string, unknown>): SignUpSearch => ({
-    email: typeof search.email === 'string' ? search.email : undefined,
-  }),
-});
-
 const SignUpPage = () => {
   const { email } = Route.useSearch();
 
@@ -31,3 +24,10 @@ const SignUpPage = () => {
     </div>
   );
 };
+
+export const Route = createFileRoute('/sign-up')({
+  component: SignUpPage,
+  validateSearch: (search: Record<string, unknown>): SignUpSearch => ({
+    email: typeof search.email === 'string' ? search.email : undefined,
+  }),
+});
