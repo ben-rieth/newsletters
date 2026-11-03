@@ -200,6 +200,9 @@ const NewslettersPage = () => {
 export const Route = createFileRoute('/newsletters/')({
   component: NewslettersPage,
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(newslettersOptions);
+    await context.queryClient.query({
+      ...newslettersOptions,
+      staleTime: 'static',
+    });
   },
 });

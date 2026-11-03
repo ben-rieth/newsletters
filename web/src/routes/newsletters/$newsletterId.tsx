@@ -9,14 +9,19 @@ export const Route = createFileRoute('/newsletters/$newsletterId')({
   component: () => <Outlet />,
   loader: async ({ context, params }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(
-        newsletterOptions(params.newsletterId),
-      ),
-      context.queryClient.ensureQueryData(feedsOptions(params.newsletterId)),
-      context.queryClient.ensureQueryData(issuesOptions),
-      context.queryClient.ensureQueryData(
-        feedImportsOptions(params.newsletterId),
-      ),
+      context.queryClient.query({
+        ...newsletterOptions(params.newsletterId),
+        staleTime: 'static',
+      }),
+      context.queryClient.query({
+        ...feedsOptions(params.newsletterId),
+        staleTime: 'static',
+      }),
+      context.queryClient.query({ ...issuesOptions, staleTime: 'static' }),
+      context.queryClient.query({
+        ...feedImportsOptions(params.newsletterId),
+        staleTime: 'static',
+      }),
     ]);
   },
   notFoundComponent: () => (

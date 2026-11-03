@@ -122,6 +122,6 @@ const ProfilePage = () => {
 export const Route = createFileRoute('/profile')({
   component: ProfilePage,
   loader: async ({ context }) => {
-    await context.queryClient.ensureQueryData(userOptions);
+    await context.queryClient.query({ ...userOptions, staleTime: 'static' });
   },
 });

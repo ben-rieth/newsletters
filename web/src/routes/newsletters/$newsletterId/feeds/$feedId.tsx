@@ -66,13 +66,15 @@ export const Route = createFileRoute(
   }),
   loader: async ({ context, params }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(
-        newsletterOptions(params.newsletterId),
-      ),
-      context.queryClient.ensureQueryData(newslettersOptions),
-      context.queryClient.ensureQueryData(
-        feedDetailOptions(params.newsletterId, params.feedId),
-      ),
+      context.queryClient.query({
+        ...newsletterOptions(params.newsletterId),
+        staleTime: 'static',
+      }),
+      context.queryClient.query({ ...newslettersOptions, staleTime: 'static' }),
+      context.queryClient.query({
+        ...feedDetailOptions(params.newsletterId, params.feedId),
+        staleTime: 'static',
+      }),
     ]);
   },
 });

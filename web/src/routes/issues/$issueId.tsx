@@ -23,8 +23,9 @@ const IssuePage = () => {
 export const Route = createFileRoute('/issues/$issueId')({
   component: IssuePage,
   loader: async ({ context, params }) => {
-    await context.queryClient.ensureQueryData(
-      issueDetailOptions(params.issueId),
-    );
+    await context.queryClient.query({
+      ...issueDetailOptions(params.issueId),
+      staleTime: 'static',
+    });
   },
 });

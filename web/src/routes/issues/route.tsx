@@ -36,8 +36,8 @@ export const Route = createFileRoute('/issues')({
   component: IssuesLayout,
   loader: async ({ context }) => {
     await Promise.all([
-      context.queryClient.ensureQueryData(issuesOptions),
-      context.queryClient.ensureQueryData(newslettersOptions),
+      context.queryClient.query({ ...issuesOptions, staleTime: 'static' }),
+      context.queryClient.query({ ...newslettersOptions, staleTime: 'static' }),
     ]);
   },
 });
