@@ -28,6 +28,32 @@ func TestIsSafeFeedUrlRejectsInternalAddresses(t *testing.T) {
 	}
 }
 
+func TestNormalizeItemUrlCollapsesCosmeticDifferences(t *testing.T) {
+	want := "https://example.com/posts/hello?p=1"
+	for _, rawUrl := range []string{
+		"https://example.com/posts/hello?p=1",
+		"http://example.com/posts/hello?p=1",
+		"https://Example.COM:443/posts/hello/?p=1",
+		"https://example.com/posts/hello?utm_source=rss&p=1&fbclid=abc",
+	} {
+		if got := normalizeItemUrl(rawUrl); got != want {
+			t.Errorf("normalizeItemUrl(%q) = %q, want %q", rawUrl, got, want)
+		}
+	}
+}
+
+func TestNormalizeItemUrlKeepsDistinguishingParts(t *testing.T) {
+	for _, pair := range [][2]string{
+		{"https://example.com/changelog#v1", "https://example.com/changelog#v2"},
+		{"https://example.com/?p=1", "https://example.com/?p=2"},
+		{"https://example.com/Post", "https://example.com/post"},
+	} {
+		if normalizeItemUrl(pair[0]) == normalizeItemUrl(pair[1]) {
+			t.Errorf("%q and %q normalized to the same URL", pair[0], pair[1])
+		}
+	}
+}
+
 func TestIsSafeFeedUrlHonoursContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()

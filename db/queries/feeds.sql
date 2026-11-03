@@ -22,8 +22,13 @@ UPDATE feed
 SET title = $1, html_url = $2, description = $3, last_retrieved_at = $4, updated_at = NOW()
 WHERE id = $5;
 
--- name: SaveFeedItemDetails :copyfrom
-INSERT INTO feed_item (feed_id, title, url, publish_date, retrieved_at) VALUES ($1, $2, $3, $4, $5);
+-- name: SaveFeedItemDetails :execrows
+INSERT INTO feed_item (feed_id, retrieved_at, title, url, normalized_url, publish_date)
+SELECT
+    @feed_id::uuid, @retrieved_at::timestamptz,
+    unnest(@titles::text[]), unnest(@urls::text[]),
+    unnest(@normalized_urls::text[]), unnest(@publish_dates::timestamptz[])
+ON CONFLICT (feed_id, normalized_url) DO NOTHING;
 
 -- name: SaveFeedUrls :copyfrom
 INSERT INTO feed_url (feed_id, url, source) VALUES ($1, $2, $3);

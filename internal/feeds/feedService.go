@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mmcdole/gofeed"
+	"golang.org/x/sync/singleflight"
 )
 
 type FeedService struct {
@@ -19,16 +20,17 @@ type FeedService struct {
 	queries    *db.Queries
 	db         *pgxpool.Pool
 	jobQueue   *jobs.JobQueue
+	refreshes  singleflight.Group
 }
 
 var FeedCacheStaleError = errors.New("Feed cache is stale.")
 
 func NewFeedService(rssService *RssService, queries *db.Queries, db *pgxpool.Pool, jobQueue *jobs.JobQueue) *FeedService {
 	return &FeedService{
-		rssService,
-		queries,
-		db,
-		jobQueue,
+		rssService: rssService,
+		queries:    queries,
+		db:         db,
+		jobQueue:   jobQueue,
 	}
 }
 
@@ -95,7 +97,13 @@ func (s *FeedService) GetFeedDataSince(
 
 	if needToFetchLiveFeed {
 		logData["feedUrl"] = feed.URL
-		feedResult, err := s.fetchFeed(ctx, feed.GlobalFeedId, feed.URL)
+
+		// Concurrent sends sharing a feed all see the same stale last_retrieved_at,
+		// so without this each one would fetch the feed and count its failures.
+		result, err, shared := s.refreshes.Do(feed.GlobalFeedId, func() (any, error) {
+			return s.refreshFeedCache(ctx, feed)
+		})
+		logData["sharedRefresh"] = shared
 
 		// A paused feed can stay paused for weeks, so keep delivering whatever is
 		// already cached instead of skipping the feed until the breaker closes —
@@ -106,17 +114,9 @@ func (s *FeedService) GetFeedDataSince(
 		} else if err != nil {
 			return nil, err
 		} else {
-			logData["fetchedItems"] = len(feedResult.Feed.Items)
-			feedResult.Feed = pruneFeedItemsBeforeTime(feedResult.Feed, feed.LastRetrievedAt)
-			logData["prunedItems"] = len(feedResult.Feed.Items)
-
-			if err = s.updateFeedCache(
-				ctx,
-				feed.GlobalFeedId,
-				feedResult,
-			); err != nil {
-				return nil, err
-			}
+			counts := result.(refreshCounts)
+			logData["fetchedItems"] = counts.fetched
+			logData["prunedItems"] = counts.pruned
 		}
 	}
 
@@ -153,6 +153,24 @@ func (s *FeedService) GetFeedDataSince(
 		HtmlURL: feed.HtmlURL,
 		Title:   feed.Name,
 	}, nil
+}
+
+type refreshCounts struct {
+	fetched int
+	pruned  int
+}
+
+func (s *FeedService) refreshFeedCache(ctx context.Context, feed BaseFeed) (refreshCounts, error) {
+	feedResult, err := s.fetchFeed(ctx, feed.GlobalFeedId, feed.URL)
+	if err != nil {
+		return refreshCounts{}, err
+	}
+
+	counts := refreshCounts{fetched: len(feedResult.Feed.Items)}
+	feedResult.Feed = pruneFeedItemsBeforeTime(feedResult.Feed, feed.LastRetrievedAt)
+	counts.pruned = len(feedResult.Feed.Items)
+
+	return counts, s.updateFeedCache(ctx, feed.GlobalFeedId, feedResult)
 }
 
 func (s *FeedService) saveFeedDetails(ctx context.Context, feed *FetchFeedResult) (string, error) {
@@ -247,23 +265,28 @@ func (s *FeedService) updateFeedCache(
 	return tx.Commit(ctx)
 }
 
-func buildFeedItemParamsFromGoFeed(feed *gofeed.Feed, feedId string, itemsRetrievedAt time.Time) []db.SaveFeedItemDetailsParams {
-	feedItemDetails := make([]db.SaveFeedItemDetailsParams, 0, len(feed.Items))
+func buildFeedItemParamsFromGoFeed(feed *gofeed.Feed, feedId string, itemsRetrievedAt time.Time) db.SaveFeedItemDetailsParams {
+	params := db.SaveFeedItemDetailsParams{
+		FeedID:         feedId,
+		RetrievedAt:    itemsRetrievedAt,
+		Titles:         make([]string, 0, len(feed.Items)),
+		Urls:           make([]string, 0, len(feed.Items)),
+		NormalizedUrls: make([]string, 0, len(feed.Items)),
+		PublishDates:   make([]time.Time, 0, len(feed.Items)),
+	}
+
 	for _, item := range feed.Items {
 		if item.PublishedParsed == nil {
 			continue
 		}
 
-		feedItemDetails = append(feedItemDetails, db.SaveFeedItemDetailsParams{
-			Title:       item.Title,
-			Url:         item.Link,
-			PublishDate: *item.PublishedParsed,
-			FeedID:      feedId,
-			RetrievedAt: itemsRetrievedAt,
-		})
+		params.Titles = append(params.Titles, item.Title)
+		params.Urls = append(params.Urls, item.Link)
+		params.NormalizedUrls = append(params.NormalizedUrls, normalizeItemUrl(item.Link))
+		params.PublishDates = append(params.PublishDates, *item.PublishedParsed)
 	}
 
-	return feedItemDetails
+	return params
 }
 
 func buildUrlList(feed *FetchFeedResult, feedId string) []db.SaveFeedUrlsParams {

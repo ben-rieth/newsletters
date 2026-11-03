@@ -10,6 +10,7 @@ require (
 	github.com/mmcdole/gofeed v1.5.0
 	github.com/resend/resend-go/v3 v3.17.0
 	golang.org/x/crypto v0.58.0
+	golang.org/x/sync v0.24.0
 	golang.org/x/time v0.16.0
 )
 
@@ -19,6 +20,5 @@ require (
 	github.com/jackc/puddle/v2 v2.2.3 // indirect
 	github.com/mmcdole/goxpp/v2 v2.0.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
 )

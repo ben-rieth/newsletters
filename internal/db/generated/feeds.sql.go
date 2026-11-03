@@ -837,12 +837,37 @@ func (q *Queries) SaveFeedDetails(ctx context.Context, arg SaveFeedDetailsParams
 	return id, err
 }
 
+const saveFeedItemDetails = `-- name: SaveFeedItemDetails :execrows
+INSERT INTO feed_item (feed_id, retrieved_at, title, url, normalized_url, publish_date)
+SELECT
+    $1::uuid, $2::timestamptz,
+    unnest($3::text[]), unnest($4::text[]),
+    unnest($5::text[]), unnest($6::timestamptz[])
+ON CONFLICT (feed_id, normalized_url) DO NOTHING
+`
+
 type SaveFeedItemDetailsParams struct {
-	FeedID      string
-	Title       string
-	Url         string
-	PublishDate time.Time
-	RetrievedAt time.Time
+	FeedID         string
+	RetrievedAt    time.Time
+	Titles         []string
+	Urls           []string
+	NormalizedUrls []string
+	PublishDates   []time.Time
+}
+
+func (q *Queries) SaveFeedItemDetails(ctx context.Context, arg SaveFeedItemDetailsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, saveFeedItemDetails,
+		arg.FeedID,
+		arg.RetrievedAt,
+		arg.Titles,
+		arg.Urls,
+		arg.NormalizedUrls,
+		arg.PublishDates,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const saveFeedUrl = `-- name: SaveFeedUrl :exec

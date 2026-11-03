@@ -433,14 +433,15 @@ type FeedFetchFailure struct {
 }
 
 type FeedItem struct {
-	ID          string
-	FeedID      string
-	Title       string
-	Url         string
-	PublishDate time.Time
-	RetrievedAt time.Time
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID            string
+	FeedID        string
+	Title         string
+	Url           string
+	PublishDate   time.Time
+	RetrievedAt   time.Time
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	NormalizedUrl pgtype.Text
 }
 
 type FeedUrl struct {

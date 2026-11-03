@@ -46,42 +46,6 @@ func (q *Queries) CreateFeedImports(ctx context.Context, arg []CreateFeedImports
 	return q.db.CopyFrom(ctx, []string{"newsletter_feed_import"}, []string{"newsletter_id", "user_id", "url", "alias", "status", "filters"}, &iteratorForCreateFeedImports{rows: arg})
 }
 
-// iteratorForSaveFeedItemDetails implements pgx.CopyFromSource.
-type iteratorForSaveFeedItemDetails struct {
-	rows                 []SaveFeedItemDetailsParams
-	skippedFirstNextCall bool
-}
-
-func (r *iteratorForSaveFeedItemDetails) Next() bool {
-	if len(r.rows) == 0 {
-		return false
-	}
-	if !r.skippedFirstNextCall {
-		r.skippedFirstNextCall = true
-		return true
-	}
-	r.rows = r.rows[1:]
-	return len(r.rows) > 0
-}
-
-func (r iteratorForSaveFeedItemDetails) Values() ([]interface{}, error) {
-	return []interface{}{
-		r.rows[0].FeedID,
-		r.rows[0].Title,
-		r.rows[0].Url,
-		r.rows[0].PublishDate,
-		r.rows[0].RetrievedAt,
-	}, nil
-}
-
-func (r iteratorForSaveFeedItemDetails) Err() error {
-	return nil
-}
-
-func (q *Queries) SaveFeedItemDetails(ctx context.Context, arg []SaveFeedItemDetailsParams) (int64, error) {
-	return q.db.CopyFrom(ctx, []string{"feed_item"}, []string{"feed_id", "title", "url", "publish_date", "retrieved_at"}, &iteratorForSaveFeedItemDetails{rows: arg})
-}
-
 // iteratorForSaveFeedUrls implements pgx.CopyFromSource.
 type iteratorForSaveFeedUrls struct {
 	rows                 []SaveFeedUrlsParams

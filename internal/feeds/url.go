@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net"
 	"net/url"
+	"strings"
 	"time"
 )
 
@@ -51,4 +52,35 @@ func IsSafeFeedUrl(ctx context.Context, rawUrl string) error {
 	}
 
 	return nil
+}
+
+var trackingParams = map[string]bool{"fbclid": true, "gclid": true, "mc_cid": true, "mc_eid": true}
+
+// Fragments are kept because changelog-style feeds link every item to an
+// anchor on the same page.
+func normalizeItemUrl(raw string) string {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return raw
+	}
+
+	u.Scheme = "https"
+	u.Host = strings.ToLower(u.Host)
+	if port := u.Port(); port == "80" || port == "443" {
+		u.Host = strings.TrimSuffix(u.Host, ":"+port)
+	}
+
+	u.Path = strings.TrimSuffix(u.Path, "/")
+	u.RawPath = strings.TrimSuffix(u.RawPath, "/")
+
+	if query, err := url.ParseQuery(u.RawQuery); err == nil {
+		for key := range query {
+			if strings.HasPrefix(key, "utm_") || trackingParams[key] {
+				delete(query, key)
+			}
+		}
+		u.RawQuery = query.Encode()
+	}
+
+	return u.String()
 }

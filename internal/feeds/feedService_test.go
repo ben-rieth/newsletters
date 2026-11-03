@@ -1,6 +1,7 @@
 package feeds
 
 import (
+	"reflect"
 	"testing"
 	"time"
 
@@ -80,20 +81,17 @@ func TestBuildFeedItemParamsFromGoFeed(t *testing.T) {
 
 	got := buildFeedItemParamsFromGoFeed(feed, "feed-1", retrievedAt)
 
-	if len(got) != 1 {
-		t.Fatalf("got %d params, want 1", len(got))
-	}
-
 	want := db.SaveFeedItemDetailsParams{
-		Title:       "dated",
-		Url:         "https://example.com/dated",
-		PublishDate: published,
-		FeedID:      "feed-1",
-		RetrievedAt: retrievedAt,
+		FeedID:         "feed-1",
+		RetrievedAt:    retrievedAt,
+		Titles:         []string{"dated"},
+		Urls:           []string{"https://example.com/dated"},
+		NormalizedUrls: []string{"https://example.com/dated"},
+		PublishDates:   []time.Time{published},
 	}
 
-	if got[0] != want {
-		t.Errorf("params = %+v, want %+v", got[0], want)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("params = %+v, want %+v", got, want)
 	}
 }
 
