@@ -39,6 +39,7 @@ export const SignUpForm = ({
 
   return (
     <form
+      method="post"
       className="space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
@@ -50,7 +51,9 @@ export const SignUpForm = ({
           <FormField field={field} label="Email">
             <Input
               id={field.name}
+              name={field.name}
               type="email"
+              autoComplete="username"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
@@ -68,7 +71,9 @@ export const SignUpForm = ({
           <FormField field={field} label="Password">
             <Input
               id={field.name}
+              name={field.name}
               type="password"
+              autoComplete="new-password"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
@@ -85,7 +90,9 @@ export const SignUpForm = ({
           <FormField field={field} label="Confirm password">
             <Input
               id={field.name}
+              name={field.name}
               type="password"
+              autoComplete="new-password"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}

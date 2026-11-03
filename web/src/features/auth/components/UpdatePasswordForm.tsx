@@ -49,7 +49,9 @@ export const UpdatePasswordForm = () => {
           <FormField field={field} label="Current Password">
             <Input
               id={field.name}
+              name={field.name}
               type="password"
+              autoComplete="current-password"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
@@ -66,7 +68,9 @@ export const UpdatePasswordForm = () => {
           <FormField field={field} label="New Password">
             <Input
               id={field.name}
+              name={field.name}
               type="password"
+              autoComplete="new-password"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
@@ -83,7 +87,9 @@ export const UpdatePasswordForm = () => {
           <FormField field={field} label="Confirm New Password">
             <Input
               id={field.name}
+              name={field.name}
               type="password"
+              autoComplete="new-password"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}

@@ -62,7 +62,9 @@ export const DeleteAccountForm = () => {
               <FormField field={field} label="Password">
                 <Input
                   id={field.name}
+                  name={field.name}
                   type="password"
+                  autoComplete="current-password"
                   value={field.state.value}
                   onChange={(e) => field.handleChange(e.target.value)}
                   onBlur={field.handleBlur}

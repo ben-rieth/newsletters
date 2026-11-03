@@ -96,7 +96,9 @@ export const UpdateEmailForm = () => {
           <FormField field={field} label="New Email">
             <Input
               id={field.name}
+              name={field.name}
               type="email"
+              autoComplete="email"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
@@ -114,7 +116,9 @@ export const UpdateEmailForm = () => {
           <FormField field={field} label="Confirm New Email">
             <Input
               id={field.name}
+              name={field.name}
               type="email"
+              autoComplete="email"
               value={field.state.value}
               onChange={(e) => field.handleChange(e.target.value)}
               onBlur={field.handleBlur}
@@ -132,6 +136,7 @@ export const UpdateEmailForm = () => {
           <FormField field={field} label="Current Password">
             <Input
               id={field.name}
+              name={field.name}
               type="password"
               autoComplete="current-password"
               value={field.state.value}
