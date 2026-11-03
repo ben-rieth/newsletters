@@ -677,17 +677,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
-    AuthInputBody: {
-      /**
-       * Format: uri
-       * @description A URL to the JSON Schema for this object.
-       * @example https://example.com/schemas/AuthInputBody.json
-       */
-      readonly $schema?: string;
-      /** @description Must be a valid email */
-      email: string;
-      password: string;
-    };
     AuthOutputBody: {
       /**
        * Format: uri
@@ -1019,6 +1008,28 @@ export interface components {
       readonly $schema?: string;
       email: string;
     };
+    SignInInputBody: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/SignInInputBody.json
+       */
+      readonly $schema?: string;
+      /** @description Must be a valid email */
+      email: string;
+      password: string;
+    };
+    SignUpInputBody: {
+      /**
+       * Format: uri
+       * @description A URL to the JSON Schema for this object.
+       * @example https://example.com/schemas/SignUpInputBody.json
+       */
+      readonly $schema?: string;
+      /** @description Must be a valid email */
+      email: string;
+      password: string;
+    };
     SubmittableFeedFields: {
       /**
        * Format: uri
@@ -1258,7 +1269,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['AuthInputBody'];
+        'application/json': components['schemas']['SignInInputBody'];
       };
     };
     responses: {
@@ -1292,7 +1303,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['AuthInputBody'];
+        'application/json': components['schemas']['SignUpInputBody'];
       };
     };
     responses: {

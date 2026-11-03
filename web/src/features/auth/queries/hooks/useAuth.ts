@@ -1,7 +1,7 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import client from '#/api/client';
-import type { components } from '#/api/schema';
+import type { paths } from '#/api/schema';
 import {
   clearPendingVerificationPassword,
   setPendingVerificationPassword,
@@ -9,12 +9,14 @@ import {
 import { dispatchAuthChange } from '#/features/auth/lib/session';
 
 type AuthPath = '/auth/sign-in' | '/auth/sign-up';
+type AuthBody =
+  paths[AuthPath]['post']['requestBody']['content']['application/json'];
 
 const useAuth = (path: AuthPath) => {
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: async (body: components['schemas']['AuthInputBody']) => {
+    mutationFn: async (body: AuthBody) => {
       const { data, error } = await client.POST(path, { body });
       if (error) {
         throw error;

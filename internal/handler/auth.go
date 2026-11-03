@@ -20,10 +20,18 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type authInput struct {
+type signUpInput struct {
 	Body struct {
-		Email    string `json:"email" doc:"Must be a valid email" pattern:"^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$"`
+		Email    string `json:"email" doc:"Must be a valid email" patternDescription:"a valid email address" pattern:"^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$"`
 		Password string `json:"password" minLength:"12" maxLength:"72"`
+	}
+}
+
+// No minLength: a too-short password must fail like any other wrong password.
+type signInInput struct {
+	Body struct {
+		Email    string `json:"email" doc:"Must be a valid email" patternDescription:"a valid email address" pattern:"^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}$"`
+		Password string `json:"password" maxLength:"72"`
 	}
 }
 
@@ -126,7 +134,7 @@ func (h *AuthHandler) RegisterRoutes(api huma.API) {
 	}, h.handleResendVerificationEmail)
 }
 
-func (h *AuthHandler) handleSignUp(ctx context.Context, i *authInput) (*authOutput, error) {
+func (h *AuthHandler) handleSignUp(ctx context.Context, i *signUpInput) (*authOutput, error) {
 	userEmail, err := users.CanonicalizeEmail(i.Body.Email)
 	if err != nil {
 		return nil, badRequestError("Invalid email")
@@ -179,7 +187,7 @@ var dummyPasswordHash = func() []byte {
 	return hash
 }()
 
-func (h *AuthHandler) handleSignIn(ctx context.Context, i *authInput) (*authOutput, error) {
+func (h *AuthHandler) handleSignIn(ctx context.Context, i *signInInput) (*authOutput, error) {
 	userEmail, err := users.CanonicalizeEmail(i.Body.Email)
 	if err != nil {
 		return nil, huma.Error401Unauthorized(signInFailedText)

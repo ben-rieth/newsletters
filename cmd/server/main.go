@@ -106,6 +106,7 @@ func main() {
 		humaConfig.SchemasPath = ""
 	}
 
+	handler.UseFriendlyValidationMessages()
 	api := humago.New(apiMux, humaConfig)
 	api.UseMiddleware(wideLog.WideLogMiddleware)
 
