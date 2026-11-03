@@ -34,9 +34,7 @@ import {
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog';
 import { getErrorMessage } from '#/lib/errors';
-
-export const NEWSLETTER_TABS = ['feeds', 'history', 'settings'] as const;
-export type NewsletterTab = (typeof NEWSLETTER_TABS)[number];
+import type { NewsletterTab } from '../lib/tabs';
 
 type Props = {
   newsletter: Newsletter;

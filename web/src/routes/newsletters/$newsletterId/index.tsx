@@ -1,12 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { z } from 'zod';
-import {
-  NEWSLETTER_TABS,
-  NewsletterDetail,
-} from '#/features/newsletters/components/NewsletterDetail';
+import { NewsletterDetail } from '#/features/newsletters/components/NewsletterDetail';
 import { useMobileHeader } from '#/components/MobileHeader';
 import { newsletterOptions } from '#/features/newsletters/queries/newsletters';
+import { NEWSLETTER_TABS, parseTab } from '#/features/newsletters/lib/tabs';
+import type { NewsletterTab } from '#/features/newsletters/lib/tabs';
 
 const NewsletterPage = () => {
   const { newsletterId } = Route.useParams();
@@ -37,7 +35,9 @@ const NewsletterPage = () => {
 
 export const Route = createFileRoute('/newsletters/$newsletterId/')({
   component: NewsletterPage,
-  validateSearch: z.object({
-    tab: z.enum(NEWSLETTER_TABS).optional().catch(undefined),
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: NewsletterTab } => ({
+    tab: parseTab(NEWSLETTER_TABS, search.tab),
   }),
 });

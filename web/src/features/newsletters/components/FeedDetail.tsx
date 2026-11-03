@@ -30,9 +30,7 @@ import {
   AlertDialogTitle,
 } from '#/components/ui/alert-dialog';
 import { getErrorMessage } from '#/lib/errors';
-
-export const FEED_TABS = ['details', 'filters'] as const;
-export type FeedTab = (typeof FEED_TABS)[number];
+import type { FeedTab } from '../lib/tabs';
 
 type Props = {
   newsletterId: string;

@@ -1,12 +1,10 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
-import { z } from 'zod';
-import {
-  FEED_TABS,
-  FeedDetail,
-} from '#/features/newsletters/components/FeedDetail';
+import { FeedDetail } from '#/features/newsletters/components/FeedDetail';
 import { feedDetailOptions } from '#/features/newsletters/queries/feeds';
+import { FEED_TABS, parseTab } from '#/features/newsletters/lib/tabs';
+import type { FeedTab } from '#/features/newsletters/lib/tabs';
 import {
   newsletterOptions,
   newslettersOptions,
@@ -63,8 +61,8 @@ export const Route = createFileRoute(
   '/newsletters/$newsletterId/feeds/$feedId',
 )({
   component: FeedDetailPage,
-  validateSearch: z.object({
-    tab: z.enum(FEED_TABS).optional().catch(undefined),
+  validateSearch: (search: Record<string, unknown>): { tab?: FeedTab } => ({
+    tab: parseTab(FEED_TABS, search.tab),
   }),
   loader: async ({ context, params }) => {
     await Promise.all([
