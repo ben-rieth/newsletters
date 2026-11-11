@@ -1,5 +1,5 @@
 import { clearPendingVerificationPassword } from '#/features/auth/lib/pendingVerificationPassword';
-import { router } from '#/router';
+import { queryClient, router } from '#/router';
 
 export const dispatchAuthChange = () => {
   window.dispatchEvent(new Event('auth-change'));
@@ -25,5 +25,7 @@ export const clearSession = () => {
 
   clearPendingVerificationPassword();
   dispatchAuthChange();
-  router.navigate({ to: '/sign-in' });
+  // Clearing while the signed-in page is still mounted would make its
+  // suspense queries refetch without a session and 401 straight back here.
+  void router.navigate({ to: '/sign-in' }).then(() => queryClient.clear());
 };
